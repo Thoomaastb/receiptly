@@ -1,3 +1,9 @@
+## [0.3.0](https://github.com/Thoomaastb/receiptly/compare/v0.2.0...v0.3.0) (2026-07-03)
+
+### Features
+
+* **receipts:** add receipt list/detail endpoints and wire OCR text into upload ([943d0a0](https://github.com/Thoomaastb/receiptly/commit/943d0a0c5d341681e3acc5b058684d4b06524765))
+
 ## [0.2.0](https://github.com/Thoomaastb/receiptly/compare/v0.1.1...v0.2.0) (2026-07-03)
 
 ### Features
