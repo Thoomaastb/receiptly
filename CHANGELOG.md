@@ -1,3 +1,9 @@
+## [0.4.0](https://github.com/Thoomaastb/receiptly/compare/v0.3.0...v0.4.0) (2026-07-03)
+
+### Features
+
+* **ui:** add masonry receipt feed with bucket grouping and card-to-modal transition ([2aeb3d4](https://github.com/Thoomaastb/receiptly/commit/2aeb3d4373d14f477fbc604c22e3ab1317763848))
+
 ## [0.3.0](https://github.com/Thoomaastb/receiptly/compare/v0.2.0...v0.3.0) (2026-07-03)
 
 ### Features
