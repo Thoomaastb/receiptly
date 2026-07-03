@@ -55,7 +55,7 @@ feat!: description         → MAJOR — reserviert für das stabile v1.0.0-Rele
 chore/docs/ci/test         → kein Release
 ```
 
-Gültige Scopes: `auth · pim · audit · monitoring · logs · services · dashboard · hub · spoke · api · db · ui · installer · docker · ci · deps · release · readme · license · security`
+Gültige Scopes: `auth · receipts · buckets · pricing · documents · audit · monitoring · logs · services · dashboard · api · db · ui · docker · ci · deps · release · readme · license · security`
 
 Commitlint (`commitlint.config.js`) erzwingt Typ und Scope. `.releaserc.json` steuert
 `semantic-release`. Vor `v1.0.0` ist nichts stabil released — Reihenfolge der Minor-Versionen

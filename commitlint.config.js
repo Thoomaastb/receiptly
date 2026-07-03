@@ -15,8 +15,8 @@ module.exports = {
       2,
       'always',
       [
-        'auth', 'pim', 'audit', 'monitoring', 'logs', 'services',
-        'dashboard', 'hub', 'spoke', 'api', 'db', 'ui', 'installer',
+        'auth', 'receipts', 'buckets', 'pricing', 'documents', 'audit',
+        'monitoring', 'logs', 'services', 'dashboard', 'api', 'db', 'ui',
         'docker', 'ci', 'deps', 'release', 'readme', 'license', 'security'
       ]
     ],
