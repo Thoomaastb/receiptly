@@ -9,7 +9,8 @@ from app.database import get_db
 from app.models.bucket import Bucket, BucketAccess, BucketVisibility
 from app.models.receipt import Receipt, ReceiptStatus
 from app.models.user import User
-from app.schemas.receipt import ReceiptUploadResponse
+from app.schemas.receipt import ReceiptDetail, ReceiptListItem, ReceiptUploadResponse
+from app.services.bucket_access import visible_bucket_ids_query
 from app.services.storage import (
     FileTooLargeError,
     UnsupportedFileTypeError,
@@ -64,13 +65,16 @@ async def _assert_bucket_writable(db: AsyncSession, bucket_id: uuid.UUID, user: 
 async def upload_receipt(
     bucket_id: uuid.UUID = Form(...),
     file: UploadFile = File(...),
+    ocr_text: str | None = Form(default=None),
+    ocr_confidence: float | None = Form(default=None),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Receipt:
     """
-    Nimmt Kamerascan oder Datei-Upload entgegen (PDF, JPG, PNG).
-    receipt_date/total_amount sind hier bewusst noch leer — die füllt ein späteres
-    OCR/KI-Paket (v0.1.0-alpha.3 / KI & Duplikate). Duplikats-Warnung ebenfalls dort.
+    Nimmt Kamerascan oder Datei-Upload entgegen (PDF, JPG, PNG), inkl. optionalem
+    client-seitig erzeugtem OCR-Text (das Originalbild selbst verlässt das Gerät nie).
+    receipt_date/total_amount bleiben hier bewusst leer — Struktur-Extraktion aus dem
+    OCR-Text übernimmt ein späteres KI-Paket.
     """
     await _assert_bucket_writable(db, bucket_id, user)
 
@@ -89,8 +93,41 @@ async def upload_receipt(
         content_hash=content_hash,
         status=ReceiptStatus.PENDING,
         currency="EUR",
+        ocr_raw_text=ocr_text,
+        ocr_confidence=ocr_confidence,
     )
     db.add(receipt)
     await db.commit()
     await db.refresh(receipt)
+    return receipt
+
+
+@router.get("", response_model=list[ReceiptListItem])
+async def list_receipts(
+    user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+) -> list[Receipt]:
+    """Belege aus allen für den User sichtbaren Buckets, neueste zuerst."""
+    result = await db.execute(
+        select(Receipt)
+        .where(Receipt.bucket_id.in_(visible_bucket_ids_query(user)))
+        .order_by(Receipt.created_at.desc())
+    )
+    return list(result.scalars().all())
+
+
+@router.get("/{receipt_id}", response_model=ReceiptDetail)
+async def get_receipt(
+    receipt_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Receipt:
+    result = await db.execute(
+        select(Receipt).where(
+            Receipt.id == receipt_id, Receipt.bucket_id.in_(visible_bucket_ids_query(user))
+        )
+    )
+    receipt = result.scalar_one_or_none()
+    if receipt is None:
+        # Bewusst 404 statt 403 — Bucket-Existenz privater Buckets bleibt verborgen
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Beleg nicht gefunden")
     return receipt

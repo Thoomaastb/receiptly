@@ -50,17 +50,21 @@
 			// 1) OCR läuft on-device — das Originalbild verlässt das Gerät nie
 			stage = 'ocr';
 			const provider = await getOCRProvider();
-			const { text, confidence } = await provider.recognize(selectedFile, (fraction) => {
-				ocrProgress = Math.round(fraction * 100);
-			});
-			console.debug('OCR-Ergebnis (Konfidenz):', confidence, text.slice(0, 80));
+			const { text: ocrText, confidence: ocrConfidence } = await provider.recognize(
+				selectedFile,
+				(fraction) => {
+					ocrProgress = Math.round(fraction * 100);
+				}
+			);
 
-			// 2) Datei-Upload an die API (nur die Datei selbst, kein OCR-Text-Body hier —
-			//    Text-Verarbeitung/Tagging folgt in einem späteren KI-Paket)
+			// 2) Datei-Upload an die API — inkl. OCR-Text (Struktur-Extraktion Datum/Betrag
+			//    folgt in einem späteren KI-Paket, hier landet erstmal der Rohtext)
 			stage = 'uploading';
 			const formData = new FormData();
 			formData.append('file', selectedFile);
 			formData.append('bucket_id', selectedBucketId);
+			formData.append('ocr_text', ocrText);
+			formData.append('ocr_confidence', String(ocrConfidence));
 
 			await uploadWithProgress(formData);
 
