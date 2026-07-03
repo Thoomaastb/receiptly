@@ -1,3 +1,9 @@
+## [0.5.0](https://github.com/Thoomaastb/receiptly/compare/v0.4.0...v0.5.0) (2026-07-03)
+
+### Features
+
+* **docker:** combine backend and frontend into single deployable container ([ecc0915](https://github.com/Thoomaastb/receiptly/commit/ecc0915c19ca134634ed81344a9bb9d3247a4862))
+
 ## [0.4.0](https://github.com/Thoomaastb/receiptly/compare/v0.3.0...v0.4.0) (2026-07-03)
 
 ### Features
