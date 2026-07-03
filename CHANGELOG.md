@@ -1,3 +1,9 @@
+## [0.5.1](https://github.com/Thoomaastb/receiptly/compare/v0.5.0...v0.5.1) (2026-07-03)
+
+### Bug Fixes
+
+* **ci:** restore persist-credentials false so RELEASE_TOKEN triggers docker.yml on tag push ([640242c](https://github.com/Thoomaastb/receiptly/commit/640242c8e2f1a9a1a97f6cdc757caa9f2fdbf08d))
+
 ## [0.5.0](https://github.com/Thoomaastb/receiptly/compare/v0.4.0...v0.5.0) (2026-07-03)
 
 ### Features
