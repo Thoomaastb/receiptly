@@ -1,3 +1,17 @@
+## 1.0.0 (2026-07-03)
+
+### Features
+
+* **pim:** add receipt upload flow with client-side OCR and file storage service ([0c1de32](https://github.com/Thoomaastb/receiptly/commit/0c1de329c7d58eb9e23730fdbc7cdca7d68b202c))
+* **services:** initial receiptly project skeleton ([af266ad](https://github.com/Thoomaastb/receiptly/commit/af266ad9dc46e883db01adeb41e7fce32f3b27aa))
+
+### Bug Fixes
+
+* **ci:** remove persist-credentials false blocking semantic-release branch resolution ([95a91d1](https://github.com/Thoomaastb/receiptly/commit/95a91d174b5806119cfea821d8d6ab3372d81ab9))
+* **ci:** replace non-receiptly commit scopes with real domain scopes ([58bdd96](https://github.com/Thoomaastb/receiptly/commit/58bdd96464338248eaa2b622c4ecd803b06aba67))
+* **release:** configure alpha prerelease channel and use PAT to trigger downstream workflows ([23b9805](https://github.com/Thoomaastb/receiptly/commit/23b9805e643e491a6d27281a9210fdf0f870b5a1))
+* **release:** consolidate skeleton with alpha prerelease channel and PAT-based release trigger ([d77cef9](https://github.com/Thoomaastb/receiptly/commit/d77cef94198c3b07b7896365a0786c22778cd2f9))
+
 # Changelog
 
 Alle nennenswerten Änderungen an receiptly werden hier dokumentiert.
