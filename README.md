@@ -17,19 +17,38 @@ Vollständiges Konzept, Architektur, Datenmodell und Backlog: siehe Notion (Page
 
 ## Lokales Setup
 
+**Als vorgebautes Package (kein Checkout nötig)** — nur `docker-compose.yml` + `.env` besorgen:
+
 ```bash
 cp .env.example .env   # Werte anpassen (v.a. POSTGRES_PASSWORD, SESSION_SECRET)
 
 docker network create remote   # falls noch nicht vorhanden (Pangolin-Netzwerk)
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 
 # Migrationen ausführen
-docker compose exec backend alembic upgrade head
+docker compose exec app alembic upgrade head
 ```
 
-Frontend: http://localhost:3000 · Backend: http://localhost:8000/health
+App (Frontend + API im selben Container): http://localhost:8000 · API-Health: http://localhost:8000/api/health
 
-### Ohne Docker (Entwicklung)
+**Lokal selbst bauen** (z.B. eigene Änderungen): `docker compose up -d --build` statt `pull`.
+
+### Entwicklung mit Hot-Reload
+
+```bash
+# Backend mit --reload im Container
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+
+# Frontend separat mit Vite-HMR (nicht in Docker, sonst nur langsamer)
+cd frontend
+npm install
+npm run dev   # Vite-Proxy leitet /api an den Backend-Container weiter
+
+alembic upgrade head   # einmalig, falls Schema noch nicht migriert
+```
+
+### Ganz ohne Docker
 
 ```bash
 # Backend

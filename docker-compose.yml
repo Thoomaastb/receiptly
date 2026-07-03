@@ -22,8 +22,15 @@ services:
     networks:
       - intern-receiptly
 
-  backend:
-    build: ./backend
+  app:
+    # Vorgebautes Image aus GHCR — "docker compose pull && docker compose up -d"
+    # funktioniert ohne Code-Checkout, nur diese Datei + .env nötig.
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-thomas}/receiptly:${RECEIPTLY_VERSION:-latest}
+    # Lokaler Build als Fallback, falls kein Netzwerkzugriff auf GHCR oder eigene Änderungen:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    pull_policy: missing
     restart: unless-stopped
     env_file: .env
     ports:
@@ -40,24 +47,13 @@ services:
       - intern-receiptly
       - remote
 
-  frontend:
-    build: ./frontend
-    restart: unless-stopped
-    env_file: .env
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
-    networks:
-      - remote
-
 volumes:
   db-data:
   storage-originals:
   storage-thumbs:
 
 networks:
-  # Internes Netzwerk — Backend <-> DB/Redis, von außen nicht erreichbar
+  # Internes Netzwerk — App <-> DB/Redis, von außen nicht erreichbar
   intern-receiptly:
     internal: true
   # Externes Netzwerk — Pangolin/Newt-Anbindung auf Apollo

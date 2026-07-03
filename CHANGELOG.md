@@ -1,55 +1,34 @@
-## [0.3.0](https://github.com/Thoomaastb/receiptly/compare/v0.2.0...v0.3.0) (2026-07-03)
-
-### Features
-
-* **receipts:** add receipt list/detail endpoints and wire OCR text into upload ([943d0a0](https://github.com/Thoomaastb/receiptly/commit/943d0a0c5d341681e3acc5b058684d4b06524765))
-
-## [0.2.0](https://github.com/Thoomaastb/receiptly/compare/v0.1.1...v0.2.0) (2026-07-03)
-
-### Features
-
-* **buckets:** add read-only bucket listing and wire it into upload flow ([c7c7a5d](https://github.com/Thoomaastb/receiptly/commit/c7c7a5d0aa641347d80f84c4ec782a6c92b37520))
-
-## [0.1.1](https://github.com/Thoomaastb/receiptly/compare/v0.1.0...v0.1.1) (2026-07-03)
-
-### Bug Fixes
-
-* **ci:** restore automatic push-triggered releases ([1f38184](https://github.com/Thoomaastb/receiptly/commit/1f381846912a5e4c047b1d4914cf31bfeb13e722))
-
-## 1.0.0 (2026-07-03)
-
-### Features
-
-* **pim:** add receipt upload flow with client-side OCR and file storage service ([0c1de32](https://github.com/Thoomaastb/receiptly/commit/0c1de329c7d58eb9e23730fdbc7cdca7d68b202c))
-* **services:** initial receiptly project skeleton ([af266ad](https://github.com/Thoomaastb/receiptly/commit/af266ad9dc46e883db01adeb41e7fce32f3b27aa))
-
-### Bug Fixes
-
-* **ci:** remove persist-credentials false blocking semantic-release branch resolution ([95a91d1](https://github.com/Thoomaastb/receiptly/commit/95a91d174b5806119cfea821d8d6ab3372d81ab9))
-* **ci:** replace non-receiptly commit scopes with real domain scopes ([58bdd96](https://github.com/Thoomaastb/receiptly/commit/58bdd96464338248eaa2b622c4ecd803b06aba67))
-* **ci:** switch release workflow to manual trigger during alpha/beta phase ([e33e9e4](https://github.com/Thoomaastb/receiptly/commit/e33e9e4a3f13bfae771175b33eea9040db4b0bf0))
-* **release:** configure alpha prerelease channel and use PAT to trigger downstream workflows ([23b9805](https://github.com/Thoomaastb/receiptly/commit/23b9805e643e491a6d27281a9210fdf0f870b5a1))
-* **release:** consolidate skeleton with alpha prerelease channel and PAT-based release trigger ([d77cef9](https://github.com/Thoomaastb/receiptly/commit/d77cef94198c3b07b7896365a0786c22778cd2f9))
-
-## 1.0.0 (2026-07-03)
-
-### Features
-
-* **pim:** add receipt upload flow with client-side OCR and file storage service ([0c1de32](https://github.com/Thoomaastb/receiptly/commit/0c1de329c7d58eb9e23730fdbc7cdca7d68b202c))
-* **services:** initial receiptly project skeleton ([af266ad](https://github.com/Thoomaastb/receiptly/commit/af266ad9dc46e883db01adeb41e7fce32f3b27aa))
-
-### Bug Fixes
-
-* **ci:** remove persist-credentials false blocking semantic-release branch resolution ([95a91d1](https://github.com/Thoomaastb/receiptly/commit/95a91d174b5806119cfea821d8d6ab3372d81ab9))
-* **ci:** replace non-receiptly commit scopes with real domain scopes ([58bdd96](https://github.com/Thoomaastb/receiptly/commit/58bdd96464338248eaa2b622c4ecd803b06aba67))
-* **release:** configure alpha prerelease channel and use PAT to trigger downstream workflows ([23b9805](https://github.com/Thoomaastb/receiptly/commit/23b9805e643e491a6d27281a9210fdf0f870b5a1))
-* **release:** consolidate skeleton with alpha prerelease channel and PAT-based release trigger ([d77cef9](https://github.com/Thoomaastb/receiptly/commit/d77cef94198c3b07b7896365a0786c22778cd2f9))
-
 # Changelog
 
 Alle nennenswerten Änderungen an receiptly werden hier dokumentiert.
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 Versionierung nach Semantic Release (siehe README → Versionierung).
+
+## [Unreleased] - Single-Container-Package
+
+### Geändert
+- Frontend: `adapter-node` → `adapter-static` (SPA-Modus, `ssr=false`), kein
+  eigener Node-Prozess mehr zur Laufzeit nötig
+- Backend: alle API-Routen unter `/api/*`-Präfix (vorher `/auth`, `/receipts`,
+  `/buckets`, `/health` ohne Präfix) — Voraussetzung für Single-Container
+- `docker-compose.yml`: ein `app`-Service (Backend + statisches Frontend im
+  selben Prozess) statt getrennter `backend`/`frontend`-Services. Referenziert
+  ein vorgebautes GHCR-Image (`image:`), `docker compose pull` funktioniert
+  ohne Code-Checkout. `build:` bleibt als lokaler Fallback bestehen.
+- `.github/workflows/docker.yml`: baut ein kombiniertes Image statt einer
+  Matrix aus zwei Images
+
+### Hinzugefügt
+- Root-`Dockerfile` (Multi-Stage: Node baut Frontend statisch → Python-Image
+  liefert Backend-API und Frontend-Assets im selben Prozess aus, inkl.
+  SPA-Fallback auf `index.html` für Client-seitiges Routing)
+- `docker-compose.dev.yml` — Hot-Reload-Override für Backend (`--reload`
+  + Volume-Mount); Frontend-Hot-Reload läuft weiterhin über `npm run dev`
+- `.dockerignore`
+
+### Entfernt
+- `frontend/Dockerfile` (ersetzt durch das kombinierte Root-Dockerfile;
+  `adapter-static`-Output ist ohnehin kein eigenständig lauffähiger Server mehr)
 
 ## [Unreleased] - Scan & Upload (→ 0.2.0 bei feat-Commit)
 
