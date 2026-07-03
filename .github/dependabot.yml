@@ -1,0 +1,58 @@
+version: 2
+
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 10
+    groups:
+      python-dependencies:
+        patterns: ["*"]
+    labels:
+      - dependencies
+      - python
+    commit-message:
+      prefix: chore(deps)
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 10
+    groups:
+      npm-dependencies:
+        patterns: ["*"]
+        exclude-patterns:
+          - "@types/*"
+      npm-types:
+        patterns:
+          - "@types/*"
+    labels:
+      - dependencies
+      - javascript
+    commit-message:
+      prefix: chore(deps)
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns: ["*"]
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: chore(ci)
