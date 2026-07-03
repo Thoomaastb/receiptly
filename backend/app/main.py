@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import auth, health, receipts
+from app.api import auth, buckets, health, receipts
 from app.config import get_settings
 
 settings = get_settings()
@@ -37,3 +37,4 @@ async def security_headers(request, call_next):
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(receipts.router)
+app.include_router(buckets.router)

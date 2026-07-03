@@ -1,11 +1,38 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { getOCRProvider } from '$lib/ocr';
+
+	interface Bucket {
+		id: string;
+		name: string;
+		type: string;
+		visibility: string;
+		is_default: boolean;
+	}
 
 	let selectedFile: File | null = null;
 	let ocrProgress = 0;
 	let uploadProgress = 0;
 	let stage: 'idle' | 'ocr' | 'uploading' | 'done' | 'error' = 'idle';
 	let errorMessage = '';
+
+	let buckets: Bucket[] = [];
+	let selectedBucketId = '';
+	let bucketsLoading = true;
+
+	onMount(async () => {
+		try {
+			const res = await fetch('/api/buckets', { credentials: 'include' });
+			if (!res.ok) throw new Error(`Buckets konnten nicht geladen werden (${res.status})`);
+			buckets = await res.json();
+			// Household-Bucket zuerst (Backend sortiert bereits is_default zuerst)
+			selectedBucketId = buckets[0]?.id ?? '';
+		} catch (err) {
+			errorMessage = err instanceof Error ? err.message : 'Buckets konnten nicht geladen werden.';
+		} finally {
+			bucketsLoading = false;
+		}
+	});
 
 	function handleFileSelect(event: Event) {
 		const input = event.target as HTMLInputElement;
@@ -16,7 +43,7 @@
 	}
 
 	async function handleSubmit() {
-		if (!selectedFile) return;
+		if (!selectedFile || !selectedBucketId) return;
 		errorMessage = '';
 
 		try {
@@ -33,9 +60,7 @@
 			stage = 'uploading';
 			const formData = new FormData();
 			formData.append('file', selectedFile);
-			// TODO: bucket_id kommt aus dem Bucket-Switcher, sobald der existiert (v0.2.0+ Buckets-Paket).
-			// Bis dahin Platzhalter für den Default-Household-Bucket.
-			formData.append('bucket_id', '');
+			formData.append('bucket_id', selectedBucketId);
 
 			await uploadWithProgress(formData);
 
@@ -73,6 +98,23 @@
 <h1 class="mb-6 text-xl font-semibold">Beleg hochladen</h1>
 
 <div class="max-w-md rounded-lg border border-border bg-surface-raised p-6">
+	{#if bucketsLoading}
+		<p class="mb-4 text-sm text-text-muted">Buckets werden geladen …</p>
+	{:else if buckets.length > 1}
+		<label class="mb-4 block text-sm">
+			<span class="mb-1 block text-text-muted">Bucket</span>
+			<select bind:value={selectedBucketId} class="w-full rounded border border-border bg-surface p-2">
+				{#each buckets as bucket (bucket.id)}
+					<option value={bucket.id}>{bucket.name}{bucket.is_default ? ' (Haushalt)' : ''}</option>
+				{/each}
+			</select>
+		</label>
+	{:else if buckets.length === 1}
+		<p class="mb-4 text-sm text-text-muted">Bucket: {buckets[0].name}</p>
+	{:else if !errorMessage}
+		<p class="mb-4 text-sm text-red-500">Kein Bucket verfügbar — bitte einloggen.</p>
+	{/if}
+
 	<input
 		type="file"
 		accept="application/pdf,image/jpeg,image/png"
@@ -102,9 +144,10 @@
 
 	<button
 		on:click={handleSubmit}
-		disabled={!selectedFile || stage === 'ocr' || stage === 'uploading'}
+		disabled={!selectedFile || !selectedBucketId || stage === 'ocr' || stage === 'uploading'}
 		class="mt-4 rounded-lg bg-accent px-4 py-2 text-sm text-accent-contrast disabled:opacity-50"
 	>
 		Hochladen
 	</button>
 </div>
+
