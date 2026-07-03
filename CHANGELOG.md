@@ -1,3 +1,9 @@
+## [0.1.1](https://github.com/Thoomaastb/receiptly/compare/v0.1.0...v0.1.1) (2026-07-03)
+
+### Bug Fixes
+
+* **ci:** restore automatic push-triggered releases ([1f38184](https://github.com/Thoomaastb/receiptly/commit/1f381846912a5e4c047b1d4914cf31bfeb13e722))
+
 ## 1.0.0 (2026-07-03)
 
 ### Features
