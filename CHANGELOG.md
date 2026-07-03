@@ -1,3 +1,9 @@
+## [0.2.0](https://github.com/Thoomaastb/receiptly/compare/v0.1.1...v0.2.0) (2026-07-03)
+
+### Features
+
+* **buckets:** add read-only bucket listing and wire it into upload flow ([c7c7a5d](https://github.com/Thoomaastb/receiptly/commit/c7c7a5d0aa641347d80f84c4ec782a6c92b37520))
+
 ## [0.1.1](https://github.com/Thoomaastb/receiptly/compare/v0.1.0...v0.1.1) (2026-07-03)
 
 ### Bug Fixes
