@@ -4,6 +4,23 @@ Alle nennenswerten Änderungen an receiptly werden hier dokumentiert.
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/de/1.0.0/),
 Versionierung nach Semantic Release (siehe README → Versionierung).
 
+## [Unreleased] - Scan & Upload (→ 0.2.0 bei feat-Commit)
+
+Inhaltlich identisch zum ursprünglich als "v0.1.0-alpha.2" geplanten Paket — nur mit der
+neuen flachen Versionsnummer (siehe .releaserc.json-Fix).
+
+### Hinzugefügt
+- Backend: File Storage Service (`storage/originals/<household_id>/`), SHA-256 content_hash
+- Backend: `POST /receipts/upload` — Multipart-Upload, Bucket-Schreibrecht-Prüfung
+  (Owner immer, sonst nur mit explizitem `edit`-Grant; private Buckets ohne Freigabe = 404)
+- Migration 0002: `receipt_date`/`total_amount` nullable (beim Upload vor OCR/KI noch unbekannt)
+- Frontend: `OCRProvider`-Interface, `TesseractProvider` (WASM-Fallback), `NativeOCRProvider`-Stub
+- Frontend: Upload-Seite mit Fortschrittsanzeige (OCR-Phase + Upload-Phase getrennt)
+
+### Bekannte Lücken (bewusst offen für dieses Paket)
+- `bucket_id` beim Upload ist noch ein Platzhalter — echter Bucket-Switcher fehlt,
+  bis das Buckets-Paket kommt. Upload schlägt ohne echte `bucket_id` aktuell fehl.
+
 ## [0.1.0-alpha.1] - 2026-07-03
 
 Konsolidierte Baseline. Ersetzt alle vorherigen Zwischenstände vollständig —

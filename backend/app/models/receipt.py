@@ -37,8 +37,8 @@ class Receipt(Base, UpdatableTimestampMixin):
         UUID(as_uuid=True), ForeignKey("buckets.id", ondelete="CASCADE"), nullable=False
     )
 
-    receipt_date: Mapped[date] = mapped_column(Date, nullable=False)
-    total_amount: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    receipt_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    total_amount: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="EUR")
 
     ocr_raw_text: Mapped[str | None] = mapped_column(Text, nullable=True)
