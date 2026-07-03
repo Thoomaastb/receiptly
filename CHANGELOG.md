@@ -1,3 +1,9 @@
+## 1.0.0 (2026-07-03)
+
+### Features
+
+* **services:** initial receiptly project skeleton ([af266ad](https://github.com/Thoomaastb/receiptly/commit/af266ad9dc46e883db01adeb41e7fce32f3b27aa))
+
 # Changelog
 
 Alle nennenswerten Änderungen an receiptly werden hier dokumentiert.
