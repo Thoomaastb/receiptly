@@ -1,0 +1,61 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    networks:
+      - intern-receiptly
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    networks:
+      - intern-receiptly
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - storage-originals:/app/storage/originals
+      - storage-thumbs:/app/storage/thumbs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - intern-receiptly
+      - remote
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - backend
+    networks:
+      - remote
+
+volumes:
+  db-data:
+  storage-originals:
+  storage-thumbs:
+
+networks:
+  # Internes Netzwerk — Backend <-> DB/Redis, von außen nicht erreichbar
+  intern-receiptly:
+    internal: true
+  # Externes Netzwerk — Pangolin/Newt-Anbindung auf Apollo
+  remote:
+    external: true

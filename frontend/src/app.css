@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Design-Tokens gemäß Notion → UI-Konzept:
+  - Theme folgt Geräte-Standard (prefers-color-scheme), kein erzwungenes Dark-Only
+  - Flache Flächen, keine Schatten/Gradients, 0.5px Borders
+  - Farbe trägt Bedeutung (Bucket-Zugehörigkeit, KI vs. manuell), nicht Dekoration
+  - Household-Bucket = lila/purple, jede Person bekommt eine eigene Bucket-Farbe (später)
+*/
+
+:root {
+	color-scheme: light dark;
+
+	/* Light (Default) */
+	--color-surface: #ffffff;
+	--color-surface-raised: #f7f7f8;
+	--color-border: #e2e2e6;
+	--color-text: #1a1a1e;
+	--color-text-muted: #6b6b74;
+	--color-accent: #7c5cff;
+	--color-accent-contrast: #ffffff;
+	--color-bucket-household: #7c5cff;
+}
+
+@media (prefers-color-scheme: dark) {
+	:root {
+		--color-surface: #121214;
+		--color-surface-raised: #1c1c1f;
+		--color-border: #2e2e33;
+		--color-text: #f2f2f4;
+		--color-text-muted: #9a9aa2;
+		--color-accent: #9c85ff;
+		--color-accent-contrast: #121214;
+		--color-bucket-household: #9c85ff;
+	}
+}
+
+body {
+	background-color: var(--color-surface);
+	color: var(--color-text);
+}
+
+/* Respektiert reduzierte Bewegung durchgängig, siehe Card-to-Modal-Transition im UI-Konzept */
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		animation-duration: 0.01ms !important;
+		animation-iteration-count: 1 !important;
+		transition-duration: 0.01ms !important;
+	}
+}
