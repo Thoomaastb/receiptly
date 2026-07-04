@@ -1,3 +1,9 @@
+## [0.13.1](https://github.com/Thoomaastb/receiptly/compare/v0.13.0...v0.13.1) (2026-07-04)
+
+### Bug Fixes
+
+* **ui:** stack outgoing and incoming page content via CSS grid to prevent layout jump during transition ([27721f4](https://github.com/Thoomaastb/receiptly/commit/27721f4df2a1df32a1f69821e6397268685afe14))
+
 ## [0.13.0](https://github.com/Thoomaastb/receiptly/compare/v0.12.0...v0.13.0) (2026-07-04)
 
 ### Features
