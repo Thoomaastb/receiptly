@@ -1,3 +1,9 @@
+## [0.5.4](https://github.com/Thoomaastb/receiptly/compare/v0.5.3...v0.5.4) (2026-07-04)
+
+### Bug Fixes
+
+* **docker:** comment out unused host ports, fix stale app service reference in README ([8fabbbb](https://github.com/Thoomaastb/receiptly/commit/8fabbbb354e56b030aee80a90d74c1b442124988))
+
 ## [0.5.3](https://github.com/Thoomaastb/receiptly/compare/v0.5.2...v0.5.3) (2026-07-04)
 
 ### Bug Fixes
