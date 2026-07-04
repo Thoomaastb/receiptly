@@ -1,3 +1,9 @@
+## [0.7.0](https://github.com/Thoomaastb/receiptly/compare/v0.6.0...v0.7.0) (2026-07-04)
+
+### Features
+
+* **ui:** version fix ([467ea4c](https://github.com/Thoomaastb/receiptly/commit/467ea4ca8aa0ec6fb5a224798c1318883ceef973))
+
 ## [0.6.0](https://github.com/Thoomaastb/receiptly/compare/v0.5.4...v0.6.0) (2026-07-04)
 
 ### Features
