@@ -1,3 +1,9 @@
+## [0.5.3](https://github.com/Thoomaastb/receiptly/compare/v0.5.2...v0.5.3) (2026-07-04)
+
+### Bug Fixes
+
+* **docker:** manage internal and remote networks externally, temporary until v1.0.0 ([942ee2f](https://github.com/Thoomaastb/receiptly/commit/942ee2f6435e34858867bc90a6a2f69281369411))
+
 ## [0.5.2](https://github.com/Thoomaastb/receiptly/compare/v0.5.1...v0.5.2) (2026-07-04)
 
 ### Bug Fixes
