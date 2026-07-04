@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import ReceiptCard from '$lib/components/ReceiptCard.svelte';
+	import UploadModal from '$lib/components/UploadModal.svelte';
 
 	interface Receipt {
 		id: string;
@@ -23,7 +24,10 @@
 	let buckets: Bucket[] = [];
 	let loading = true;
 
-	onMount(async () => {
+	let uploadOpen = false;
+	let uploadOriginRect: DOMRect | null = null;
+
+	async function loadReceipts() {
 		try {
 			const [receiptsRes, bucketsRes] = await Promise.all([
 				fetch('/api/receipts', { credentials: 'include' }),
@@ -34,22 +38,32 @@
 		} finally {
 			loading = false;
 		}
-	});
+	}
+
+	onMount(loadReceipts);
 
 	function bucketFor(bucketId: string): Bucket | undefined {
 		return buckets.find((b) => b.id === bucketId);
 	}
 
-	// Vollwertiges Modal-Öffnen (FLIP-Transition) bleibt /receipts vorbehalten — von hier
-	// aus reicht die Navigation dorthin, kein Duplizieren der Modal-Logik auf der Startseite.
+	function openUpload(event: MouseEvent) {
+		uploadOriginRect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+		uploadOpen = true;
+	}
+
+	function closeUpload() {
+		uploadOpen = false;
+		loadReceipts(); // "on-the-fly": neuer Beleg erscheint sofort, kein Reload nötig
+	}
+
 	function goToReceipts() {
 		goto('/receipts');
 	}
 </script>
 
 <section class="mb-10 grid max-h-[500px] grid-cols-1 gap-3 sm:grid-cols-2">
-	<a
-		href="/upload"
+	<button
+		on:click={openUpload}
 		class="group rounded-xl border border-border bg-accent px-6 py-8 text-left text-accent-contrast transition-transform active:scale-[0.98]"
 	>
 		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mb-3 opacity-90" aria-hidden="true">
@@ -58,9 +72,9 @@
 		</svg>
 		<span class="block text-lg font-medium">Scannen</span>
 		<span class="block text-sm opacity-80">Kamera-Scan folgt mit der Mobile-App</span>
-	</a>
-	<a
-		href="/upload"
+	</button>
+	<button
+		on:click={openUpload}
 		class="group rounded-xl border border-border bg-surface-raised px-6 py-8 text-left transition-transform active:scale-[0.98]"
 	>
 		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mb-3 text-text-muted" aria-hidden="true">
@@ -69,7 +83,7 @@
 		</svg>
 		<span class="block text-lg font-medium">Hochladen</span>
 		<span class="block text-sm text-text-muted">PDF, JPG, PNG</span>
-	</a>
+	</button>
 </section>
 
 <div class="mb-4 flex items-center justify-between border-t border-border pt-4">
@@ -82,14 +96,14 @@
 {#if loading}
 	<p class="text-sm text-text-muted">Wird geladen …</p>
 {:else if recentReceipts.length === 0}
-	<a
-		href="/upload"
-		class="block rounded-xl border border-dashed border-border px-6 py-10 text-center transition-colors hover:bg-surface-raised"
+	<button
+		on:click={openUpload}
+		class="block w-full rounded-xl border border-dashed border-border px-6 py-10 text-center transition-colors hover:bg-surface-raised"
 	>
 		<span class="block text-sm text-text-muted">
 			Noch keine Belege — lade den ersten hoch, um loszulegen.
 		</span>
-	</a>
+	</button>
 {:else}
 	<div style="column-count: 3; column-gap: 12px;">
 		{#each recentReceipts as receipt (receipt.id)}
@@ -106,4 +120,8 @@
 			/>
 		{/each}
 	</div>
+{/if}
+
+{#if uploadOpen && uploadOriginRect}
+	<UploadModal originRect={uploadOriginRect} onClose={closeUpload} />
 {/if}
