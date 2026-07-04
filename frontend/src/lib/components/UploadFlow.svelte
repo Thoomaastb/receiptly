@@ -122,15 +122,16 @@
 
 	<input
 		type="file"
-		accept="application/pdf,image/jpeg,image/png"
+		accept={captureMode === 'camera' ? 'image/*' : 'application/pdf,image/jpeg,image/png'}
 		capture={captureMode === 'camera' ? 'environment' : undefined}
 		on:change={handleFileSelect}
 		class="mb-4 block w-full text-sm text-text-muted"
 	/>
 	{#if captureMode === 'camera'}
 		<p class="mb-4 text-xs text-text-muted">
-			Öffnet auf dem Smartphone direkt die Kamera. Auf dem Desktop erscheint stattdessen der
-			normale Datei-Dialog (Browser-Einschränkung, kein Bug).
+			Öffnet auf dem Smartphone die Kamera. PDFs sind im Scan-Modus bewusst ausgeschlossen —
+			ein Dateityp ohne Kamerabezug im accept-Attribut lässt Browser laut Spezifikation das
+			gesamte capture-Verhalten ignorieren. Für PDFs bitte „Hochladen" nutzen.
 		</p>
 	{/if}
 
