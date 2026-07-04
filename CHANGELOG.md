@@ -1,3 +1,9 @@
+## [0.8.0](https://github.com/Thoomaastb/receiptly/compare/v0.7.0...v0.8.0) (2026-07-04)
+
+### Features
+
+* **ui:** open upload as on-the-fly modal instead of navigating to a new page ([6e60dbf](https://github.com/Thoomaastb/receiptly/commit/6e60dbfe910fc0348684012db4fc8500c11f3cb4))
+
 ## [0.7.0](https://github.com/Thoomaastb/receiptly/compare/v0.6.0...v0.7.0) (2026-07-04)
 
 ### Features
