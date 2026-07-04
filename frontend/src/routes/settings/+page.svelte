@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import CustomSelect from '$lib/components/CustomSelect.svelte';
 
 	interface AISettings {
 		provider: string;
@@ -96,14 +97,14 @@
 		{#if loading}
 			<p class="text-sm text-text-muted">Wird geladen …</p>
 		{:else}
-			<label class="mb-4 block text-sm">
-				<span class="mb-1 block text-text-muted">Anbieter</span>
-				<select bind:value={provider} class="w-full rounded border border-border bg-surface p-2">
-					{#each Object.entries(providerLabels) as [value, label] (value)}
-						<option {value}>{label}</option>
-					{/each}
-				</select>
-			</label>
+			<div class="mb-4">
+				<span id="provider-select-label" class="mb-1 block text-sm text-text-muted">Anbieter</span>
+				<CustomSelect
+					bind:value={provider}
+					labelledBy="provider-select-label"
+					options={Object.entries(providerLabels).map(([value, label]) => ({ value, label }))}
+				/>
+			</div>
 
 			{#if provider !== 'ollama'}
 				<div class="mb-4 rounded-lg border border-warning-border bg-warning-bg p-3 text-sm">

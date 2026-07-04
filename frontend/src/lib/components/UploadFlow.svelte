@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { getOCRProvider } from '$lib/ocr';
+	import CustomSelect from './CustomSelect.svelte';
 
 	export let onSuccess: () => void = () => {};
 	export let captureMode: 'camera' | 'file' = 'file';
@@ -105,14 +106,14 @@
 	{#if bucketsLoading}
 		<p class="mb-4 text-sm text-text-muted">Buckets werden geladen …</p>
 	{:else if buckets.length > 1}
-		<label class="mb-4 block text-sm">
-			<span class="mb-1 block text-text-muted">Bucket</span>
-			<select bind:value={selectedBucketId} class="w-full rounded border border-border bg-surface p-2">
-				{#each buckets as bucket (bucket.id)}
-					<option value={bucket.id}>{bucket.name}{bucket.is_default ? ' (Haushalt)' : ''}</option>
-				{/each}
-			</select>
-		</label>
+		<div class="mb-4">
+			<span id="bucket-select-label" class="mb-1 block text-sm text-text-muted">Bucket</span>
+			<CustomSelect
+				bind:value={selectedBucketId}
+				labelledBy="bucket-select-label"
+				options={buckets.map((b) => ({ value: b.id, label: b.name + (b.is_default ? ' (Haushalt)' : '') }))}
+			/>
+		</div>
 	{:else if buckets.length === 1}
 		<p class="mb-4 text-sm text-text-muted">Bucket: {buckets[0].name}</p>
 	{:else if !errorMessage}
