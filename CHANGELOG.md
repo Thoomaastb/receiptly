@@ -1,3 +1,9 @@
+## [0.6.0](https://github.com/Thoomaastb/receiptly/compare/v0.5.4...v0.6.0) (2026-07-04)
+
+### Features
+
+* **ui:** fix broken nav icons, add logo mark, replace stale placeholder with live recent receipts ([b9a7369](https://github.com/Thoomaastb/receiptly/commit/b9a73692b3f00b89ea89b5d100167041b6b898dd))
+
 ## [0.5.4](https://github.com/Thoomaastb/receiptly/compare/v0.5.3...v0.5.4) (2026-07-04)
 
 ### Bug Fixes
