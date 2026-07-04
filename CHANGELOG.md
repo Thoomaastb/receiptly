@@ -1,3 +1,9 @@
+## [0.13.3](https://github.com/Thoomaastb/receiptly/compare/v0.13.2...v0.13.3) (2026-07-04)
+
+### Bug Fixes
+
+* **services:** self-host tesseract OCR assets and fix camera capture accept attribute ([2be4ef5](https://github.com/Thoomaastb/receiptly/commit/2be4ef58c8e729da340c4517304480a435d9d8fc))
+
 ## [0.13.2](https://github.com/Thoomaastb/receiptly/compare/v0.13.1...v0.13.2) (2026-07-04)
 
 ### Bug Fixes
