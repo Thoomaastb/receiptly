@@ -22,6 +22,7 @@ Vollständiges Konzept, Architektur, Datenmodell und Backlog: siehe Notion (Page
 ```bash
 cp .env.example .env   # Werte anpassen (v.a. POSTGRES_PASSWORD, SESSION_SECRET)
 
+docker network create internal # vorübergehend bis v1.0.0, siehe docker-compose.yml
 docker network create remote   # falls noch nicht vorhanden (Pangolin-Netzwerk)
 docker compose pull
 docker compose up -d

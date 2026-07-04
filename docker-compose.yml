@@ -9,7 +9,7 @@ services:
     volumes:
       - db-data:/var/lib/postgresql/data
     networks:
-      - intern-receiptly
+      - internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 10s
@@ -20,7 +20,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     networks:
-      - intern-receiptly
+      - internal
 
   backend:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-thomas}/receiptly-backend:${RECEIPTLY_VERSION:-latest}
@@ -40,7 +40,7 @@ services:
       redis:
         condition: service_started
     networks:
-      - intern-receiptly
+      - internal
       - remote
 
   frontend:
@@ -54,7 +54,7 @@ services:
     depends_on:
       - backend
     networks:
-      - intern-receiptly
+      - internal
       - remote
 
 volumes:
@@ -63,9 +63,15 @@ volumes:
   storage-thumbs:
 
 networks:
-  # Internes Netzwerk — Backend <-> DB/Redis, Frontend <-> Backend (nginx-Proxy)
-  intern-receiptly:
-    internal: true
-  # Externes Netzwerk — Pangolin/Newt-Anbindung auf Apollo
+  # Vorübergehend bis v1.0.0: beide Netzwerke extern verwaltet (zentrale Docker-
+  # Netzwerkverwaltung über mehrere Self-Hosted-Stacks hinweg). Vorher erstellen:
+  #   docker network create internal
+  #   docker network create remote
+  # Achtung: die bisherige Isolationseigenschaft ("internal: true", kein
+  # Internet-/Außenzugriff) gilt nur noch, wenn "internal" mit
+  # "docker network create internal --internal" angelegt wird — die Compose-Datei
+  # kann das für ein extern verwaltetes Netzwerk nicht mehr selbst erzwingen.
+  internal:
+    external: true
   remote:
     external: true
