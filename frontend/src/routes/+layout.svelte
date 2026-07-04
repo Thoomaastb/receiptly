@@ -150,9 +150,10 @@
 			</div>
 		</aside>
 
-		<main class="min-w-0 flex-1 overflow-y-auto px-10 pb-16 pt-9">
+		<main class="grid min-w-0 flex-1 overflow-y-auto px-10 pb-16 pt-9">
 			{#key $page.url.pathname}
 				<div
+					style="grid-area: 1 / 1;"
 					in:fly={{ y: 8, duration: transitionDuration, easing: cubicOut }}
 					out:fly={{ y: -8, duration: transitionDuration, easing: cubicOut }}
 				>
