@@ -1,3 +1,9 @@
+## [0.12.0](https://github.com/Thoomaastb/receiptly/compare/v0.11.0...v0.12.0) (2026-07-04)
+
+### Features
+
+* **ui:** replace native select elements with custom accessible dropdown component ([ba8c691](https://github.com/Thoomaastb/receiptly/commit/ba8c691f376c4b69e673f57f59b261f94382337a))
+
 ## [0.11.0](https://github.com/Thoomaastb/receiptly/compare/v0.10.0...v0.11.0) (2026-07-04)
 
 ### Features
