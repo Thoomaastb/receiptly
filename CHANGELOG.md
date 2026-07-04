@@ -1,3 +1,9 @@
+## [0.9.0](https://github.com/Thoomaastb/receiptly/compare/v0.8.0...v0.9.0) (2026-07-04)
+
+### Features
+
+* **ui:** scan button opens device camera directly instead of waiting on mobile app ([1bea1b1](https://github.com/Thoomaastb/receiptly/commit/1bea1b11892437007132d4219848ce940003533c))
+
 ## [0.8.0](https://github.com/Thoomaastb/receiptly/compare/v0.7.0...v0.8.0) (2026-07-04)
 
 ### Features
