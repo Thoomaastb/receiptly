@@ -29,8 +29,8 @@ services:
     pull_policy: missing
     restart: unless-stopped
     env_file: .env
-    ports:
-      - "8000:8000"
+#    ports:
+#      - "8000:8000"
     volumes:
       - storage-originals:/app/storage/originals
       - storage-thumbs:/app/storage/thumbs
@@ -49,8 +49,8 @@ services:
       context: ./frontend
     pull_policy: missing
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+#    ports:
+#      - "3000:3000"
     depends_on:
       - backend
     networks:
@@ -67,10 +67,9 @@ networks:
   # Netzwerkverwaltung über mehrere Self-Hosted-Stacks hinweg). Vorher erstellen:
   #   docker network create internal
   #   docker network create remote
-  # Achtung: die bisherige Isolationseigenschaft ("internal: true", kein
-  # Internet-/Außenzugriff) gilt nur noch, wenn "internal" mit
-  # "docker network create internal --internal" angelegt wird — die Compose-Datei
-  # kann das für ein extern verwaltetes Netzwerk nicht mehr selbst erzwingen.
+  # Ports sind auskommentiert (nicht entfernt) — Zugriff läuft nur über Pangolin/Newt
+  # via "remote", kein Host-Port-Publishing nötig. Für lokales Testen ohne Pangolin
+  # einfach die # vor den ports-Zeilen bei backend/frontend entfernen.
   internal:
     external: true
   remote:

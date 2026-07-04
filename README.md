@@ -28,8 +28,13 @@ docker compose pull
 docker compose up -d
 
 # Migrationen ausführen
-docker compose exec app alembic upgrade head
+docker compose exec backend alembic upgrade head
 ```
+
+Zugriff läuft ausschließlich über Pangolin/Newt via `remote` — Host-Ports sind daher
+standardmäßig auskommentiert (nicht entfernt) in `docker-compose.yml`. Für lokales
+Testen ohne Pangolin einfach die `#` vor den `ports:`-Zeilen bei `backend`/`frontend`
+entfernen.
 
 App (Frontend + API im selben Container): http://localhost:8000 · API-Health: http://localhost:8000/api/health
 
