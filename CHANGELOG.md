@@ -1,3 +1,9 @@
+## [0.13.2](https://github.com/Thoomaastb/receiptly/compare/v0.13.1...v0.13.2) (2026-07-04)
+
+### Bug Fixes
+
+* **ui:** simplify page transition to pure fade, add missing webkit backdrop-filter prefix ([c4b3c00](https://github.com/Thoomaastb/receiptly/commit/c4b3c00a4e00125e94caf70c7e5fb3cd5e19ac99))
+
 ## [0.13.1](https://github.com/Thoomaastb/receiptly/compare/v0.13.0...v0.13.1) (2026-07-04)
 
 ### Bug Fixes
