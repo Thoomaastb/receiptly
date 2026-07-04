@@ -1,3 +1,9 @@
+## [0.11.0](https://github.com/Thoomaastb/receiptly/compare/v0.10.0...v0.11.0) (2026-07-04)
+
+### Features
+
+* **ui:** add subtle crossfade transition on route changes ([0dd1098](https://github.com/Thoomaastb/receiptly/commit/0dd1098717577b747d70f7a4835942c824316c96))
+
 ## [0.10.0](https://github.com/Thoomaastb/receiptly/compare/v0.9.0...v0.10.0) (2026-07-04)
 
 ### Features
