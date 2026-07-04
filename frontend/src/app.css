@@ -1,19 +1,64 @@
+/* Self-hosted Fonts — kein Google-Fonts-CDN (DSGVO-Prinzip, siehe Security & Privacy).
+   Nur die tatsächlich genutzten Gewichte, um die Bundle-Größe klein zu halten.
+   MUSS vor @tailwind stehen — @import ist nur an allererster Stelle einer CSS-Datei gültig. */
+@import '@fontsource/plus-jakarta-sans/400.css';
+@import '@fontsource/plus-jakarta-sans/500.css';
+@import '@fontsource/plus-jakarta-sans/600.css';
+@import '@fontsource/plus-jakarta-sans/700.css';
+@import '@fontsource/plus-jakarta-sans/800.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /*
-  Design-Tokens gemäß Notion → UI-Konzept:
-  - Theme folgt Geräte-Standard (prefers-color-scheme), kein erzwungenes Dark-Only
-  - Flache Flächen, keine Schatten/Gradients, 0.5px Borders
-  - Farbe trägt Bedeutung (Bucket-Zugehörigkeit, KI vs. manuell), nicht Dekoration
-  - Household-Bucket = lila/purple, jede Person bekommt eine eigene Bucket-Farbe (später)
+  Design-Tokens gemäß Hifi-Handoff (Claude Design, 2026-07-04) für Shell + Home.
+  Ersetzt das bisherige informelle UI-Konzept als Quelle der Wahrheit für diese Bereiche.
+  Bestehende Tokens (--color-surface-raised, --color-accent-contrast, --color-bucket-household,
+  --color-warning-bg/border für den KI-Provider-Hinweis) bleiben erhalten, da /receipts,
+  /upload und /settings sie noch aktiv nutzen — werden in einem Folgeschritt mit umgestellt.
+
+  OFFENER PUNKT: Der Handoff spezifiziert nur Light-Werte, kein Dark Mode. Dark-Tokens sind
+  hier bewusst NICHT erfunden — offener Folgeschritt, bis dafür ein Hifi-Design vorliegt.
 */
 
 :root {
 	color-scheme: light dark;
+	--font-ui: 'Plus Jakarta Sans', system-ui, sans-serif;
+	--font-mono: 'IBM Plex Mono', monospace;
 
-	/* Light (Default) */
+	/* Neue Hifi-Palette (Shell + Home) */
+	--color-bg: oklch(98% 0.006 85);
+	--color-surface-hifi: oklch(99.3% 0.003 85);
+	--color-border-hifi: oklch(90% 0.008 85);
+	--color-text-hifi: oklch(22% 0.02 280);
+	--color-text-muted-hifi: oklch(50% 0.02 280);
+	--color-text-faint: oklch(60% 0.015 280);
+
+	--color-accent-hifi: oklch(58% 0.19 290);
+	--color-accent-tint: oklch(94% 0.03 290);
+	--color-accent-text: oklch(45% 0.19 290);
+
+	--color-cat-electronics: oklch(58% 0.19 290);
+	--color-cat-groceries: oklch(60% 0.14 150);
+	--color-cat-travel: oklch(58% 0.14 230);
+	--color-cat-furniture: oklch(65% 0.13 80);
+	--color-cat-fashion: oklch(62% 0.16 340);
+	--color-cat-dining: oklch(64% 0.15 45);
+
+	--color-success: oklch(55% 0.14 150);
+	--color-success-bg: oklch(96% 0.02 150);
+	--color-success-border: oklch(88% 0.03 150);
+	--color-status-warning: oklch(60% 0.16 70);
+	--color-status-warning-bg: oklch(96% 0.03 70);
+	--color-status-warning-border: oklch(88% 0.05 70);
+	--color-danger: oklch(52% 0.19 25);
+	--color-danger-bg: oklch(96% 0.02 25);
+	--color-danger-border: oklch(88% 0.03 25);
+
+	/* Bestehende Tokens — noch von /receipts, /upload, /settings genutzt (Folgeschritt) */
 	--color-surface: #ffffff;
 	--color-surface-raised: #f7f7f8;
 	--color-border: #e2e2e6;
@@ -42,11 +87,17 @@
 }
 
 body {
-	background-color: var(--color-surface);
-	color: var(--color-text);
+	margin: 0;
+	font-family: var(--font-ui);
+	-webkit-font-smoothing: antialiased;
+	background-color: var(--color-bg);
+	color: var(--color-text-hifi);
 }
 
-/* Respektiert reduzierte Bewegung durchgängig, siehe Card-to-Modal-Transition im UI-Konzept */
+::selection {
+	background: oklch(58% 0.19 290 / 0.25);
+}
+
 @media (prefers-reduced-motion: reduce) {
 	*,
 	*::before,

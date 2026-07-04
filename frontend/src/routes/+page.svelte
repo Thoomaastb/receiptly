@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import ReceiptCard from '$lib/components/ReceiptCard.svelte';
 	import UploadModal from '$lib/components/UploadModal.svelte';
 
 	interface Receipt {
@@ -12,30 +11,22 @@
 		total_amount: number | null;
 		currency: string;
 		created_at: string;
+		warranty_expires_at?: string | null;
 	}
 
-	interface Bucket {
-		id: string;
-		name: string;
-		is_default: boolean;
-	}
-
-	let recentReceipts: Receipt[] = [];
-	let buckets: Bucket[] = [];
+	let allReceipts: Receipt[] = [];
 	let loading = true;
 
 	let uploadOpen = false;
 	let uploadOriginRect: DOMRect | null = null;
 	let uploadCaptureMode: 'camera' | 'file' = 'file';
 
+	const thumbHeights = [92, 140, 110, 160, 100, 128];
+
 	async function loadReceipts() {
 		try {
-			const [receiptsRes, bucketsRes] = await Promise.all([
-				fetch('/api/receipts', { credentials: 'include' }),
-				fetch('/api/buckets', { credentials: 'include' })
-			]);
-			if (receiptsRes.ok) recentReceipts = (await receiptsRes.json()).slice(0, 3);
-			if (bucketsRes.ok) buckets = await bucketsRes.json();
+			const res = await fetch('/api/receipts', { credentials: 'include' });
+			if (res.ok) allReceipts = await res.json();
 		} finally {
 			loading = false;
 		}
@@ -43,8 +34,34 @@
 
 	onMount(loadReceipts);
 
-	function bucketFor(bucketId: string): Bucket | undefined {
-		return buckets.find((b) => b.id === bucketId);
+	$: recentReceipts = allReceipts.slice(0, 6);
+	$: totalCount = allReceipts.length;
+	$: expiringCount = allReceipts.filter((r) => {
+		if (!r.warranty_expires_at) return false;
+		const days = (new Date(r.warranty_expires_at).getTime() - Date.now()) / 86_400_000;
+		return days <= 30;
+	}).length;
+	$: monthTotal = (() => {
+		const now = new Date();
+		const sum = allReceipts
+			.filter((r) => {
+				if (!r.total_amount || !r.receipt_date) return false;
+				const d = new Date(r.receipt_date);
+				return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+			})
+			.reduce((s, r) => s + (r.total_amount ?? 0), 0);
+		return sum > 0 ? `${sum.toFixed(2)} €` : '–';
+	})();
+
+	const todayLabel = new Date().toLocaleDateString('de-DE', {
+		day: 'numeric',
+		month: 'long',
+		year: 'numeric'
+	});
+
+	function fileExt(status: string): string {
+		// Platzhalter, solange file_path nicht Teil der Listen-Antwort ist
+		return status === 'pending' ? '…' : 'DOC';
 	}
 
 	function openUpload(event: MouseEvent, mode: 'camera' | 'file') {
@@ -55,7 +72,7 @@
 
 	function closeUpload() {
 		uploadOpen = false;
-		loadReceipts(); // "on-the-fly": neuer Beleg erscheint sofort, kein Reload nötig
+		loadReceipts();
 	}
 
 	function goToReceipts() {
@@ -63,63 +80,95 @@
 	}
 </script>
 
-<section class="mb-10 grid max-h-[500px] grid-cols-1 gap-3 sm:grid-cols-2">
+<div class="mb-7">
+	<div class="text-[26px] font-extrabold tracking-tight text-hifi-text">Übersicht</div>
+	<div class="mt-1 text-sm text-hifi-text-muted">{todayLabel}</div>
+</div>
+
+<div class="mb-7 flex flex-wrap gap-4">
 	<button
 		on:click={(e) => openUpload(e, 'camera')}
-		class="group rounded-xl border border-border bg-accent px-6 py-8 text-left text-accent-contrast transition-transform active:scale-[0.98]"
+		class="box-border flex min-w-[280px] flex-1 flex-col gap-2.5 rounded-[18px] bg-hifi-accent px-7 py-6 text-left text-white shadow-[0_12px_28px_-12px_oklch(58%_0.19_290_/_0.5)] transition-transform active:scale-[0.99]"
 	>
-		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mb-3 opacity-90" aria-hidden="true">
+		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 			<rect x="3" y="7" width="18" height="13" rx="2" />
-			<path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M12 11v5M9.5 13.5L12 11l2.5 2.5" stroke-linecap="round" stroke-linejoin="round" />
+			<path d="M8 7l1.5-2.5h5L16 7" />
+			<circle cx="12" cy="13.5" r="3.5" />
 		</svg>
-		<span class="block text-lg font-medium">Scannen</span>
-		<span class="block text-sm opacity-80">Kamera direkt öffnen (mobil)</span>
+		<div class="text-[17px] font-bold">Scannen</div>
+		<div class="text-[13.5px]" style="color: oklch(94% 0.03 290);">Kamera direkt öffnen (mobil)</div>
 	</button>
 	<button
 		on:click={(e) => openUpload(e, 'file')}
-		class="group rounded-xl border border-border bg-surface-raised px-6 py-8 text-left transition-transform active:scale-[0.98]"
+		class="box-border flex min-w-[280px] flex-1 flex-col gap-2.5 rounded-[18px] border border-hifi-border bg-hifi-surface px-7 py-6 text-left transition-transform active:scale-[0.99]"
 	>
-		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mb-3 text-text-muted" aria-hidden="true">
-			<path d="M12 16V4M7 9l5-5 5 5" stroke-linecap="round" stroke-linejoin="round" />
-			<path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3" stroke-linecap="round" stroke-linejoin="round" />
+		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted-hifi)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+			<path d="M12 16V4M8 8l4-4 4 4" />
+			<path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3" />
 		</svg>
-		<span class="block text-lg font-medium">Hochladen</span>
-		<span class="block text-sm text-text-muted">PDF, JPG, PNG</span>
+		<div class="text-[17px] font-bold text-hifi-text">Hochladen</div>
+		<div class="text-[13.5px] text-hifi-text-muted">PDF, JPG, PNG</div>
 	</button>
-</section>
+</div>
 
-<div class="mb-4 flex items-center justify-between border-t border-border pt-4">
-	<span class="text-sm font-medium text-text-muted">Zuletzt hinzugefügt</span>
+<div class="mb-9 grid grid-cols-3 gap-4">
+	<div class="rounded-[16px] border border-hifi-border bg-hifi-surface px-[22px] py-5">
+		<div class="mb-2 text-[12.5px] font-semibold text-hifi-text-muted">Gesamt Belege</div>
+		<div class="font-mono text-[28px] font-extrabold text-hifi-text">{totalCount}</div>
+	</div>
+	<div class="rounded-[16px] border border-hifi-border bg-hifi-surface px-[22px] py-5">
+		<div class="mb-2 text-[12.5px] font-semibold text-hifi-text-muted">Ablaufende Garantien</div>
+		<div class="font-mono text-[28px] font-extrabold" style="color: {expiringCount > 0 ? 'var(--color-danger)' : 'var(--color-text-hifi)'}">
+			{expiringCount}
+		</div>
+	</div>
+	<div class="rounded-[16px] border border-hifi-border bg-hifi-surface px-[22px] py-5">
+		<div class="mb-2 text-[12.5px] font-semibold text-hifi-text-muted">Diesen Monat</div>
+		<div class="font-mono text-[28px] font-extrabold text-hifi-text">{monthTotal}</div>
+	</div>
+</div>
+
+<div class="mb-4 flex items-baseline justify-between">
+	<div class="text-[15.5px] font-bold text-hifi-text">Zuletzt hinzugefügt</div>
 	{#if recentReceipts.length > 0}
-		<a href="/receipts" class="text-xs text-text-muted transition-colors hover:text-text">Alle ansehen →</a>
+		<button on:click={goToReceipts} class="text-[13px] font-semibold text-hifi-accent">Alle anzeigen</button>
 	{/if}
 </div>
 
 {#if loading}
-	<p class="text-sm text-text-muted">Wird geladen …</p>
+	<p class="text-sm text-hifi-text-muted">Wird geladen …</p>
 {:else if recentReceipts.length === 0}
 	<button
 		on:click={(e) => openUpload(e, 'file')}
-		class="block w-full rounded-xl border border-dashed border-border px-6 py-10 text-center transition-colors hover:bg-surface-raised"
+		class="block w-full rounded-[16px] border border-dashed border-hifi-border px-6 py-10 text-center transition-colors hover:bg-hifi-accent-tint"
 	>
-		<span class="block text-sm text-text-muted">
-			Noch keine Belege — lade den ersten hoch, um loszulegen.
-		</span>
+		<span class="text-sm text-hifi-text-muted">Noch keine Belege — lade den ersten hoch, um loszulegen.</span>
 	</button>
 {:else}
-	<div style="column-count: 3; column-gap: 12px;">
-		{#each recentReceipts as receipt (receipt.id)}
-			{@const bucket = bucketFor(receipt.bucket_id)}
-			<ReceiptCard
-				id={receipt.id}
-				receiptDate={receipt.receipt_date}
-				totalAmount={receipt.total_amount}
-				currency={receipt.currency}
-				status={receipt.status}
-				bucketName={bucket?.name ?? '…'}
-				bucketIsDefault={bucket?.is_default ?? false}
-				onOpen={goToReceipts}
-			/>
+	<div style="columns: 3; column-gap: 16px;">
+		{#each recentReceipts as receipt, i (receipt.id)}
+			<button
+				on:click={goToReceipts}
+				class="mb-4 block w-full overflow-hidden rounded-[16px] border border-hifi-border bg-hifi-surface text-left"
+				style="break-inside: avoid;"
+			>
+				<div
+					class="flex items-center justify-center"
+					style="height: {thumbHeights[i % thumbHeights.length]}px; background: repeating-linear-gradient(135deg, oklch(58% 0.19 290 / 0.10), oklch(58% 0.19 290 / 0.10) 8px, oklch(58% 0.19 290 / 0.04) 8px, oklch(58% 0.19 290 / 0.04) 16px);"
+				>
+					<span class="rounded-[5px] bg-white/70 px-2 py-1 font-mono text-[11px] font-semibold tracking-wide text-hifi-accent-text">
+						{fileExt(receipt.status)}
+					</span>
+				</div>
+				<div class="px-4 py-3.5">
+					<div class="mb-2 flex items-center justify-between">
+						<span class="text-xs text-hifi-text-faint">{receipt.receipt_date ?? 'Datum folgt'}</span>
+					</div>
+					<div class="font-mono text-[13.5px] font-bold text-hifi-text">
+						{receipt.total_amount !== null ? `${receipt.total_amount.toFixed(2)} ${receipt.currency}` : 'Betrag folgt'}
+					</div>
+				</div>
+			</button>
 		{/each}
 	</div>
 {/if}
