@@ -115,8 +115,8 @@
 
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <div
-	class="fixed inset-0 z-40 bg-black transition-opacity"
-	style="opacity: {backdropOpacity * 0.5}; backdrop-filter: blur({backdropOpacity * 4}px); transition-duration: {reducedMotion
+	class="fixed inset-0 z-40 bg-black"
+	style="opacity: {backdropOpacity * 0.5}; -webkit-backdrop-filter: blur({backdropOpacity * 4}px); backdrop-filter: blur({backdropOpacity * 4}px); transition-property: opacity, backdrop-filter, -webkit-backdrop-filter; transition-duration: {reducedMotion
 		? '0ms'
 		: '260ms'};"
 	on:click={handleClose}

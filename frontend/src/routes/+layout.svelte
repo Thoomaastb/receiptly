@@ -2,8 +2,7 @@
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import { page } from '$app/stores';
-	import { fly } from 'svelte/transition';
-	import { cubicOut } from 'svelte/easing';
+	import { fade } from 'svelte/transition';
 
 	const reducedMotion =
 		typeof window !== 'undefined' &&
@@ -154,8 +153,8 @@
 			{#key $page.url.pathname}
 				<div
 					style="grid-area: 1 / 1;"
-					in:fly={{ y: 8, duration: transitionDuration, easing: cubicOut }}
-					out:fly={{ y: -8, duration: transitionDuration, easing: cubicOut }}
+					in:fade={{ duration: transitionDuration }}
+					out:fade={{ duration: transitionDuration }}
 				>
 					<slot />
 				</div>
