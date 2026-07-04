@@ -17,6 +17,7 @@ dependencies = [
     "pydantic[email]>=2.7",
     "pydantic-settings>=2.3",
     "itsdangerous>=2.2",
+    "cryptography>=42.0",
     "redis>=5.0",
     "python-multipart>=0.0.9",
 ]

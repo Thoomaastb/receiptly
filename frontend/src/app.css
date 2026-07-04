@@ -22,6 +22,8 @@
 	--color-accent: #7c5cff;
 	--color-accent-contrast: #ffffff;
 	--color-bucket-household: #7c5cff;
+	--color-warning-bg: #f3effe;
+	--color-warning-border: #d9caff;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -34,6 +36,8 @@
 		--color-accent: #9c85ff;
 		--color-accent-contrast: #121214;
 		--color-bucket-household: #9c85ff;
+		--color-warning-bg: #241f38;
+		--color-warning-border: #453a6b;
 	}
 }
 

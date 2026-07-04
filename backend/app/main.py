@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import auth, buckets, health, receipts
+from app.api import auth, buckets, health, receipts, settings as settings_router
 from app.config import get_settings
 
 settings = get_settings()
@@ -44,6 +44,7 @@ app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
 app.include_router(receipts.router, prefix="/api")
 app.include_router(buckets.router, prefix="/api")
+app.include_router(settings_router.router, prefix="/api")
 
 
 # Statisches Frontend (adapter-static-Build) ausliefern. Der Ordner existiert nur im

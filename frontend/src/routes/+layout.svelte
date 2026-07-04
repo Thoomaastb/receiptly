@@ -47,7 +47,8 @@
 						<path d="M10 20a2 2 0 004 0" stroke-linecap="round" />
 					</svg>
 				</button>
-				<button
+				<a
+					href="/settings"
 					aria-label="Einstellungen"
 					class="rounded-full p-2 transition-colors hover:bg-surface-raised hover:text-text"
 				>
@@ -59,7 +60,7 @@
 							stroke-linejoin="round"
 						/>
 					</svg>
-				</button>
+				</a>
 			</div>
 		</nav>
 	</header>

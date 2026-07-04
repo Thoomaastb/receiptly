@@ -14,7 +14,9 @@ export default {
 				'text-muted': 'var(--color-text-muted)',
 				accent: 'var(--color-accent)',
 				'accent-contrast': 'var(--color-accent-contrast)',
-				'bucket-household': 'var(--color-bucket-household)'
+				'bucket-household': 'var(--color-bucket-household)',
+				'warning-bg': 'var(--color-warning-bg)',
+				'warning-border': 'var(--color-warning-border)'
 			},
 			borderWidth: {
 				DEFAULT: '0.5px'

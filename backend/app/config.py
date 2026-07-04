@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     session_cookie_name: str = "receiptly_session"
     session_max_age_seconds: int = 1209600  # 14 Tage
 
+    encryption_key: str  # Fernet-Key (Fernet.generate_key()), separat von session_secret rotierbar
+
     ai_provider: str = "ollama"
     ollama_base_url: str = "http://ollama:11434"
     external_ai_api_key: str | None = None
