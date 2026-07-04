@@ -1,3 +1,9 @@
+## [0.13.0](https://github.com/Thoomaastb/receiptly/compare/v0.12.0...v0.13.0) (2026-07-04)
+
+### Features
+
+* **ui:** implement hifi redesign for app shell and home screen with self-hosted fonts ([a7f6d76](https://github.com/Thoomaastb/receiptly/commit/a7f6d767a0a558c5a439919bbd90040c2f57d264))
+
 ## [0.12.0](https://github.com/Thoomaastb/receiptly/compare/v0.11.0...v0.12.0) (2026-07-04)
 
 ### Features
