@@ -1,3 +1,9 @@
+## [0.5.2](https://github.com/Thoomaastb/receiptly/compare/v0.5.1...v0.5.2) (2026-07-04)
+
+### Bug Fixes
+
+* **docker:** revert to two containers with nginx-served frontend and API proxy ([7d4dd21](https://github.com/Thoomaastb/receiptly/commit/7d4dd2111c89835a748ce37c9bbea2e4cbe36139))
+
 ## [0.5.1](https://github.com/Thoomaastb/receiptly/compare/v0.5.0...v0.5.1) (2026-07-03)
 
 ### Bug Fixes
