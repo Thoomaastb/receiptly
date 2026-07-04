@@ -26,6 +26,7 @@
 
 	let uploadOpen = false;
 	let uploadOriginRect: DOMRect | null = null;
+	let uploadCaptureMode: 'camera' | 'file' = 'file';
 
 	async function loadReceipts() {
 		try {
@@ -46,8 +47,9 @@
 		return buckets.find((b) => b.id === bucketId);
 	}
 
-	function openUpload(event: MouseEvent) {
+	function openUpload(event: MouseEvent, mode: 'camera' | 'file') {
 		uploadOriginRect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+		uploadCaptureMode = mode;
 		uploadOpen = true;
 	}
 
@@ -63,7 +65,7 @@
 
 <section class="mb-10 grid max-h-[500px] grid-cols-1 gap-3 sm:grid-cols-2">
 	<button
-		on:click={openUpload}
+		on:click={(e) => openUpload(e, 'camera')}
 		class="group rounded-xl border border-border bg-accent px-6 py-8 text-left text-accent-contrast transition-transform active:scale-[0.98]"
 	>
 		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mb-3 opacity-90" aria-hidden="true">
@@ -71,10 +73,10 @@
 			<path d="M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2M12 11v5M9.5 13.5L12 11l2.5 2.5" stroke-linecap="round" stroke-linejoin="round" />
 		</svg>
 		<span class="block text-lg font-medium">Scannen</span>
-		<span class="block text-sm opacity-80">Kamera-Scan folgt mit der Mobile-App</span>
+		<span class="block text-sm opacity-80">Kamera direkt öffnen (mobil)</span>
 	</button>
 	<button
-		on:click={openUpload}
+		on:click={(e) => openUpload(e, 'file')}
 		class="group rounded-xl border border-border bg-surface-raised px-6 py-8 text-left transition-transform active:scale-[0.98]"
 	>
 		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="mb-3 text-text-muted" aria-hidden="true">
@@ -97,7 +99,7 @@
 	<p class="text-sm text-text-muted">Wird geladen …</p>
 {:else if recentReceipts.length === 0}
 	<button
-		on:click={openUpload}
+		on:click={(e) => openUpload(e, 'file')}
 		class="block w-full rounded-xl border border-dashed border-border px-6 py-10 text-center transition-colors hover:bg-surface-raised"
 	>
 		<span class="block text-sm text-text-muted">
@@ -123,5 +125,5 @@
 {/if}
 
 {#if uploadOpen && uploadOriginRect}
-	<UploadModal originRect={uploadOriginRect} onClose={closeUpload} />
+	<UploadModal originRect={uploadOriginRect} onClose={closeUpload} captureMode={uploadCaptureMode} />
 {/if}

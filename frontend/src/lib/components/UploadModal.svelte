@@ -4,6 +4,7 @@
 
 	export let originRect: DOMRect;
 	export let onClose: () => void;
+	export let captureMode: 'camera' | 'file' = 'file';
 
 	let modalEl: HTMLElement;
 	let backdropOpacity = 0;
@@ -113,7 +114,7 @@
 >
 	<div class="p-5 transition-opacity duration-150" class:opacity-0={!contentVisible}>
 		<div class="mb-4 flex items-center justify-between">
-			<h2 class="text-lg font-medium">Beleg hochladen</h2>
+			<h2 class="text-lg font-medium">{captureMode === 'camera' ? 'Beleg scannen' : 'Beleg hochladen'}</h2>
 			<button
 				on:click={handleClose}
 				aria-label="Schließen"
@@ -122,6 +123,6 @@
 				✕
 			</button>
 		</div>
-		<UploadFlow onSuccess={handleClose} />
+		<UploadFlow onSuccess={handleClose} {captureMode} />
 	</div>
 </div>

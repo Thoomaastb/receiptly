@@ -3,6 +3,7 @@
 	import { getOCRProvider } from '$lib/ocr';
 
 	export let onSuccess: () => void = () => {};
+	export let captureMode: 'camera' | 'file' = 'file';
 
 	interface Bucket {
 		id: string;
@@ -121,9 +122,16 @@
 	<input
 		type="file"
 		accept="application/pdf,image/jpeg,image/png"
+		capture={captureMode === 'camera' ? 'environment' : undefined}
 		on:change={handleFileSelect}
 		class="mb-4 block w-full text-sm text-text-muted"
 	/>
+	{#if captureMode === 'camera'}
+		<p class="mb-4 text-xs text-text-muted">
+			Öffnet auf dem Smartphone direkt die Kamera. Auf dem Desktop erscheint stattdessen der
+			normale Datei-Dialog (Browser-Einschränkung, kein Bug).
+		</p>
+	{/if}
 
 	{#if selectedFile}
 		<p class="mb-4 text-sm text-text-muted">Gewählt: {selectedFile.name}</p>
