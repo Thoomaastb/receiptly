@@ -1,3 +1,9 @@
+## [0.10.0](https://github.com/Thoomaastb/receiptly/compare/v0.9.0...v0.10.0) (2026-07-04)
+
+### Features
+
+* **settings:** add admin-only AI provider selection with encrypted API key storage ([3faf8dc](https://github.com/Thoomaastb/receiptly/commit/3faf8dc775beaa6bf893f4497457a59ce57a0ec7))
+
 ## [0.9.0](https://github.com/Thoomaastb/receiptly/compare/v0.8.0...v0.9.0) (2026-07-04)
 
 ### Features
