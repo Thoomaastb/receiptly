@@ -1,8 +1,5 @@
 services:
-  app:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+  backend:
     environment:
       APP_ENV: development
     volumes:
@@ -11,6 +8,6 @@ services:
       - storage-thumbs:/app/storage/thumbs
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
-# Frontend bewusst nicht hier drin: für Hot-Reload laeuft "npm run dev" im
+# Frontend bewusst nicht hier drin: fuer Hot-Reload laeuft "npm run dev" im
 # frontend/-Ordner direkt (siehe README), der Vite-Dev-Proxy leitet /api an
-# diesen Container weiter. Ein Docker-Container wuerde HMR nur verlangsamen.
+# den Backend-Container weiter. Ein Container-Rebuild pro Aenderung waere langsamer.
