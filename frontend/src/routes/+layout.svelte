@@ -1,5 +1,14 @@
 <script lang="ts">
 	import '../app.css';
+	import { page } from '$app/stores';
+	import { fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
+
+	const reducedMotion =
+		typeof window !== 'undefined' &&
+		window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+	const transitionDuration = reducedMotion ? 0 : 180;
 </script>
 
 <div class="min-h-screen bg-surface text-text">
@@ -66,6 +75,13 @@
 	</header>
 
 	<main class="mx-auto max-w-6xl px-6 py-8">
-		<slot />
+		{#key $page.url.pathname}
+			<div
+				in:fly={{ y: 8, duration: transitionDuration, easing: cubicOut }}
+				out:fly={{ y: -8, duration: transitionDuration, easing: cubicOut }}
+			>
+				<slot />
+			</div>
+		{/key}
 	</main>
 </div>
