@@ -1,3 +1,9 @@
+## [0.17.2](https://github.com/Thoomaastb/receiptly/compare/v0.17.1...v0.17.2) (2026-07-07)
+
+### Bug Fixes
+
+* **price:** sum can be correctly extracted. articles will get a notification badge to accomodate the missing sum until it's met 1:1 ([93aaa16](https://github.com/Thoomaastb/receiptly/commit/93aaa160dbd65ebe09f7a9d63858f2f5aacaef80))
+
 ## [0.17.1](https://github.com/Thoomaastb/receiptly/compare/v0.17.0...v0.17.1) (2026-07-07)
 
 ### Bug Fixes
