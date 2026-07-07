@@ -7,9 +7,16 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json"
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "cap:sync": "npm run build && npx cap sync",
+    "cap:add:ios": "npx cap add ios",
+    "cap:add:android": "npx cap add android",
+    "cap:open:ios": "npx cap open ios",
+    "cap:open:android": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor/camera": "^8.2.0",
+    "@capacitor/core": "^8.4.1",
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/plus-jakarta-sans": "^5.2.8",
     "@sveltejs/adapter-static": "^3.0.10",
@@ -17,6 +24,7 @@
     "tesseract.js": "^5.1.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.4.1",
     "@sveltejs/kit": "^2.5.0",
     "@sveltejs/vite-plugin-svelte": "^3.1.0",
     "autoprefixer": "^10.4.19",

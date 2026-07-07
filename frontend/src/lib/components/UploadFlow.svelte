@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { Capacitor } from '@capacitor/core';
+	import { Camera } from '@capacitor/camera';
 	import { getOCRProvider } from '$lib/ocr';
 	import CustomSelect from './CustomSelect.svelte';
 
@@ -43,6 +45,30 @@
 		stage = 'idle';
 		ocrProgress = 0;
 		uploadProgress = 0;
+	}
+
+	const isNativeApp = Capacitor.isNativePlatform();
+
+	async function openNativeCamera() {
+		errorMessage = '';
+		try {
+			const result = await Camera.takePhoto({
+				quality: 90,
+				saveToGallery: false,
+				correctOrientation: true
+			});
+			if (!result.webPath) throw new Error('Kein Foto erhalten.');
+			const blob = await (await fetch(result.webPath)).blob();
+			selectedFile = new File([blob], `scan-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
+			stage = 'idle';
+			ocrProgress = 0;
+			uploadProgress = 0;
+		} catch (err) {
+			// Nutzer hat z.B. den Kamera-Dialog abgebrochen — kein Fehler-UI dafür nötig
+			if (err instanceof Error && !err.message.toLowerCase().includes('cancel')) {
+				errorMessage = 'Kamera konnte nicht geöffnet werden: ' + err.message;
+			}
+		}
 	}
 
 	async function handleSubmit() {
@@ -120,18 +146,35 @@
 		<p class="mb-4 text-sm text-red-500">Kein Bucket verfügbar — bitte einloggen.</p>
 	{/if}
 
-	<input
-		type="file"
-		accept={captureMode === 'camera' ? 'image/*' : 'application/pdf,image/jpeg,image/png'}
-		capture={captureMode === 'camera' ? 'environment' : undefined}
-		on:change={handleFileSelect}
-		class="mb-4 block w-full text-sm text-text-muted"
-	/>
+	{#if isNativeApp && captureMode === 'camera'}
+		<button
+			on:click={openNativeCamera}
+			class="mb-4 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface py-3 text-sm font-medium"
+		>
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<rect x="3" y="7" width="18" height="13" rx="2" />
+				<circle cx="12" cy="13.5" r="3.5" />
+			</svg>
+			Kamera öffnen
+		</button>
+	{:else}
+		<input
+			type="file"
+			accept={captureMode === 'camera' ? 'image/*' : 'application/pdf,image/jpeg,image/png'}
+			capture={captureMode === 'camera' ? 'environment' : undefined}
+			on:change={handleFileSelect}
+			class="mb-4 block w-full text-sm text-text-muted"
+		/>
+	{/if}
 	{#if captureMode === 'camera'}
 		<p class="mb-4 text-xs text-text-muted">
-			Öffnet auf dem Smartphone die Kamera. PDFs sind im Scan-Modus bewusst ausgeschlossen —
-			ein Dateityp ohne Kamerabezug im accept-Attribut lässt Browser laut Spezifikation das
-			gesamte capture-Verhalten ignorieren. Für PDFs bitte „Hochladen" nutzen.
+			{#if isNativeApp}
+				Öffnet die native Kamera-App direkt.
+			{:else}
+				Öffnet auf dem Smartphone-Browser die Kamera. PDFs sind im Scan-Modus bewusst
+				ausgeschlossen — ein Dateityp ohne Kamerabezug im accept-Attribut lässt Browser laut
+				Spezifikation das gesamte capture-Verhalten ignorieren. Für PDFs bitte „Hochladen" nutzen.
+			{/if}
 		</p>
 	{/if}
 
