@@ -48,6 +48,11 @@
 			if (!bucketsRes.ok) throw new Error(`Buckets konnten nicht geladen werden (${bucketsRes.status})`);
 			receipts = await receiptsRes.json();
 			buckets = await bucketsRes.json();
+
+			// Direktlink von der Startseite ("Zuletzt hinzugefügt") -> Detail sofort öffnen,
+			// statt erst die Liste zu zeigen und einen zweiten Klick zu verlangen.
+			const openId = $page.url.searchParams.get('open');
+			if (openId) await openDetail(openId);
 		} catch (err) {
 			errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler.';
 		} finally {

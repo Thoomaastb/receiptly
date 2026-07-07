@@ -76,6 +76,10 @@
 	function goToReceipts() {
 		goto('/receipts');
 	}
+
+	function openReceiptDetail(receiptId: string) {
+		goto(`/receipts?open=${receiptId}`);
+	}
 </script>
 
 <div class="mb-7">
@@ -147,7 +151,7 @@
 	<div style="columns: 3; column-gap: 16px;">
 		{#each recentReceipts as receipt, i (receipt.id)}
 			<button
-				on:click={goToReceipts}
+				on:click={() => openReceiptDetail(receipt.id)}
 				class="mb-4 block w-full overflow-hidden rounded-2xl border border-hifi-border bg-hifi-surface text-left"
 				style="break-inside: avoid;"
 			>

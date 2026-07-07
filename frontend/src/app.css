@@ -25,7 +25,10 @@
 */
 
 :root {
-	color-scheme: light dark;
+	/* "light dark" hier hieße: native Formularelemente (Scrollbars, Checkboxen, Datepicker)
+	   folgen dem OS-Farbschema, obwohl die App selbst noch keinen Dark Mode hat — bewusst
+	   auf "light" reduziert, bis ein echtes Dark-Mode-Design vorliegt (siehe Kommentar unten). */
+	color-scheme: light;
 	--font-ui: 'Plus Jakarta Sans', system-ui, sans-serif;
 	--font-mono: 'IBM Plex Mono', monospace;
 
@@ -71,20 +74,14 @@
 	--color-warning-border: #d9caff;
 }
 
-@media (prefers-color-scheme: dark) {
-	:root {
-		--color-surface: #121214;
-		--color-surface-raised: #1c1c1f;
-		--color-border: #2e2e33;
-		--color-text: #f2f2f4;
-		--color-text-muted: #9a9aa2;
-		--color-accent: #9c85ff;
-		--color-accent-contrast: #121214;
-		--color-bucket-household: #9c85ff;
-		--color-warning-bg: #241f38;
-		--color-warning-border: #453a6b;
-	}
-}
+/* Dark Mode ist bewusst noch NICHT aktiv (offener Backlog-Punkt: "Dark-Mode-Werte für
+   die neue Hifi-Palette"). Ein früherer Dark-Mode-Block hier setzte nur die alten
+   Legacy-Tokens (--color-surface etc.) auf dunkle Werte, ließ die neuen --color-*-hifi-
+   Tokens aber unverändert hell — das Ergebnis war eine inkonsistent halb-dunkle UI
+   (Shell/Home hell, /buckets, /receipts, /settings, /upload dunkel), abhängig vom
+   OS-Farbschema des Betrachters. Bis ein Dark-Mode-Design für beide Token-Sets
+   gemeinsam vorliegt, bleibt die App überall hell — siehe :root { color-scheme: light dark }
+   oben, das ebenfalls auf "light" reduziert werden müsste, sobald hier wieder etwas steht. */
 
 body {
 	margin: 0;
