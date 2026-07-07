@@ -20,3 +20,19 @@ class BucketCreate(BaseModel):
 
 class BucketVisibilityUpdate(BaseModel):
     visibility: str = Field(pattern="^(transparent|private)$")
+
+
+class BucketRename(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+
+
+class BucketAccessGrant(BaseModel):
+    access_level: str = Field(pattern="^(view|edit)$")
+
+
+class BucketAccessResponse(BaseModel):
+    user_id: uuid.UUID
+    username: str
+    access_level: str
+
+    model_config = {"from_attributes": True}

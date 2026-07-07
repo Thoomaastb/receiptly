@@ -4,7 +4,7 @@ from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, require_admin
 from app.auth.security import hash_password, verify_password
 from app.auth.session import create_session, destroy_session
 from app.config import get_settings
@@ -13,7 +13,7 @@ from app.models.bucket import Bucket, BucketType, BucketVisibility
 from app.models.household import Household
 from app.models.receipt import Receipt, ReceiptStatus
 from app.models.user import User, UserRole
-from app.schemas.auth import LoginRequest, RegisterRequest, UserResponse
+from app.schemas.auth import InviteRequest, LoginRequest, RegisterRequest, UserResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
@@ -103,3 +103,39 @@ async def logout(
 @router.get("/me", response_model=UserResponse)
 async def me(user: User = Depends(get_current_user)) -> User:
     return user
+
+
+@router.get("/household-members", response_model=list[UserResponse])
+async def list_household_members(
+    user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+) -> list[User]:
+    """Alle User im selben Haushalt — Grundlage für die Bucket-Freigabe-Auswahl."""
+    result = await db.execute(select(User).where(User.household_id == user.household_id))
+    return list(result.scalars().all())
+
+
+@router.post("/invite", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def invite_household_member(
+    payload: InviteRequest,
+    admin: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """
+    Legt einen weiteren User im selben Haushalt an (kein neuer Household wie bei /register).
+    Admin-only, da damit potenziell Zugriff auf den transparenten Household-Bucket entsteht.
+    """
+    existing = await db.execute(select(User).where(User.username == payload.username))
+    if existing.scalar_one_or_none() is not None:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username bereits vergeben")
+
+    member = User(
+        username=payload.username,
+        email=payload.email,
+        password_hash=hash_password(payload.password),
+        role=UserRole.USER,
+        household_id=admin.household_id,
+    )
+    db.add(member)
+    await db.commit()
+    await db.refresh(member)
+    return member
