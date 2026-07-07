@@ -1,3 +1,9 @@
+## [0.17.3](https://github.com/Thoomaastb/receiptly/compare/v0.17.2...v0.17.3) (2026-07-07)
+
+### Bug Fixes
+
+* **ui:** Profile submenu and added functionalities ([f54f922](https://github.com/Thoomaastb/receiptly/commit/f54f922d3d98b40264eaa2c548b9a38f72f7972a))
+
 ## [0.17.2](https://github.com/Thoomaastb/receiptly/compare/v0.17.1...v0.17.2) (2026-07-07)
 
 ### Bug Fixes
