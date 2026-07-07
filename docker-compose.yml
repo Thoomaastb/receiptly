@@ -23,17 +23,12 @@ services:
       - internal
 
   backend:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-thomas}/receiptly-backend:${RECEIPTLY_VERSION:-latest}
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-thoomaastb}/receiptly-backend:${RECEIPTLY_VERSION:-latest}
     build:
       context: ./backend
     pull_policy: missing
     restart: unless-stopped
     env_file: .env
-    environment:
-      # Automatisch aus POSTGRES_*-Variablen zusammengesetzt — verhindert, dass ein
-      # separat in .env eingetragenes DATABASE_URL-Passwort vom POSTGRES_PASSWORD
-      # abweicht (genau das hat den "password authentication failed"-Fehler verursacht).
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
 #    ports:
 #      - "8000:8000"
     volumes:
@@ -49,7 +44,7 @@ services:
       - remote
 
   frontend:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-thomas}/receiptly-frontend:${RECEIPTLY_VERSION:-latest}
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-thoomaastb}/receiptly-frontend:${RECEIPTLY_VERSION:-latest}
     build:
       context: ./frontend
     pull_policy: missing
