@@ -19,6 +19,8 @@
 
 	interface ReceiptDetail extends Receipt {
 		ocr_raw_text: string | null;
+		is_high_value: boolean;
+		warranty_expires_at: string | null;
 	}
 
 	interface Bucket {
@@ -34,11 +36,7 @@
 	let loading = true;
 	let errorMessage = '';
 	let groupByBucket = false;
-
 	let openReceipt: ReceiptDetail | null = null;
-	let openOriginRect: DOMRect | null = null;
-	let openOriginEl: HTMLElement | null = null;
-	let bounceEl: HTMLElement | null = null;
 
 	onMount(async () => {
 		try {
@@ -83,9 +81,7 @@
 				.filter((section) => section.items.length > 0)
 		: [];
 
-	async function openModal(id: string, cardEl: HTMLElement) {
-		openOriginEl = cardEl;
-		openOriginRect = cardEl.getBoundingClientRect();
+	async function openModal(id: string) {
 		const res = await fetch(`/api/receipts/${id}`, { credentials: 'include' });
 		if (!res.ok) return;
 		openReceipt = await res.json();
@@ -93,22 +89,6 @@
 
 	function closeModal() {
 		openReceipt = null;
-		if (openOriginEl) {
-			bounceEl = openOriginEl;
-			bounceEl.animate(
-				[
-					{ transform: 'scale(0.94)' },
-					{ transform: 'scale(1.03)', offset: 0.6 },
-					{ transform: 'scale(1)' }
-				],
-				{
-					duration: 320,
-					easing: 'cubic-bezier(.4,0,.2,1)'
-				}
-			);
-		}
-		openOriginEl = null;
-		openOriginRect = null;
 	}
 </script>
 
@@ -178,14 +158,16 @@
 	</div>
 {/if}
 
-{#if openReceipt && openOriginRect}
+{#if openReceipt}
 	<ReceiptModal
+		receiptId={openReceipt.id}
 		receiptDate={openReceipt.receipt_date}
 		totalAmount={openReceipt.total_amount}
 		currency={openReceipt.currency}
 		status={openReceipt.status}
 		ocrRawText={openReceipt.ocr_raw_text}
-		originRect={openOriginRect}
+		isHighValue={openReceipt.is_high_value}
+		warrantyExpiresAt={openReceipt.warranty_expires_at}
 		onClose={closeModal}
 	/>
 {/if}

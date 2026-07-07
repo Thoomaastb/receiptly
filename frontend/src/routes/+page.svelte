@@ -18,7 +18,6 @@
 	let loading = true;
 
 	let uploadOpen = false;
-	let uploadOriginRect: DOMRect | null = null;
 	let uploadCaptureMode: 'camera' | 'file' = 'file';
 
 	const thumbHeights = [92, 140, 110, 160, 100, 128];
@@ -64,8 +63,7 @@
 		return status === 'pending' ? '…' : 'DOC';
 	}
 
-	function openUpload(event: MouseEvent, mode: 'camera' | 'file') {
-		uploadOriginRect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+	function openUpload(mode: 'camera' | 'file') {
 		uploadCaptureMode = mode;
 		uploadOpen = true;
 	}
@@ -87,7 +85,7 @@
 
 <div class="mb-7 flex flex-wrap gap-4">
 	<button
-		on:click={(e) => openUpload(e, 'camera')}
+		on:click={() => openUpload('camera')}
 		class="box-border flex min-w-[280px] flex-1 flex-col gap-2.5 rounded-[18px] bg-hifi-accent px-7 py-6 text-left text-white shadow-[0_12px_28px_-12px_oklch(58%_0.19_290_/_0.5)] transition-transform active:scale-[0.99]"
 	>
 		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -99,7 +97,7 @@
 		<div class="text-[13.5px]" style="color: oklch(94% 0.03 290);">Kamera direkt öffnen (mobil)</div>
 	</button>
 	<button
-		on:click={(e) => openUpload(e, 'file')}
+		on:click={() => openUpload('file')}
 		class="box-border flex min-w-[280px] flex-1 flex-col gap-2.5 rounded-[18px] border border-hifi-border bg-hifi-surface px-7 py-6 text-left transition-transform active:scale-[0.99]"
 	>
 		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted-hifi)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -139,7 +137,7 @@
 	<p class="text-sm text-hifi-text-muted">Wird geladen …</p>
 {:else if recentReceipts.length === 0}
 	<button
-		on:click={(e) => openUpload(e, 'file')}
+		on:click={() => openUpload('file')}
 		class="block w-full rounded-[16px] border border-dashed border-hifi-border px-6 py-10 text-center transition-colors hover:bg-hifi-accent-tint"
 	>
 		<span class="text-sm text-hifi-text-muted">Noch keine Belege — lade den ersten hoch, um loszulegen.</span>
@@ -173,6 +171,6 @@
 	</div>
 {/if}
 
-{#if uploadOpen && uploadOriginRect}
-	<UploadModal originRect={uploadOriginRect} onClose={closeUpload} captureMode={uploadCaptureMode} />
+{#if uploadOpen}
+	<UploadModal onClose={closeUpload} captureMode={uploadCaptureMode} />
 {/if}

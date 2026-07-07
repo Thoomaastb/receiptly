@@ -9,9 +9,8 @@
 	export let bucketName: string;
 	export let bucketIsDefault: boolean;
 	export let showBucketPill = true;
-	export let onOpen: (id: string, cardEl: HTMLElement) => void;
+	export let onOpen: (id: string) => void;
 
-	let cardEl: HTMLElement;
 	let pressed = false;
 
 	function statusLabel(s: string): string {
@@ -28,17 +27,16 @@
 	}
 
 	function open() {
-		onOpen(id, cardEl);
+		onOpen(id);
 	}
 </script>
 
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <div
-	bind:this={cardEl}
 	role="button"
 	tabindex="0"
-	class="mb-3 inline-block w-full cursor-pointer rounded-xl border border-border bg-surface-raised p-4 transition-transform duration-150"
-	class:scale-[0.97]={pressed}
+	class="mb-3 inline-block w-full cursor-pointer rounded-xl border border-border bg-surface-raised p-4 transition-transform duration-[140ms]"
+	class:scale-[0.98]={pressed}
 	on:mousedown={() => (pressed = true)}
 	on:mouseup={() => (pressed = false)}
 	on:mouseleave={() => (pressed = false)}

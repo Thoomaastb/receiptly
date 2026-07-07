@@ -2,13 +2,14 @@
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import { page } from '$app/stores';
-	import { fade } from 'svelte/transition';
+	import { fly } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 
 	const reducedMotion =
 		typeof window !== 'undefined' &&
 		window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-	const transitionDuration = reducedMotion ? 0 : 180;
+	const transitionDuration = reducedMotion ? 0 : 220;
 
 	// Kategorien kommen aus merchant.category — aktuell noch leer, da Auto-Tagging
 	// (KI-Provider-Paket) noch nicht gebaut ist. Ehrlicher Leer-Zustand statt Fake-Daten.
@@ -172,8 +173,8 @@
 			{#key $page.url.pathname}
 				<div
 					style="grid-area: 1 / 1;"
-					in:fade={{ duration: transitionDuration }}
-					out:fade={{ duration: transitionDuration }}
+					in:fly={{ y: 8, duration: transitionDuration, easing: cubicOut }}
+					out:fly={{ y: -8, duration: transitionDuration, easing: cubicOut }}
 				>
 					<slot />
 				</div>

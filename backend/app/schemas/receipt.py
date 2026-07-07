@@ -33,4 +33,5 @@ class ReceiptDetail(ReceiptListItem):
     ocr_confidence: float | None
     file_path: str
     is_high_value: bool
+    warranty_expires_at: date | None
 

@@ -2,95 +2,39 @@
 	import { onMount } from 'svelte';
 	import UploadFlow from './UploadFlow.svelte';
 
-	export let originRect: DOMRect;
 	export let onClose: () => void;
 	export let captureMode: 'camera' | 'file' = 'file';
 
-	let modalEl: HTMLElement;
-	let backdropOpacity = 0;
-	let contentVisible = false;
+	let visible = false;
 	let closing = false;
 
 	const reducedMotion =
 		typeof window !== 'undefined' &&
 		window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-	const OPEN_MS = 380;
+	// Identisch zu ReceiptModal — dieselbe Scale+Fade-Sprache laut Hifi-Handoff
+	const OPEN_MS = 340;
 	const CLOSE_MS = 260;
-	const OVERSHOOT_EASE = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
-	const EASE_IN = 'cubic-bezier(.4,0,.2,1)';
-
-	function targetRect() {
-		const width = Math.min(440, window.innerWidth - 32);
-		const height = Math.min(480, window.innerHeight - 64);
-		return {
-			top: (window.innerHeight - height) / 2,
-			left: (window.innerWidth - width) / 2,
-			width,
-			height
-		};
-	}
+	const EASE = 'cubic-bezier(0.22,1,0.36,1)';
 
 	onMount(() => {
-		if (!modalEl) return;
-
-		if (reducedMotion) {
-			const t = targetRect();
-			Object.assign(modalEl.style, {
-				top: `${t.top}px`,
-				left: `${t.left}px`,
-				width: `${t.width}px`,
-				height: `${t.height}px`,
-				borderRadius: '12px'
-			});
-			backdropOpacity = 1;
-			contentVisible = true;
-			return;
-		}
-
-		Object.assign(modalEl.style, {
-			top: `${originRect.top}px`,
-			left: `${originRect.left}px`,
-			width: `${originRect.width}px`,
-			height: `${originRect.height}px`,
-			borderRadius: '12px',
-			transition: 'none'
-		});
-
 		requestAnimationFrame(() => {
-			const t = targetRect();
-			modalEl.style.transition = `top ${OPEN_MS}ms ${OVERSHOOT_EASE}, left ${OPEN_MS}ms ${OVERSHOOT_EASE}, width ${OPEN_MS}ms ${OVERSHOOT_EASE}, height ${OPEN_MS}ms ${OVERSHOOT_EASE}, border-radius ${OPEN_MS}ms ${OVERSHOOT_EASE}`;
-			modalEl.style.top = `${t.top}px`;
-			modalEl.style.left = `${t.left}px`;
-			modalEl.style.width = `${t.width}px`;
-			modalEl.style.height = `${t.height}px`;
-			backdropOpacity = 1;
-			setTimeout(() => (contentVisible = true), OPEN_MS * 0.4);
+			visible = true;
 		});
 	});
 
 	function handleClose() {
 		if (closing) return;
 		closing = true;
-		contentVisible = false;
-		backdropOpacity = 0;
-
-		if (reducedMotion) {
-			onClose();
-			return;
-		}
-
-		modalEl.style.transition = `top ${CLOSE_MS}ms ${EASE_IN}, left ${CLOSE_MS}ms ${EASE_IN}, width ${CLOSE_MS}ms ${EASE_IN}, height ${CLOSE_MS}ms ${EASE_IN}, border-radius ${CLOSE_MS}ms ${EASE_IN}`;
-		modalEl.style.top = `${originRect.top}px`;
-		modalEl.style.left = `${originRect.left}px`;
-		modalEl.style.width = `${originRect.width}px`;
-		modalEl.style.height = `${originRect.height}px`;
-		setTimeout(onClose, CLOSE_MS);
+		visible = false;
+		setTimeout(onClose, reducedMotion ? 0 : CLOSE_MS);
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') handleClose();
 	}
+
+	const currentDuration = () => (closing ? CLOSE_MS : OPEN_MS);
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -98,31 +42,23 @@
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <div
 	class="fixed inset-0 z-40 bg-black"
-	style="opacity: {backdropOpacity * 0.5}; -webkit-backdrop-filter: blur({backdropOpacity * 4}px); backdrop-filter: blur({backdropOpacity * 4}px); transition-property: opacity, backdrop-filter, -webkit-backdrop-filter; transition-duration: {reducedMotion
-		? '0ms'
-		: '260ms'};"
+	style="opacity: {visible ? 0.5 : 0}; -webkit-backdrop-filter: blur({visible ? 4 : 0}px); backdrop-filter: blur({visible ? 4 : 0}px); transition-property: opacity, backdrop-filter, -webkit-backdrop-filter; transition-duration: {reducedMotion ? '0ms' : `${currentDuration()}ms`}; transition-timing-function: {EASE};"
 	on:click={handleClose}
 	role="presentation"
 ></div>
 
 <div
-	bind:this={modalEl}
-	class="fixed z-50 overflow-auto border border-border bg-surface"
+	class="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[92vw] max-w-md overflow-auto rounded-[20px] border border-border bg-surface p-5"
+	style="transform: translate(-50%, -50%) scale({visible ? 1 : 0.98}); opacity: {visible ? 1 : 0}; transition-property: transform, opacity; transition-duration: {reducedMotion ? '0ms' : `${currentDuration()}ms`}; transition-timing-function: {EASE};"
 	role="dialog"
 	aria-modal="true"
 	aria-label="Beleg hochladen"
 >
-	<div class="p-5 transition-opacity duration-150" class:opacity-0={!contentVisible}>
-		<div class="mb-4 flex items-center justify-between">
-			<h2 class="text-lg font-medium">{captureMode === 'camera' ? 'Beleg scannen' : 'Beleg hochladen'}</h2>
-			<button
-				on:click={handleClose}
-				aria-label="Schließen"
-				class="rounded-full p-1 text-text-muted hover:text-text"
-			>
-				✕
-			</button>
-		</div>
-		<UploadFlow onSuccess={handleClose} {captureMode} />
+	<div class="mb-4 flex items-center justify-between">
+		<h2 class="text-lg font-medium">{captureMode === 'camera' ? 'Beleg scannen' : 'Beleg hochladen'}</h2>
+		<button on:click={handleClose} aria-label="Schließen" class="rounded-full p-1 text-text-muted hover:text-text">
+			✕
+		</button>
 	</div>
+	<UploadFlow onSuccess={handleClose} {captureMode} />
 </div>
