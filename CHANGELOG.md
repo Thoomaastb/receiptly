@@ -1,3 +1,9 @@
+## [0.15.5](https://github.com/Thoomaastb/receiptly/compare/v0.15.4...v0.15.5) (2026-07-07)
+
+### Bug Fixes
+
+* **ui:** make outer layout a flex column so sidebar fills viewport height, sequence page transitions ([9a586cc](https://github.com/Thoomaastb/receiptly/commit/9a586cc4edf0c85b4c16e38c3aa20144490a0a92))
+
 ## [0.15.4](https://github.com/Thoomaastb/receiptly/compare/v0.15.3...v0.15.4) (2026-07-07)
 
 ### Bug Fixes
