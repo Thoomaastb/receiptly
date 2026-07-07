@@ -1,3 +1,5 @@
+from datetime import date, timedelta
+
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +11,7 @@ from app.config import get_settings
 from app.database import get_db
 from app.models.bucket import Bucket, BucketType, BucketVisibility
 from app.models.household import Household
+from app.models.receipt import Receipt, ReceiptStatus
 from app.models.user import User, UserRole
 from app.schemas.auth import LoginRequest, RegisterRequest, UserResponse
 
@@ -22,6 +25,8 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
     Legt einen neuen Haushalt mit dem ersten User (Rolle: Admin) an.
     Der Household-Bucket wird automatisch miterzeugt — is_default=True, immer 'transparent',
     darf laut Produkt-Konzept nie gelöscht oder auf privat gestellt werden.
+    Ein Demo-Beleg (is_demo=True) landet ebenfalls automatisch drin, damit man sofort
+    etwas zum Testen hat — wird beim v1.0.0-Cutover per eigener Migration entfernt.
     """
     existing = await db.execute(select(User).where(User.username == payload.username))
     if existing.scalar_one_or_none() is not None:
@@ -50,6 +55,20 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
         is_default=True,
     )
     db.add(household_bucket)
+    await db.flush()
+
+    demo_receipt = Receipt(
+        user_id=user.id,
+        bucket_id=household_bucket.id,
+        file_path="demo/dummy-beleg.jpg",
+        content_hash=f"demo-{household_bucket.id}",
+        status=ReceiptStatus.PROCESSED,
+        currency="EUR",
+        receipt_date=date.today() - timedelta(days=3),
+        total_amount=24.99,
+        is_demo=True,
+    )
+    db.add(demo_receipt)
 
     await db.commit()
     await db.refresh(user)

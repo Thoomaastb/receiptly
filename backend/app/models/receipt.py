@@ -60,6 +60,10 @@ class Receipt(Base, UpdatableTimestampMixin):
         Enum(ReceiptStatus, name="receipt_status"), nullable=False, default=ReceiptStatus.PENDING
     )
 
+    # Markiert Test-/Demo-Daten (siehe Migration 0004) — wird beim v1.0.0-Cutover per
+    # eigener Migration gelöscht (DELETE WHERE is_demo=true), danach Spalte entfernt.
+    is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
     items: Mapped[list["Item"]] = relationship(  # noqa: F821
         back_populates="receipt", cascade="all, delete-orphan"
     )

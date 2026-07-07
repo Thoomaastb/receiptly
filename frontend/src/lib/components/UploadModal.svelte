@@ -12,7 +12,8 @@
 		typeof window !== 'undefined' &&
 		window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-	// Identisch zu ReceiptModal — dieselbe Scale+Fade-Sprache laut Hifi-Handoff
+	// Gleiche Scale+Fade-Sprache wie die Beleg-Detail-Ansicht laut Hifi-Handoff,
+	// hier weiterhin als Modal (dein eigener "on-the-fly"-Wunsch, nicht Teil des Mockups)
 	const OPEN_MS = 340;
 	const CLOSE_MS = 260;
 	const EASE = 'cubic-bezier(0.22,1,0.36,1)';

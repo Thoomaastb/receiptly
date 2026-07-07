@@ -3,7 +3,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import ReceiptCard from '$lib/components/ReceiptCard.svelte';
-	import ReceiptModal from '$lib/components/ReceiptModal.svelte';
+	import ReceiptDetailView from '$lib/components/ReceiptDetailView.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 
 	interface Receipt {
@@ -81,85 +81,20 @@
 				.filter((section) => section.items.length > 0)
 		: [];
 
-	async function openModal(id: string) {
+	async function openDetail(id: string) {
 		const res = await fetch(`/api/receipts/${id}`, { credentials: 'include' });
 		if (!res.ok) return;
 		openReceipt = await res.json();
 	}
 
-	function closeModal() {
+	function backToList() {
 		openReceipt = null;
 	}
 </script>
 
-<h1 class="mb-4 text-xl font-semibold">Belege</h1>
-
-{#if bucketFilter}
-	<div class="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-surface-raised px-3 py-1 text-xs">
-		<span>Bucket: {bucketFilter.name}</span>
-		<button on:click={clearBucketFilter} aria-label="Filter entfernen" class="text-text-muted hover:text-text">✕</button>
-	</div>
-{/if}
-
-{#if !loading && !errorMessage && visibleReceipts.length > 0}
-	<button
-		class="mb-4 block rounded-full border border-border px-3 py-1 text-xs text-text-muted hover:text-text"
-		on:click={() => (groupByBucket = !groupByBucket)}
-	>
-		{groupByBucket ? 'Flach anzeigen' : 'Nach Bucket gruppieren'}
-	</button>
-{/if}
-
-{#if loading}
-	<p class="text-sm text-text-muted">Belege werden geladen …</p>
-{:else if errorMessage}
-	<p class="text-sm text-red-500">{errorMessage}</p>
-{:else if visibleReceipts.length === 0}
-	<p class="text-sm text-text-muted">Noch keine Belege hochgeladen.</p>
-{:else if groupByBucket}
-	{#each groupedSections as section (section.bucket.id)}
-		<SectionHeader
-			icon={section.bucket.is_default ? 'home' : 'lock'}
-			name={section.bucket.name}
-			count={section.items.length}
-			sum={section.items.reduce((sum, r) => sum + (r.total_amount ?? 0), 0)}
-		/>
-		<div class="mb-6 mt-3" style="column-count: 2; column-gap: 12px;">
-			{#each section.items as receipt (receipt.id)}
-				<ReceiptCard
-					id={receipt.id}
-					receiptDate={receipt.receipt_date}
-					totalAmount={receipt.total_amount}
-					currency={receipt.currency}
-					status={receipt.status}
-					bucketName={section.bucket.name}
-					bucketIsDefault={section.bucket.is_default}
-					showBucketPill={false}
-					onOpen={openModal}
-				/>
-			{/each}
-		</div>
-	{/each}
-{:else}
-	<div style="column-count: 2; column-gap: 12px;">
-		{#each visibleReceipts as receipt (receipt.id)}
-			{@const bucket = bucketFor(receipt.bucket_id)}
-			<ReceiptCard
-				id={receipt.id}
-				receiptDate={receipt.receipt_date}
-				totalAmount={receipt.total_amount}
-				currency={receipt.currency}
-				status={receipt.status}
-				bucketName={bucket?.name ?? '…'}
-				bucketIsDefault={bucket?.is_default ?? false}
-				onOpen={openModal}
-			/>
-		{/each}
-	</div>
-{/if}
-
 {#if openReceipt}
-	<ReceiptModal
+	<!-- Content-Switch statt Modal, gemäß Mockup: ersetzt die Liste komplett -->
+	<ReceiptDetailView
 		receiptId={openReceipt.id}
 		receiptDate={openReceipt.receipt_date}
 		totalAmount={openReceipt.total_amount}
@@ -168,6 +103,72 @@
 		ocrRawText={openReceipt.ocr_raw_text}
 		isHighValue={openReceipt.is_high_value}
 		warrantyExpiresAt={openReceipt.warranty_expires_at}
-		onClose={closeModal}
+		onBack={backToList}
 	/>
+{:else}
+	<h1 class="mb-4 text-xl font-semibold">Belege</h1>
+
+	{#if bucketFilter}
+		<div class="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-surface-raised px-3 py-1 text-xs">
+			<span>Bucket: {bucketFilter.name}</span>
+			<button on:click={clearBucketFilter} aria-label="Filter entfernen" class="text-text-muted hover:text-text">✕</button>
+		</div>
+	{/if}
+
+	{#if !loading && !errorMessage && visibleReceipts.length > 0}
+		<button
+			class="mb-4 block rounded-full border border-border px-3 py-1 text-xs text-text-muted hover:text-text"
+			on:click={() => (groupByBucket = !groupByBucket)}
+		>
+			{groupByBucket ? 'Flach anzeigen' : 'Nach Bucket gruppieren'}
+		</button>
+	{/if}
+
+	{#if loading}
+		<p class="text-sm text-text-muted">Belege werden geladen …</p>
+	{:else if errorMessage}
+		<p class="text-sm text-red-500">{errorMessage}</p>
+	{:else if visibleReceipts.length === 0}
+		<p class="text-sm text-text-muted">Noch keine Belege hochgeladen.</p>
+	{:else if groupByBucket}
+		{#each groupedSections as section (section.bucket.id)}
+			<SectionHeader
+				icon={section.bucket.is_default ? 'home' : 'lock'}
+				name={section.bucket.name}
+				count={section.items.length}
+				sum={section.items.reduce((sum, r) => sum + (r.total_amount ?? 0), 0)}
+			/>
+			<div class="mb-6 mt-3" style="column-count: 2; column-gap: 12px;">
+				{#each section.items as receipt (receipt.id)}
+					<ReceiptCard
+						id={receipt.id}
+						receiptDate={receipt.receipt_date}
+						totalAmount={receipt.total_amount}
+						currency={receipt.currency}
+						status={receipt.status}
+						bucketName={section.bucket.name}
+						bucketIsDefault={section.bucket.is_default}
+						showBucketPill={false}
+						onOpen={openDetail}
+					/>
+				{/each}
+			</div>
+		{/each}
+	{:else}
+		<div style="column-count: 2; column-gap: 12px;">
+			{#each visibleReceipts as receipt (receipt.id)}
+				{@const bucket = bucketFor(receipt.bucket_id)}
+				<ReceiptCard
+					id={receipt.id}
+					receiptDate={receipt.receipt_date}
+					totalAmount={receipt.total_amount}
+					currency={receipt.currency}
+					status={receipt.status}
+					bucketName={bucket?.name ?? '…'}
+					bucketIsDefault={bucket?.is_default ?? false}
+					onOpen={openDetail}
+				/>
+			{/each}
+		</div>
+	{/if}
 {/if}
