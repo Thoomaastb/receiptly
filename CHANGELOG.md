@@ -1,3 +1,9 @@
+## [0.16.0](https://github.com/Thoomaastb/receiptly/compare/v0.15.9...v0.16.0) (2026-07-07)
+
+### Features
+
+* **auth:** login and register capabilities plus small first setup wizard at first startup ([8c76b4d](https://github.com/Thoomaastb/receiptly/commit/8c76b4d8c87a60c7210327e5928b611745370f0d))
+
 ## [0.15.9](https://github.com/Thoomaastb/receiptly/compare/v0.15.8...v0.15.9) (2026-07-07)
 
 ### Bug Fixes
