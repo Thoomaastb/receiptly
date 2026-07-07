@@ -1,3 +1,9 @@
+## [0.14.0](https://github.com/Thoomaastb/receiptly/compare/v0.13.3...v0.14.0) (2026-07-07)
+
+### Features
+
+* **buckets:** add personal bucket creation, visibility toggle, and bucket-filtered receipt view ([9947df7](https://github.com/Thoomaastb/receiptly/commit/9947df7a440be2c2b00acfa5d2722631fa97cebb))
+
 ## [0.13.3](https://github.com/Thoomaastb/receiptly/compare/v0.13.2...v0.13.3) (2026-07-04)
 
 ### Bug Fixes
