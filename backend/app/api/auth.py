@@ -19,8 +19,21 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
 
 
+@router.get("/setup-required")
+async def setup_required(db: AsyncSession = Depends(get_db)) -> dict[str, bool]:
+    """
+    Öffentlich (keine Auth nötig) — sagt dem Frontend, ob überhaupt schon ein User
+    existiert. Frisch aufgesetzte Instanz zeigt den Einrichtungs-Assistenten statt
+    eines Login-Formulars, für das es noch niemanden zum Anmelden gäbe.
+    """
+    result = await db.execute(select(User.id).limit(1))
+    return {"setup_required": result.scalar_one_or_none() is None}
+
+
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db)) -> User:
+async def register(
+    payload: RegisterRequest, response: Response, db: AsyncSession = Depends(get_db)
+) -> User:
     """
     Legt einen neuen Haushalt mit dem ersten User (Rolle: Admin) an.
     Der Household-Bucket wird automatisch miterzeugt — is_default=True, immer 'transparent',
@@ -72,6 +85,10 @@ async def register(payload: RegisterRequest, db: AsyncSession = Depends(get_db))
 
     await db.commit()
     await db.refresh(user)
+
+    # Direkt einloggen, damit der Einrichtungs-Assistent im Frontend ohne separaten
+    # Login-Schritt in die App übergeben kann.
+    await create_session(user.id, response)
     return user
 
 

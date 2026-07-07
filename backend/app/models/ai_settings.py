@@ -28,7 +28,7 @@ class AISettings(Base, UpdatableTimestampMixin):
         ForeignKey("households.id", ondelete="CASCADE"), primary_key=True
     )
     provider: Mapped[AIProviderType] = mapped_column(
-        Enum(AIProviderType, name="ai_provider_type"),
+        Enum(AIProviderType, name="ai_provider_type", values_callable=lambda e: [m.value for m in e]),
         nullable=False,
         default=AIProviderType.OLLAMA,
     )

@@ -57,7 +57,9 @@ class Receipt(Base, UpdatableTimestampMixin):
     warranty_expires_at: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     status: Mapped[ReceiptStatus] = mapped_column(
-        Enum(ReceiptStatus, name="receipt_status"), nullable=False, default=ReceiptStatus.PENDING
+        Enum(ReceiptStatus, name="receipt_status", values_callable=lambda e: [m.value for m in e]),
+        nullable=False,
+        default=ReceiptStatus.PENDING,
     )
 
     # Markiert Test-/Demo-Daten (siehe Migration 0004) — wird beim v1.0.0-Cutover per

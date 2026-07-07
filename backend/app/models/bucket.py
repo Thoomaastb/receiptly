@@ -45,9 +45,12 @@ class Bucket(Base, TimestampMixin):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    type: Mapped[BucketType] = mapped_column(Enum(BucketType, name="bucket_type"), nullable=False)
+    type: Mapped[BucketType] = mapped_column(
+        Enum(BucketType, name="bucket_type", values_callable=lambda e: [m.value for m in e]),
+        nullable=False,
+    )
     visibility: Mapped[BucketVisibility] = mapped_column(
-        Enum(BucketVisibility, name="bucket_visibility"),
+        Enum(BucketVisibility, name="bucket_visibility", values_callable=lambda e: [m.value for m in e]),
         nullable=False,
         default=BucketVisibility.TRANSPARENT,
     )
@@ -72,7 +75,8 @@ class BucketAccess(Base):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
     access_level: Mapped[BucketAccessLevel] = mapped_column(
-        Enum(BucketAccessLevel, name="bucket_access_level"), nullable=False
+        Enum(BucketAccessLevel, name="bucket_access_level", values_callable=lambda e: [m.value for m in e]),
+        nullable=False,
     )
     granted_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

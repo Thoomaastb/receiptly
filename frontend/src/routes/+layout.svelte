@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 
 	// Kategorien kommen aus merchant.category — aktuell noch leer, da Auto-Tagging
 	// (KI-Provider-Paket) noch nicht gebaut ist. Ehrlicher Leer-Zustand statt Fake-Daten.
@@ -10,12 +11,19 @@
 	let categoriesLoading = true;
 	let userInitial = '';
 
+	$: isAuthRoute = $page.url.pathname === '/login';
+
 	onMount(async () => {
+		if (isAuthRoute) return;
+
 		try {
 			const meRes = await fetch('/api/auth/me', { credentials: 'include' });
 			if (meRes.ok) {
 				const me = await meRes.json();
 				userInitial = (me.username?.[0] ?? '?').toUpperCase();
+			} else if (meRes.status === 401) {
+				goto('/login');
+				return;
 			}
 		} catch {
 			// Avatar bleibt leer, wenn nicht eingeloggt — kein Fehler-UI nötig für dieses Detail
@@ -40,6 +48,9 @@
 	});
 </script>
 
+{#if isAuthRoute}
+	<slot />
+{:else}
 <div class="flex min-h-screen flex-col bg-hifi-bg font-ui text-hifi-text" style="color-scheme: light;">
 	<div
 		class="grid h-[72px] flex-none grid-cols-[1fr_auto_1fr] items-center border-b border-hifi-border bg-hifi-surface px-8"
@@ -166,3 +177,4 @@
 		</main>
 	</div>
 </div>
+{/if}
