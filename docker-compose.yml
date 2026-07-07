@@ -29,6 +29,11 @@ services:
     pull_policy: missing
     restart: unless-stopped
     env_file: .env
+    environment:
+      # Automatisch aus POSTGRES_*-Variablen zusammengesetzt — verhindert, dass ein
+      # separat in .env eingetragenes DATABASE_URL-Passwort vom POSTGRES_PASSWORD
+      # abweicht (genau das hat den "password authentication failed"-Fehler verursacht).
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
 #    ports:
 #      - "8000:8000"
     volumes:
@@ -74,4 +79,3 @@ networks:
     external: true
   remote:
     external: true
- 
