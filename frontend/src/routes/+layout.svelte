@@ -9,7 +9,33 @@
 	let categories: { name: string; color: string; count: number }[] = [];
 	let expiringWarrantiesCount = 0;
 	let categoriesLoading = true;
-	let userInitial = '';
+
+	let currentUser: { username: string; email: string; role: string } | null = null;
+	$: userInitial = (currentUser?.username?.[0] ?? '?').toUpperCase();
+
+	let userMenuOpen = false;
+	let userMenuEl: HTMLDivElement;
+
+	function toggleUserMenu() {
+		userMenuOpen = !userMenuOpen;
+	}
+
+	function handleUserMenuClickOutside(e: MouseEvent) {
+		if (!userMenuOpen) return;
+		if (!userMenuEl?.contains(e.target as Node)) {
+			userMenuOpen = false;
+		}
+	}
+
+	function handleUserMenuKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape') userMenuOpen = false;
+	}
+
+	async function logout() {
+		userMenuOpen = false;
+		await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+		goto('/login');
+	}
 
 	$: isAuthRoute = $page.url.pathname === '/login';
 
@@ -19,8 +45,7 @@
 		try {
 			const meRes = await fetch('/api/auth/me', { credentials: 'include' });
 			if (meRes.ok) {
-				const me = await meRes.json();
-				userInitial = (me.username?.[0] ?? '?').toUpperCase();
+				currentUser = await meRes.json();
 			} else if (meRes.status === 401) {
 				goto('/login');
 				return;
@@ -47,6 +72,8 @@
 		}
 	});
 </script>
+
+<svelte:window on:click={handleUserMenuClickOutside} on:keydown={handleUserMenuKeydown} />
 
 {#if isAuthRoute}
 	<slot />
@@ -123,12 +150,51 @@
 					/>
 				</svg>
 			</a>
-			{#if userInitial}
-				<div
-					class="ml-1 flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full bg-hifi-accent-tint text-[12px] font-bold text-hifi-accent-text"
-					title={userInitial}
-				>
-					{userInitial}
+			{#if currentUser}
+				<div class="relative ml-1" bind:this={userMenuEl}>
+					<button
+						on:click={toggleUserMenu}
+						aria-label="Benutzermenü"
+						aria-expanded={userMenuOpen}
+						class="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full bg-hifi-accent-tint text-[12px] font-bold text-hifi-accent-text"
+					>
+						{userInitial}
+					</button>
+					{#if userMenuOpen}
+						<div class="absolute right-0 top-[38px] z-30 w-56 rounded-[14px] border border-hifi-border bg-hifi-surface p-1.5">
+							<div class="px-3 py-2.5">
+								<div class="truncate text-[13.5px] font-bold text-hifi-text">{currentUser.username}</div>
+								<div class="truncate text-[12px] text-hifi-text-muted">{currentUser.email}</div>
+							</div>
+							<div class="my-1 h-px bg-hifi-border"></div>
+							<a
+								href="/settings"
+								on:click={() => (userMenuOpen = false)}
+								class="flex w-full items-center gap-2 rounded-[9px] px-3 py-2 text-left text-[13px] font-medium text-hifi-text transition-colors hover:bg-hifi-accent-tint"
+							>
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<circle cx="12" cy="12" r="3" />
+									<path
+										d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1 1.55V21a2 2 0 01-4 0v-.09a1.7 1.7 0 00-1-1.55 1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.7 1.7 0 004.6 15a1.7 1.7 0 00-1.55-1H3a2 2 0 010-4h.09A1.7 1.7 0 004.6 9a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06A1.7 1.7 0 009 4.6a1.7 1.7 0 001-1.55V3a2 2 0 014 0v.09a1.7 1.7 0 001 1.55 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06A1.7 1.7 0 0019.4 9a1.7 1.7 0 001.55 1H21a2 2 0 010 4h-.09a1.7 1.7 0 00-1.55 1z"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									/>
+								</svg>
+								Einstellungen
+							</a>
+							<button
+								on:click={logout}
+								class="flex w-full items-center gap-2 rounded-[9px] px-3 py-2 text-left text-[13px] font-medium text-hifi-text transition-colors hover:bg-hifi-accent-tint"
+							>
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+									<path d="M16 17l5-5-5-5" />
+									<path d="M21 12H9" />
+								</svg>
+								Abmelden
+							</button>
+						</div>
+					{/if}
 				</div>
 			{/if}
 		</div>
