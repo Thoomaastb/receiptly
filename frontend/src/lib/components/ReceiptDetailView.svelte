@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-
 	export const receiptId: string = '';
 	export let receiptDate: string | null;
 	export let totalAmount: number | null;
@@ -10,24 +8,6 @@
 	export let isHighValue: boolean = false;
 	export let warrantyExpiresAt: string | null = null;
 	export let onBack: () => void;
-
-	let visible = false;
-
-	const reducedMotion =
-		typeof window !== 'undefined' &&
-		window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-	// Exakt laut Hifi-Handoff: Scale (0.98→1) + Opacity-Fade, 340ms, cubic-bezier(0.22,1,0.36,1).
-	// Kein Modal/Backdrop mehr — Content-Switch innerhalb der Seite, passend zum
-	// ursprünglichen Prototyp-State (screen: 'detail'), nicht als eigenständiges Overlay.
-	const OPEN_MS = 340;
-	const EASE = 'cubic-bezier(0.22,1,0.36,1)';
-
-	onMount(() => {
-		requestAnimationFrame(() => {
-			visible = true;
-		});
-	});
 
 	function statusLabel(s: string): string {
 		switch (s) {
@@ -52,8 +32,6 @@
 </script>
 
 <div
-	style="opacity: {visible ? 1 : 0}; transform: scale({visible ? 1 : 0.98}); transition-property: transform, opacity; transition-duration: {reducedMotion ? '0ms' : `${OPEN_MS}ms`}; transition-timing-function: {EASE};"
->
 	<button on:click={onBack} class="mb-4 flex items-center gap-1.5 text-sm font-medium text-text-muted hover:text-text">
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 			<path d="M15 18l-6-6 6-6" />

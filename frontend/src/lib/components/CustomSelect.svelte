@@ -98,7 +98,7 @@
 			fill="none"
 			stroke="currentColor"
 			stroke-width="2"
-			class="shrink-0 text-text-muted transition-transform"
+			class="shrink-0 text-text-muted"
 			class:rotate-180={open}
 			aria-hidden="true"
 		>

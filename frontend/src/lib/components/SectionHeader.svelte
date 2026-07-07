@@ -37,7 +37,7 @@
 		fill="none"
 		stroke="currentColor"
 		stroke-width="2"
-		class="text-text-muted transition-transform"
+		class="text-text-muted"
 		class:rotate-180={!expanded}
 		aria-hidden="true"
 	>

@@ -86,7 +86,7 @@
 <div class="mb-7 flex flex-wrap gap-4">
 	<button
 		on:click={() => openUpload('camera')}
-		class="box-border flex min-w-[280px] flex-1 flex-col gap-2.5 rounded-[18px] bg-hifi-accent px-7 py-6 text-left text-white shadow-[0_12px_28px_-12px_oklch(58%_0.19_290_/_0.5)] transition-transform active:scale-[0.99]"
+		class="box-border flex min-w-[280px] flex-1 flex-col gap-2.5 rounded-[18px] bg-hifi-accent px-7 py-6 text-left text-white shadow-[0_12px_28px_-12px_oklch(58%_0.19_290_/_0.5)]"
 	>
 		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 			<rect x="3" y="7" width="18" height="13" rx="2" />
@@ -98,7 +98,7 @@
 	</button>
 	<button
 		on:click={() => openUpload('file')}
-		class="box-border flex min-w-[280px] flex-1 flex-col gap-2.5 rounded-[18px] border border-hifi-border bg-hifi-surface px-7 py-6 text-left transition-transform active:scale-[0.99]"
+		class="box-border flex min-w-[280px] flex-1 flex-col gap-2.5 rounded-[18px] border border-hifi-border bg-hifi-surface px-7 py-6 text-left"
 	>
 		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted-hifi)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 			<path d="M12 16V4M8 8l4-4 4 4" />
