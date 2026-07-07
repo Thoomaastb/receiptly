@@ -270,13 +270,19 @@
 						</label>
 						<label class="text-xs">
 							<span class="mb-1 block text-text-muted">Betrag ({currency})</span>
-							<input
-								type="number"
-								step="0.01"
-								min="0"
-								bind:value={draftAmount}
-								class="w-full rounded border border-border bg-surface p-2 text-sm"
-							/>
+							{#if items.length > 0}
+								<div class="w-full rounded border border-border bg-surface-raised p-2 text-sm text-text-muted">
+									{totalAmount !== null ? totalAmount.toFixed(2) : '0.00'} — aus Artikeln berechnet
+								</div>
+							{:else}
+								<input
+									type="number"
+									step="0.01"
+									min="0"
+									bind:value={draftAmount}
+									class="w-full rounded border border-border bg-surface p-2 text-sm"
+								/>
+							{/if}
 						</label>
 					</div>
 					<label class="flex items-center gap-2 text-xs">

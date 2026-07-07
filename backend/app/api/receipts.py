@@ -58,6 +58,20 @@ def _add_months(d: date, months: int) -> date:
     return date(year, month, day)
 
 
+async def _recompute_total_from_items(db: AsyncSession, receipt: Receipt) -> None:
+    """
+    Gesamtsumme = Summe der Artikel-Einzelsummen, sobald mindestens ein Artikel erfasst
+    ist — total_amount ist dann kein unabhängig editierbares Feld mehr, sondern
+    abgeleitet (Nutzer-Feedback: Summe und Artikel liefen sonst auseinander).
+    Neu abgefragt statt über die ORM-Relationship, damit Autoflush pending
+    Add/Update/Delete-Operationen auf items sauber mit einrechnet.
+    """
+    result = await db.execute(select(Item.total_price).where(Item.receipt_id == receipt.id))
+    totals = list(result.scalars().all())
+    if totals:
+        receipt.total_amount = sum(totals)
+
+
 async def _assert_bucket_writable(db: AsyncSession, bucket_id: uuid.UUID, user: User) -> Bucket:
     """
     Prüft Schreibzugriff auf den Bucket: Owner darf immer, sonst nur mit 'edit' in
@@ -222,6 +236,10 @@ async def update_receipt(
     if receipt.warranty_months is not None and receipt.receipt_date is not None:
         receipt.warranty_expires_at = _add_months(receipt.receipt_date, receipt.warranty_months)
 
+    # Übersteuert ein manuell mitgeschicktes total_amount, sobald Artikel existieren —
+    # Artikel-Summe gewinnt immer (siehe _recompute_total_from_items).
+    await _recompute_total_from_items(db, receipt)
+
     await db.commit()
     return await _reload_receipt_detail(db, receipt_id)
 
@@ -235,7 +253,7 @@ async def add_item(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Item:
-    await _get_writable_receipt(db, receipt_id, user)
+    receipt = await _get_writable_receipt(db, receipt_id, user)
 
     item = Item(
         receipt_id=receipt_id,
@@ -246,6 +264,7 @@ async def add_item(
         total_price=payload.total_price,
     )
     db.add(item)
+    await _recompute_total_from_items(db, receipt)
     await db.commit()
     await db.refresh(item)
     return item
@@ -259,7 +278,7 @@ async def update_item(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Item:
-    await _get_writable_receipt(db, receipt_id, user)
+    receipt = await _get_writable_receipt(db, receipt_id, user)
 
     result = await db.execute(
         select(Item).where(Item.id == item_id, Item.receipt_id == receipt_id)
@@ -279,6 +298,7 @@ async def update_item(
     if payload.total_price is not None:
         item.total_price = payload.total_price
 
+    await _recompute_total_from_items(db, receipt)
     await db.commit()
     await db.refresh(item)
     return item
@@ -291,7 +311,7 @@ async def delete_item(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> None:
-    await _get_writable_receipt(db, receipt_id, user)
+    receipt = await _get_writable_receipt(db, receipt_id, user)
 
     result = await db.execute(
         select(Item).where(Item.id == item_id, Item.receipt_id == receipt_id)
@@ -299,4 +319,7 @@ async def delete_item(
     item = result.scalar_one_or_none()
     if item is not None:
         await db.delete(item)
+        # Letzter Artikel gelöscht -> _recompute_total_from_items ist dann ein No-op
+        # (siehe Docstring), total_amount bleibt bewusst auf dem letzten Stand stehen.
+        await _recompute_total_from_items(db, receipt)
         await db.commit()
