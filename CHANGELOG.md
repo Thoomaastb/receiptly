@@ -1,3 +1,9 @@
+## [0.17.1](https://github.com/Thoomaastb/receiptly/compare/v0.17.0...v0.17.1) (2026-07-07)
+
+### Bug Fixes
+
+* **pricing:** sum and articles are not connected. fixed by summing the articles by quantities automatically ([d010057](https://github.com/Thoomaastb/receiptly/commit/d010057aae29181e4e379eea22da956a8471ea42))
+
 ## [0.17.0](https://github.com/Thoomaastb/receiptly/compare/v0.16.1...v0.17.0) (2026-07-07)
 
 ### Features
