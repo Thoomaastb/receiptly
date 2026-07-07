@@ -1,3 +1,9 @@
+## [0.16.1](https://github.com/Thoomaastb/receiptly/compare/v0.16.0...v0.16.1) (2026-07-07)
+
+### Bug Fixes
+
+* **ui:** dark mode elements were as media queries were deleted ([c74d007](https://github.com/Thoomaastb/receiptly/commit/c74d007080ce6760faf64519c4d70361f2f5e0c1))
+
 ## [0.16.0](https://github.com/Thoomaastb/receiptly/compare/v0.15.9...v0.16.0) (2026-07-07)
 
 ### Features
