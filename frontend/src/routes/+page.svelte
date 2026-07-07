@@ -83,10 +83,10 @@
 	<div class="mt-1 text-sm text-hifi-text-muted">{todayLabel}</div>
 </div>
 
-<div class="mb-7 flex flex-wrap gap-4">
+<div class="mb-9">
 	<button
 		on:click={() => openUpload('camera')}
-		class="box-border flex min-w-[280px] flex-1 flex-col gap-2.5 rounded-[18px] bg-hifi-accent px-7 py-6 text-left text-white shadow-[0_12px_28px_-12px_oklch(58%_0.19_290_/_0.5)]"
+		class="box-border flex w-full flex-col gap-2.5 rounded-2xl bg-hifi-accent px-7 py-6 text-left text-white"
 	>
 		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 			<rect x="3" y="7" width="18" height="13" rx="2" />
@@ -98,33 +98,34 @@
 	</button>
 	<button
 		on:click={() => openUpload('file')}
-		class="box-border flex min-w-[280px] flex-1 flex-col gap-2.5 rounded-[18px] border border-hifi-border bg-hifi-surface px-7 py-6 text-left"
+		class="mt-3 flex items-center gap-1.5 text-[13px] font-semibold text-hifi-text-muted hover:text-hifi-text"
 	>
-		<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-muted-hifi)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 			<path d="M12 16V4M8 8l4-4 4 4" />
 			<path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3" />
 		</svg>
-		<div class="text-[17px] font-bold text-hifi-text">Hochladen</div>
-		<div class="text-[13.5px] text-hifi-text-muted">PDF, JPG, PNG</div>
+		Oder Datei hochladen (PDF, JPG, PNG)
 	</button>
 </div>
 
-<div class="mb-9 grid grid-cols-3 gap-4">
-	<div class="rounded-[16px] border border-hifi-border bg-hifi-surface px-[22px] py-5">
-		<div class="mb-2 text-[12.5px] font-semibold text-hifi-text-muted">Gesamt Belege</div>
-		<div class="font-mono text-[28px] font-extrabold text-hifi-text">{totalCount}</div>
-	</div>
-	<div class="rounded-[16px] border border-hifi-border bg-hifi-surface px-[22px] py-5">
-		<div class="mb-2 text-[12.5px] font-semibold text-hifi-text-muted">Ablaufende Garantien</div>
-		<div class="font-mono text-[28px] font-extrabold" style="color: {expiringCount > 0 ? 'var(--color-danger)' : 'var(--color-text-hifi)'}">
-			{expiringCount}
+{#if totalCount > 0}
+	<div class="mb-9 grid grid-cols-3 gap-4">
+		<div class="rounded-2xl border border-hifi-border bg-hifi-surface px-[22px] py-5">
+			<div class="mb-2 text-[12.5px] font-semibold text-hifi-text-muted">Gesamt Belege</div>
+			<div class="font-mono text-[28px] font-extrabold text-hifi-text">{totalCount}</div>
+		</div>
+		<div class="rounded-2xl border border-hifi-border bg-hifi-surface px-[22px] py-5">
+			<div class="mb-2 text-[12.5px] font-semibold text-hifi-text-muted">Ablaufende Garantien</div>
+			<div class="font-mono text-[28px] font-extrabold" style="color: {expiringCount > 0 ? 'var(--color-danger)' : 'var(--color-text-hifi)'}">
+				{expiringCount}
+			</div>
+		</div>
+		<div class="rounded-2xl border border-hifi-border bg-hifi-surface px-[22px] py-5">
+			<div class="mb-2 text-[12.5px] font-semibold text-hifi-text-muted">Diesen Monat</div>
+			<div class="font-mono text-[28px] font-extrabold text-hifi-text">{monthTotal}</div>
 		</div>
 	</div>
-	<div class="rounded-[16px] border border-hifi-border bg-hifi-surface px-[22px] py-5">
-		<div class="mb-2 text-[12.5px] font-semibold text-hifi-text-muted">Diesen Monat</div>
-		<div class="font-mono text-[28px] font-extrabold text-hifi-text">{monthTotal}</div>
-	</div>
-</div>
+{/if}
 
 <div class="mb-4 flex items-baseline justify-between">
 	<div class="text-[15.5px] font-bold text-hifi-text">Zuletzt hinzugefügt</div>
@@ -138,7 +139,7 @@
 {:else if recentReceipts.length === 0}
 	<button
 		on:click={() => openUpload('file')}
-		class="block w-full rounded-[16px] border border-dashed border-hifi-border px-6 py-10 text-center transition-colors hover:bg-hifi-accent-tint"
+		class="block w-full rounded-2xl border border-dashed border-hifi-border px-6 py-10 text-center transition-colors hover:bg-hifi-accent-tint"
 	>
 		<span class="text-sm text-hifi-text-muted">Noch keine Belege — lade den ersten hoch, um loszulegen.</span>
 	</button>
@@ -147,7 +148,7 @@
 		{#each recentReceipts as receipt, i (receipt.id)}
 			<button
 				on:click={goToReceipts}
-				class="mb-4 block w-full overflow-hidden rounded-[16px] border border-hifi-border bg-hifi-surface text-left"
+				class="mb-4 block w-full overflow-hidden rounded-2xl border border-hifi-border bg-hifi-surface text-left"
 				style="break-inside: avoid;"
 			>
 				<div
