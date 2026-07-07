@@ -1,3 +1,9 @@
+## [0.15.6](https://github.com/Thoomaastb/receiptly/compare/v0.15.5...v0.15.6) (2026-07-07)
+
+### Bug Fixes
+
+* **ui:** deleted animation because of unexpected behavior ([c7a27f3](https://github.com/Thoomaastb/receiptly/commit/c7a27f322b55125fae002a25398f5cc4e4af7559))
+
 ## [0.15.5](https://github.com/Thoomaastb/receiptly/compare/v0.15.4...v0.15.5) (2026-07-07)
 
 ### Bug Fixes
