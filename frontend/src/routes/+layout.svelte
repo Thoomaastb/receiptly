@@ -48,7 +48,7 @@
 	});
 </script>
 
-<div class="min-h-screen bg-hifi-bg font-ui text-hifi-text" style="color-scheme: light;">
+<div class="flex min-h-screen flex-col bg-hifi-bg font-ui text-hifi-text" style="color-scheme: light;">
 	<div
 		class="grid h-[72px] flex-none grid-cols-[1fr_auto_1fr] items-center border-b border-hifi-border bg-hifi-surface px-8"
 	>
@@ -173,7 +173,7 @@
 			{#key $page.url.pathname}
 				<div
 					style="grid-area: 1 / 1;"
-					in:fly={{ y: 8, duration: transitionDuration, easing: cubicOut }}
+					in:fly={{ y: 8, duration: transitionDuration, delay: transitionDuration, easing: cubicOut }}
 					out:fly={{ y: -8, duration: transitionDuration, easing: cubicOut }}
 				>
 					<slot />
