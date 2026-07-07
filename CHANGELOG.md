@@ -1,3 +1,9 @@
+## [0.15.8](https://github.com/Thoomaastb/receiptly/compare/v0.15.7...v0.15.8) (2026-07-07)
+
+### Bug Fixes
+
+* **ui:** cleaned out the design ([d226b49](https://github.com/Thoomaastb/receiptly/commit/d226b49d8f431b9d150b02d6d7417c4e0e130495))
+
 ## [0.15.7](https://github.com/Thoomaastb/receiptly/compare/v0.15.6...v0.15.7) (2026-07-07)
 
 ### Bug Fixes
