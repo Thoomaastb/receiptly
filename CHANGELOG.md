@@ -1,3 +1,9 @@
+## [0.15.0](https://github.com/Thoomaastb/receiptly/compare/v0.14.0...v0.15.0) (2026-07-07)
+
+### Features
+
+* **ui:** scaffold Capacitor integration with native camera capture for scan mode ([99c962e](https://github.com/Thoomaastb/receiptly/commit/99c962e9cea49d425c436875f9df49bb212c4915))
+
 ## [0.14.0](https://github.com/Thoomaastb/receiptly/compare/v0.13.3...v0.14.0) (2026-07-07)
 
 ### Features
