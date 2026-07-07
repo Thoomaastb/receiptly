@@ -1,3 +1,9 @@
+## [0.15.4](https://github.com/Thoomaastb/receiptly/compare/v0.15.3...v0.15.4) (2026-07-07)
+
+### Bug Fixes
+
+* **docker:** prevent browser caching of index.html so deploys are visible immediately ([13774f7](https://github.com/Thoomaastb/receiptly/commit/13774f77c36dedd5c2eb3ab1b1a5b45f55544dba))
+
 ## [0.15.3](https://github.com/Thoomaastb/receiptly/compare/v0.15.2...v0.15.3) (2026-07-07)
 
 ### Bug Fixes
