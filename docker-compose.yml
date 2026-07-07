@@ -29,8 +29,8 @@ services:
     pull_policy: missing
     restart: unless-stopped
     env_file: .env
-#    ports:
-#      - "8000:8000"
+    ports:
+      - "8000:8000"
     volumes:
       - storage-originals:/app/storage/originals
       - storage-thumbs:/app/storage/thumbs
@@ -41,7 +41,7 @@ services:
         condition: service_started
     networks:
       - internal
-      - remote
+#      - remote
 
   frontend:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-thoomaastb}/receiptly-frontend:${RECEIPTLY_VERSION:-latest}
@@ -49,13 +49,13 @@ services:
       context: ./frontend
     pull_policy: missing
     restart: unless-stopped
-#    ports:
-#      - "3000:3000"
+    ports:
+      - "3000:3000"
     depends_on:
       - backend
     networks:
       - internal
-      - remote
+#      - remote
 
 volumes:
   db-data:
@@ -63,14 +63,7 @@ volumes:
   storage-thumbs:
 
 networks:
-  # Vorübergehend bis v1.0.0: beide Netzwerke extern verwaltet (zentrale Docker-
-  # Netzwerkverwaltung über mehrere Self-Hosted-Stacks hinweg). Vorher erstellen:
-  #   docker network create internal
-  #   docker network create remote
-  # Ports sind auskommentiert (nicht entfernt) — Zugriff läuft nur über Pangolin/Newt
-  # via "remote", kein Host-Port-Publishing nötig. Für lokales Testen ohne Pangolin
-  # einfach die # vor den ports-Zeilen bei backend/frontend entfernen.
   internal:
     external: true
-  remote:
-    external: true
+#  remote:
+#    external: true
