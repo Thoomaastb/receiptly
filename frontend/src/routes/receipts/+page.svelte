@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import ReceiptCard from '$lib/components/ReceiptCard.svelte';
 	import ReceiptModal from '$lib/components/ReceiptModal.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
@@ -59,6 +61,16 @@
 		return buckets.find((b) => b.id === bucketId);
 	}
 
+	$: bucketFilterId = $page.url.searchParams.get('bucket');
+	$: bucketFilter = bucketFilterId ? bucketFor(bucketFilterId) : undefined;
+	$: visibleReceipts = bucketFilterId
+		? receipts.filter((r) => r.bucket_id === bucketFilterId)
+		: receipts;
+
+	function clearBucketFilter() {
+		goto('/receipts');
+	}
+
 	// Reihenfolge exakt nach UI-Konzept: Household-Bucket zuerst, dann eigene Personal Buckets
 	$: groupedSections = groupByBucket
 		? buckets
@@ -66,7 +78,7 @@
 				.sort((a, b) => Number(b.is_default) - Number(a.is_default))
 				.map((bucket) => ({
 					bucket,
-					items: receipts.filter((r) => r.bucket_id === bucket.id)
+					items: visibleReceipts.filter((r) => r.bucket_id === bucket.id)
 				}))
 				.filter((section) => section.items.length > 0)
 		: [];
@@ -102,9 +114,16 @@
 
 <h1 class="mb-4 text-xl font-semibold">Belege</h1>
 
-{#if !loading && !errorMessage && receipts.length > 0}
+{#if bucketFilter}
+	<div class="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-surface-raised px-3 py-1 text-xs">
+		<span>Bucket: {bucketFilter.name}</span>
+		<button on:click={clearBucketFilter} aria-label="Filter entfernen" class="text-text-muted hover:text-text">✕</button>
+	</div>
+{/if}
+
+{#if !loading && !errorMessage && visibleReceipts.length > 0}
 	<button
-		class="mb-4 rounded-full border border-border px-3 py-1 text-xs text-text-muted hover:text-text"
+		class="mb-4 block rounded-full border border-border px-3 py-1 text-xs text-text-muted hover:text-text"
 		on:click={() => (groupByBucket = !groupByBucket)}
 	>
 		{groupByBucket ? 'Flach anzeigen' : 'Nach Bucket gruppieren'}
@@ -115,7 +134,7 @@
 	<p class="text-sm text-text-muted">Belege werden geladen …</p>
 {:else if errorMessage}
 	<p class="text-sm text-red-500">{errorMessage}</p>
-{:else if receipts.length === 0}
+{:else if visibleReceipts.length === 0}
 	<p class="text-sm text-text-muted">Noch keine Belege hochgeladen.</p>
 {:else if groupByBucket}
 	{#each groupedSections as section (section.bucket.id)}
@@ -143,7 +162,7 @@
 	{/each}
 {:else}
 	<div style="column-count: 2; column-gap: 12px;">
-		{#each receipts as receipt (receipt.id)}
+		{#each visibleReceipts as receipt (receipt.id)}
 			{@const bucket = bucketFor(receipt.bucket_id)}
 			<ReceiptCard
 				id={receipt.id}

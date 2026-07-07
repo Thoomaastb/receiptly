@@ -15,8 +15,19 @@
 	let categories: { name: string; color: string; count: number }[] = [];
 	let expiringWarrantiesCount = 0;
 	let categoriesLoading = true;
+	let userInitial = '';
 
 	onMount(async () => {
+		try {
+			const meRes = await fetch('/api/auth/me', { credentials: 'include' });
+			if (meRes.ok) {
+				const me = await meRes.json();
+				userInitial = (me.username?.[0] ?? '?').toUpperCase();
+			}
+		} catch {
+			// Avatar bleibt leer, wenn nicht eingeloggt — kein Fehler-UI nötig für dieses Detail
+		}
+
 		try {
 			const res = await fetch('/api/receipts', { credentials: 'include' });
 			if (res.ok) {
@@ -67,7 +78,7 @@
 				class:text-hifi-accent-text={$page.url.pathname.startsWith('/receipts')}
 				class:text-hifi-text-muted={!$page.url.pathname.startsWith('/receipts')}
 			>
-				Belege
+				Suche & Filter
 			</a>
 			<a href="/buckets" class="rounded-[10px] px-4 py-2 text-[14.5px] font-semibold text-hifi-text-muted transition-colors hover:text-hifi-text">
 				Buckets
@@ -108,6 +119,14 @@
 					/>
 				</svg>
 			</a>
+			{#if userInitial}
+				<div
+					class="ml-1 flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full bg-hifi-accent-tint text-[12px] font-bold text-hifi-accent-text"
+					title={userInitial}
+				>
+					{userInitial}
+				</div>
+			{/if}
 		</div>
 	</div>
 
