@@ -43,6 +43,13 @@
 		return { level: 'ok', label: 'Garantie aktiv' };
 	})();
 
+	// Bon-Betrag bleibt die primäre, direkt vom Beleg ablesbare Wahrheit — Artikel sind
+	// optionale Detailtiefe. Statt die Summe aus Artikeln zu erzwingen, nur ein Hinweis
+	// bei Abweichung, damit sichtbar ist, ob der Bon vollständig "aufgeschlüsselt" ist.
+	$: itemsSum = items.reduce((sum, item) => sum + item.total_price, 0);
+	$: itemsSumDiff = totalAmount !== null ? Math.round((totalAmount - itemsSum) * 100) / 100 : null;
+	$: itemsIncomplete = items.length > 0 && itemsSumDiff !== null && Math.abs(itemsSumDiff) > 0.004;
+
 	// --- Kernfelder bearbeiten (Datum/Betrag/Händler/Hochwertig/Garantie) ---
 	// Manuelle Bearbeitung, solange die KI-Struktur-Extraktion aus dem OCR-Text noch
 	// nicht existiert (siehe Backlog) — sonst blieben diese Felder auf ewig leer.
@@ -270,19 +277,13 @@
 						</label>
 						<label class="text-xs">
 							<span class="mb-1 block text-text-muted">Betrag ({currency})</span>
-							{#if items.length > 0}
-								<div class="w-full rounded border border-border bg-surface-raised p-2 text-sm text-text-muted">
-									{totalAmount !== null ? totalAmount.toFixed(2) : '0.00'} — aus Artikeln berechnet
-								</div>
-							{:else}
-								<input
-									type="number"
-									step="0.01"
-									min="0"
-									bind:value={draftAmount}
-									class="w-full rounded border border-border bg-surface p-2 text-sm"
-								/>
-							{/if}
+							<input
+								type="number"
+								step="0.01"
+								min="0"
+								bind:value={draftAmount}
+								class="w-full rounded border border-border bg-surface p-2 text-sm"
+							/>
 						</label>
 					</div>
 					<label class="flex items-center gap-2 text-xs">
@@ -366,6 +367,15 @@
 						<path d="M6 9l6 6 6-6" />
 					</svg>
 				</button>
+				{#if itemsIncomplete}
+					<div class="border-t border-status-warning-border bg-status-warning-bg px-3 py-2 text-xs text-status-warning">
+						{#if itemsSumDiff > 0}
+							Noch {itemsSumDiff.toFixed(2)} {currency} nicht auf Artikel aufgeteilt.
+						{:else}
+							Artikel-Summe liegt {Math.abs(itemsSumDiff).toFixed(2)} {currency} über dem Bon-Betrag.
+						{/if}
+					</div>
+				{/if}
 				{#if itemsExpanded}
 					<div class="border-t border-border p-3">
 						{#if items.length === 0}
