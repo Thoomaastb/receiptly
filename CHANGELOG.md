@@ -1,3 +1,9 @@
+## [0.15.3](https://github.com/Thoomaastb/receiptly/compare/v0.15.2...v0.15.3) (2026-07-07)
+
+### Bug Fixes
+
+* **docker:** correct GHCR fallback owner placeholder from thomas to thoomaastb ([c981607](https://github.com/Thoomaastb/receiptly/commit/c981607754fb5f5fd0417fac02e3d3d95eb98ea9))
+
 ## [0.15.2](https://github.com/Thoomaastb/receiptly/compare/v0.15.1...v0.15.2) (2026-07-07)
 
 ### Bug Fixes
