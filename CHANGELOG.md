@@ -1,3 +1,9 @@
+## [0.17.0](https://github.com/Thoomaastb/receiptly/compare/v0.16.1...v0.17.0) (2026-07-07)
+
+### Features
+
+* **api:** edit function + edit fields added ([5d0271a](https://github.com/Thoomaastb/receiptly/commit/5d0271aa351ed46f8b87406f67531d7607b00b76))
+
 ## [0.16.1](https://github.com/Thoomaastb/receiptly/compare/v0.16.0...v0.16.1) (2026-07-07)
 
 ### Bug Fixes
