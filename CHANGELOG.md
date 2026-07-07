@@ -1,3 +1,9 @@
+## [0.15.9](https://github.com/Thoomaastb/receiptly/compare/v0.15.8...v0.15.9) (2026-07-07)
+
+### Bug Fixes
+
+* **services:** fixed 404 in buckets ([ffe35f2](https://github.com/Thoomaastb/receiptly/commit/ffe35f218e3ed25c8dbc44618293d2f2b8eaca04))
+
 ## [0.15.8](https://github.com/Thoomaastb/receiptly/compare/v0.15.7...v0.15.8) (2026-07-07)
 
 ### Bug Fixes
