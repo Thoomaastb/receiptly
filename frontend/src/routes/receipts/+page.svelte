@@ -14,13 +14,26 @@
 		total_amount: number | null;
 		currency: string;
 		thumb_path: string | null;
+		merchant_name: string | null;
+		item_count: number;
 		created_at: string;
+	}
+
+	interface ItemRow {
+		id: string;
+		raw_name: string;
+		quantity: number;
+		unit: string | null;
+		unit_price: number | null;
+		total_price: number;
 	}
 
 	interface ReceiptDetail extends Receipt {
 		ocr_raw_text: string | null;
 		is_high_value: boolean;
+		warranty_months: number | null;
 		warranty_expires_at: string | null;
+		items: ItemRow[];
 	}
 
 	interface Bucket {
@@ -37,6 +50,11 @@
 	let errorMessage = '';
 	let groupByBucket = false;
 	let openReceipt: ReceiptDetail | null = null;
+
+	async function refreshReceipts() {
+		const res = await fetch('/api/receipts', { credentials: 'include' });
+		if (res.ok) receipts = await res.json();
+	}
 
 	onMount(async () => {
 		try {
@@ -105,10 +123,14 @@
 		totalAmount={openReceipt.total_amount}
 		currency={openReceipt.currency}
 		status={openReceipt.status}
+		merchantName={openReceipt.merchant_name}
 		ocrRawText={openReceipt.ocr_raw_text}
 		isHighValue={openReceipt.is_high_value}
+		warrantyMonths={openReceipt.warranty_months}
 		warrantyExpiresAt={openReceipt.warranty_expires_at}
+		items={openReceipt.items}
 		onBack={backToList}
+		onUpdated={refreshReceipts}
 	/>
 {:else}
 	<h1 class="mb-4 text-xl font-semibold">Belege</h1>
@@ -151,6 +173,8 @@
 						totalAmount={receipt.total_amount}
 						currency={receipt.currency}
 						status={receipt.status}
+						merchantName={receipt.merchant_name}
+						itemCount={receipt.item_count}
 						bucketName={section.bucket.name}
 						bucketIsDefault={section.bucket.is_default}
 						showBucketPill={false}
@@ -169,6 +193,8 @@
 					totalAmount={receipt.total_amount}
 					currency={receipt.currency}
 					status={receipt.status}
+					merchantName={receipt.merchant_name}
+					itemCount={receipt.item_count}
 					bucketName={bucket?.name ?? '…'}
 					bucketIsDefault={bucket?.is_default ?? false}
 					onOpen={openDetail}

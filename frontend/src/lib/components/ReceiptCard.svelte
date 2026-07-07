@@ -6,6 +6,8 @@
 	export let totalAmount: number | null;
 	export let currency: string;
 	export let status: string;
+	export let merchantName: string | null = null;
+	export let itemCount = 0;
 	export let bucketName: string;
 	export let bucketIsDefault: boolean;
 	export let showBucketPill = true;
@@ -43,8 +45,16 @@
 			<BucketPill name={bucketName} isDefault={bucketIsDefault} />
 		{/if}
 	</div>
+	{#if merchantName}
+		<div class="mb-1 truncate text-sm font-medium">{merchantName}</div>
+	{/if}
 	<div class="mb-2 text-lg font-medium">
 		{totalAmount !== null ? `${totalAmount.toFixed(2)} ${currency}` : 'Betrag folgt'}
 	</div>
-	<span class="text-xs text-text-muted">{statusLabel(status)}</span>
+	<div class="flex items-center gap-2 text-xs text-text-muted">
+		<span>{statusLabel(status)}</span>
+		{#if itemCount > 0}
+			<span>· {itemCount} Artikel</span>
+		{/if}
+	</div>
 </div>

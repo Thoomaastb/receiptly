@@ -1,13 +1,26 @@
 <script lang="ts">
-	export const receiptId: string = '';
+	interface ItemRow {
+		id: string;
+		raw_name: string;
+		quantity: number;
+		unit: string | null;
+		unit_price: number | null;
+		total_price: number;
+	}
+
+	export let receiptId: string;
 	export let receiptDate: string | null;
 	export let totalAmount: number | null;
 	export let currency: string;
 	export let status: string;
+	export let merchantName: string | null = null;
 	export let ocrRawText: string | null;
 	export let isHighValue: boolean = false;
+	export let warrantyMonths: number | null = null;
 	export let warrantyExpiresAt: string | null = null;
+	export let items: ItemRow[] = [];
 	export let onBack: () => void;
+	export let onUpdated: (() => void) | undefined = undefined;
 
 	function statusLabel(s: string): string {
 		switch (s) {
@@ -29,6 +42,168 @@
 		if (days <= 30) return { level: 'warning', label: 'Garantie läuft bald ab' };
 		return { level: 'ok', label: 'Garantie aktiv' };
 	})();
+
+	// --- Kernfelder bearbeiten (Datum/Betrag/Händler/Hochwertig/Garantie) ---
+	// Manuelle Bearbeitung, solange die KI-Struktur-Extraktion aus dem OCR-Text noch
+	// nicht existiert (siehe Backlog) — sonst blieben diese Felder auf ewig leer.
+	let editing = false;
+	let saving = false;
+	let saveError = '';
+	let draftDate = '';
+	let draftAmount = '';
+	let draftMerchant = '';
+	let draftHighValue = false;
+	let draftWarrantyMonths = '';
+
+	function startEdit() {
+		draftDate = receiptDate ?? '';
+		draftAmount = totalAmount !== null ? String(totalAmount) : '';
+		draftMerchant = merchantName ?? '';
+		draftHighValue = isHighValue;
+		draftWarrantyMonths = warrantyMonths !== null ? String(warrantyMonths) : '';
+		saveError = '';
+		editing = true;
+	}
+
+	function cancelEdit() {
+		editing = false;
+	}
+
+	function applyDetail(detail: {
+		receipt_date: string | null;
+		total_amount: number | null;
+		merchant_name: string | null;
+		is_high_value: boolean;
+		warranty_months: number | null;
+		warranty_expires_at: string | null;
+		items: ItemRow[];
+	}) {
+		receiptDate = detail.receipt_date;
+		totalAmount = detail.total_amount;
+		merchantName = detail.merchant_name;
+		isHighValue = detail.is_high_value;
+		warrantyMonths = detail.warranty_months;
+		warrantyExpiresAt = detail.warranty_expires_at;
+		items = detail.items;
+	}
+
+	async function saveEdit() {
+		saving = true;
+		saveError = '';
+		try {
+			const res = await fetch(`/api/receipts/${receiptId}`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					receipt_date: draftDate || null,
+					total_amount: draftAmount ? Number(draftAmount) : null,
+					merchant_name: draftMerchant.trim() || null,
+					is_high_value: draftHighValue,
+					warranty_months: draftWarrantyMonths ? Number(draftWarrantyMonths) : null
+				})
+			});
+			if (res.ok) {
+				applyDetail(await res.json());
+				editing = false;
+				onUpdated?.();
+			} else {
+				const body = await res.json().catch(() => null);
+				saveError = body?.detail ?? 'Speichern fehlgeschlagen.';
+			}
+		} finally {
+			saving = false;
+		}
+	}
+
+	// --- Artikel (aufklappbare Liste, eigene CRUD-Aktionen unabhängig vom Bearbeiten-Modus) ---
+	let itemsExpanded = true;
+
+	let addingItem = false;
+	let newItemName = '';
+	let newItemQuantity = '1';
+	let newItemUnit = '';
+	let newItemUnitPrice = '';
+	let newItemTotalPrice = '';
+
+	function resetNewItemForm() {
+		newItemName = '';
+		newItemQuantity = '1';
+		newItemUnit = '';
+		newItemUnitPrice = '';
+		newItemTotalPrice = '';
+	}
+
+	async function addItem() {
+		if (!newItemName.trim() || !newItemTotalPrice) return;
+		const res = await fetch(`/api/receipts/${receiptId}/items`, {
+			method: 'POST',
+			credentials: 'include',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				raw_name: newItemName.trim(),
+				quantity: newItemQuantity ? Number(newItemQuantity) : 1,
+				unit: newItemUnit.trim() || null,
+				unit_price: newItemUnitPrice ? Number(newItemUnitPrice) : null,
+				total_price: Number(newItemTotalPrice)
+			})
+		});
+		if (res.ok) {
+			items = [...items, await res.json()];
+			resetNewItemForm();
+			addingItem = false;
+			onUpdated?.();
+		}
+	}
+
+	let editingItemId: string | null = null;
+	let editItemName = '';
+	let editItemQuantity = '';
+	let editItemUnit = '';
+	let editItemTotalPrice = '';
+
+	function startEditItem(item: ItemRow) {
+		editingItemId = item.id;
+		editItemName = item.raw_name;
+		editItemQuantity = String(item.quantity);
+		editItemUnit = item.unit ?? '';
+		editItemTotalPrice = String(item.total_price);
+	}
+
+	function cancelEditItem() {
+		editingItemId = null;
+	}
+
+	async function saveEditItem(itemId: string) {
+		const res = await fetch(`/api/receipts/${receiptId}/items/${itemId}`, {
+			method: 'PATCH',
+			credentials: 'include',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({
+				raw_name: editItemName.trim(),
+				quantity: editItemQuantity ? Number(editItemQuantity) : undefined,
+				unit: editItemUnit.trim() || null,
+				total_price: editItemTotalPrice ? Number(editItemTotalPrice) : undefined
+			})
+		});
+		if (res.ok) {
+			const updated = await res.json();
+			items = items.map((i) => (i.id === updated.id ? updated : i));
+			editingItemId = null;
+			onUpdated?.();
+		}
+	}
+
+	async function deleteItem(itemId: string) {
+		const res = await fetch(`/api/receipts/${receiptId}/items/${itemId}`, {
+			method: 'DELETE',
+			credentials: 'include'
+		});
+		if (res.ok || res.status === 204) {
+			items = items.filter((i) => i.id !== itemId);
+			onUpdated?.();
+		}
+	}
 </script>
 
 <div>
@@ -59,23 +234,91 @@
 
 		<!-- Rechts: Metadaten -->
 		<div class="flex flex-col gap-4 p-4 sm:p-2">
-			<div class="flex flex-wrap gap-1.5">
-				<span class="rounded-full bg-surface-raised px-2.5 py-0.5 text-xs font-medium text-text-muted">
-					{statusLabel(status)}
-				</span>
-				{#if isHighValue}
-					<span class="rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-contrast">
-						Hochwertig
+			<div class="flex items-start justify-between gap-2">
+				<div class="flex flex-wrap gap-1.5">
+					<span class="rounded-full bg-surface-raised px-2.5 py-0.5 text-xs font-medium text-text-muted">
+						{statusLabel(status)}
 					</span>
+					{#if isHighValue}
+						<span class="rounded-full bg-accent px-2.5 py-0.5 text-xs font-medium text-accent-contrast">
+							Hochwertig
+						</span>
+					{/if}
+				</div>
+				{#if !editing}
+					<button on:click={startEdit} class="text-xs font-semibold text-text-muted hover:text-text">
+						Bearbeiten
+					</button>
 				{/if}
 			</div>
 
-			<div>
-				<div class="mb-1 text-xs text-text-muted">{receiptDate ?? 'Datum folgt (OCR/KI)'}</div>
-				<div class="text-2xl font-bold">
-					{totalAmount !== null ? `${totalAmount.toFixed(2)} ${currency}` : 'Betrag folgt (OCR/KI)'}
+			{#if editing}
+				<div class="flex flex-col gap-3 rounded-lg border border-border bg-surface-raised p-3">
+					<label class="text-xs">
+						<span class="mb-1 block text-text-muted">Händler</span>
+						<input
+							type="text"
+							bind:value={draftMerchant}
+							placeholder="z. B. Edeka"
+							class="w-full rounded border border-border bg-surface p-2 text-sm"
+						/>
+					</label>
+					<div class="grid grid-cols-2 gap-2">
+						<label class="text-xs">
+							<span class="mb-1 block text-text-muted">Datum</span>
+							<input type="date" bind:value={draftDate} class="w-full rounded border border-border bg-surface p-2 text-sm" />
+						</label>
+						<label class="text-xs">
+							<span class="mb-1 block text-text-muted">Betrag ({currency})</span>
+							<input
+								type="number"
+								step="0.01"
+								min="0"
+								bind:value={draftAmount}
+								class="w-full rounded border border-border bg-surface p-2 text-sm"
+							/>
+						</label>
+					</div>
+					<label class="flex items-center gap-2 text-xs">
+						<input type="checkbox" bind:checked={draftHighValue} />
+						<span>Hochwertiger Kauf</span>
+					</label>
+					<label class="text-xs">
+						<span class="mb-1 block text-text-muted">Garantie (Monate)</span>
+						<input
+							type="number"
+							min="0"
+							max="600"
+							bind:value={draftWarrantyMonths}
+							placeholder="z. B. 24"
+							class="w-full rounded border border-border bg-surface p-2 text-sm"
+						/>
+					</label>
+					{#if saveError}
+						<p class="text-xs text-danger">{saveError}</p>
+					{/if}
+					<div class="flex gap-2">
+						<button
+							on:click={saveEdit}
+							disabled={saving}
+							class="rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-contrast disabled:opacity-50"
+						>
+							{saving ? 'Speichert …' : 'Speichern'}
+						</button>
+						<button on:click={cancelEdit} class="text-xs text-text-muted hover:text-text">Abbrechen</button>
+					</div>
 				</div>
-			</div>
+			{:else}
+				{#if merchantName}
+					<div class="text-sm font-semibold text-text">{merchantName}</div>
+				{/if}
+				<div>
+					<div class="mb-1 text-xs text-text-muted">{receiptDate ?? 'Datum folgt (OCR/KI)'}</div>
+					<div class="text-2xl font-bold">
+						{totalAmount !== null ? `${totalAmount.toFixed(2)} ${currency}` : 'Betrag folgt (OCR/KI)'}
+					</div>
+				</div>
+			{/if}
 
 			{#if warrantyStatus}
 				<div
@@ -94,6 +337,161 @@
 					Kein Garantie-Tracking hinterlegt
 				</div>
 			{/if}
+
+			<div class="rounded-lg border border-border">
+				<button
+					type="button"
+					class="flex w-full items-center justify-between px-3 py-2.5 text-left"
+					on:click={() => (itemsExpanded = !itemsExpanded)}
+					aria-expanded={itemsExpanded}
+				>
+					<span class="text-sm font-medium">Artikel ({items.length})</span>
+					<svg
+						width="14"
+						height="14"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						class="text-text-muted"
+						class:rotate-180={!itemsExpanded}
+						aria-hidden="true"
+					>
+						<path d="M6 9l6 6 6-6" />
+					</svg>
+				</button>
+				{#if itemsExpanded}
+					<div class="border-t border-border p-3">
+						{#if items.length === 0}
+							<p class="mb-3 text-xs text-text-muted">Noch keine Artikel erfasst.</p>
+						{:else}
+							<ul class="mb-3 flex flex-col gap-2">
+								{#each items as item (item.id)}
+									<li class="text-sm">
+										{#if editingItemId === item.id}
+											<div class="flex flex-col gap-1.5 rounded border border-border bg-surface-raised p-2">
+												<input
+													type="text"
+													bind:value={editItemName}
+													placeholder="Artikelname"
+													class="rounded border border-border bg-surface p-1.5 text-xs"
+												/>
+												<div class="grid grid-cols-3 gap-1.5">
+													<input
+														type="number"
+														step="0.001"
+														min="0"
+														bind:value={editItemQuantity}
+														placeholder="Menge"
+														class="rounded border border-border bg-surface p-1.5 text-xs"
+													/>
+													<input
+														type="text"
+														bind:value={editItemUnit}
+														placeholder="Einheit"
+														class="rounded border border-border bg-surface p-1.5 text-xs"
+													/>
+													<input
+														type="number"
+														step="0.01"
+														min="0"
+														bind:value={editItemTotalPrice}
+														placeholder="Gesamt €"
+														class="rounded border border-border bg-surface p-1.5 text-xs"
+													/>
+												</div>
+												<div class="flex gap-2">
+													<button on:click={() => saveEditItem(item.id)} class="text-xs font-semibold text-accent">
+														Speichern
+													</button>
+													<button on:click={cancelEditItem} class="text-xs text-text-muted hover:text-text">
+														Abbrechen
+													</button>
+												</div>
+											</div>
+										{:else}
+											<div class="flex items-center justify-between gap-2">
+												<div class="min-w-0 flex-1">
+													<div class="truncate font-medium">{item.raw_name}</div>
+													<div class="text-xs text-text-muted">
+														{item.quantity}{item.unit ? ` ${item.unit}` : ''}{item.unit_price !== null
+															? ` · ${item.unit_price.toFixed(2)} €/Stk`
+															: ''}
+													</div>
+												</div>
+												<div class="flex flex-none items-center gap-2">
+													<span class="font-mono text-sm">{item.total_price.toFixed(2)} €</span>
+													<button on:click={() => startEditItem(item)} aria-label="Artikel bearbeiten" class="text-text-muted hover:text-text">
+														<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+															<path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" />
+														</svg>
+													</button>
+													<button on:click={() => deleteItem(item.id)} aria-label="Artikel löschen" class="text-text-muted hover:text-danger">
+														<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+															<path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" />
+														</svg>
+													</button>
+												</div>
+											</div>
+										{/if}
+									</li>
+								{/each}
+							</ul>
+						{/if}
+
+						{#if addingItem}
+							<div class="flex flex-col gap-1.5 rounded border border-border bg-surface-raised p-2">
+								<input
+									type="text"
+									bind:value={newItemName}
+									placeholder="Artikelname"
+									class="rounded border border-border bg-surface p-1.5 text-xs"
+								/>
+								<div class="grid grid-cols-3 gap-1.5">
+									<input
+										type="number"
+										step="0.001"
+										min="0"
+										bind:value={newItemQuantity}
+										placeholder="Menge"
+										class="rounded border border-border bg-surface p-1.5 text-xs"
+									/>
+									<input
+										type="text"
+										bind:value={newItemUnit}
+										placeholder="Einheit"
+										class="rounded border border-border bg-surface p-1.5 text-xs"
+									/>
+									<input
+										type="number"
+										step="0.01"
+										min="0"
+										bind:value={newItemTotalPrice}
+										placeholder="Gesamt €"
+										class="rounded border border-border bg-surface p-1.5 text-xs"
+									/>
+								</div>
+								<div class="flex gap-2">
+									<button on:click={addItem} class="text-xs font-semibold text-accent">Hinzufügen</button>
+									<button
+										on:click={() => {
+											addingItem = false;
+											resetNewItemForm();
+										}}
+										class="text-xs text-text-muted hover:text-text"
+									>
+										Abbrechen
+									</button>
+								</div>
+							</div>
+						{:else}
+							<button on:click={() => (addingItem = true)} class="text-xs font-semibold text-accent">
+								+ Artikel hinzufügen
+							</button>
+						{/if}
+					</div>
+				{/if}
+			</div>
 
 			<div class="rounded-lg border border-border bg-hifi-accent-tint p-3.5">
 				<div class="mb-1.5 flex items-center gap-1.5 text-xs font-bold" style="color: var(--color-accent-text, var(--color-accent));">
@@ -114,9 +512,6 @@
 			{/if}
 
 			<div class="mt-auto flex gap-2 border-t border-border pt-4">
-				<button disabled title="Folgt in einem späteren Paket" class="flex h-9 w-9 items-center justify-center rounded-full border border-border text-text-muted disabled:opacity-40">
-					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" /></svg>
-				</button>
 				<button disabled title="Folgt in einem späteren Paket" class="flex h-9 w-9 items-center justify-center rounded-full border border-border text-text-muted disabled:opacity-40">
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" /></svg>
 				</button>

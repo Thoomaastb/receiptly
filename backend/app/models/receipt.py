@@ -69,3 +69,12 @@ class Receipt(Base, UpdatableTimestampMixin):
     items: Mapped[list["Item"]] = relationship(  # noqa: F821
         back_populates="receipt", cascade="all, delete-orphan"
     )
+    merchant: Mapped["Merchant | None"] = relationship()  # noqa: F821
+
+    @property
+    def merchant_name(self) -> str | None:
+        return self.merchant.name if self.merchant else None
+
+    @property
+    def item_count(self) -> int:
+        return len(self.items)
