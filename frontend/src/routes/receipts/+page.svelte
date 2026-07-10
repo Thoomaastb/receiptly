@@ -31,6 +31,7 @@
 
 	interface ReceiptDetail extends Receipt {
 		ocr_raw_text: string | null;
+		file_path: string;
 		is_high_value: boolean;
 		warranty_months: number | null;
 		warranty_expires_at: string | null;
@@ -170,6 +171,11 @@
 	function backToList() {
 		openReceipt = null;
 	}
+
+	function handleDeleted() {
+		openReceipt = null;
+		refreshReceipts();
+	}
 </script>
 
 {#if openReceipt}
@@ -182,12 +188,14 @@
 		status={openReceipt.status}
 		merchantName={openReceipt.merchant_name}
 		ocrRawText={openReceipt.ocr_raw_text}
+		filePath={openReceipt.file_path}
 		isHighValue={openReceipt.is_high_value}
 		warrantyMonths={openReceipt.warranty_months}
 		warrantyExpiresAt={openReceipt.warranty_expires_at}
 		items={openReceipt.items}
 		onBack={backToList}
 		onUpdated={refreshReceipts}
+		onDeleted={handleDeleted}
 	/>
 {:else}
 	<h1 class="mb-6 text-[26px] font-extrabold tracking-tight text-hifi-text">Suche &amp; Filter</h1>

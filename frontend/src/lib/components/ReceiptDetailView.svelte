@@ -18,9 +18,27 @@
 	export let isHighValue: boolean = false;
 	export let warrantyMonths: number | null = null;
 	export let warrantyExpiresAt: string | null = null;
+	export let filePath: string;
 	export let items: ItemRow[] = [];
 	export let onBack: () => void;
 	export let onUpdated: (() => void) | undefined = undefined;
+	export let onDeleted: (() => void) | undefined = undefined;
+
+	const fileUrl = `/api/receipts/${receiptId}/file`;
+	$: isImageFile = /\.(jpe?g|png)$/i.test(filePath);
+
+	let deleting = false;
+
+	async function deleteReceipt() {
+		if (!confirm('Diesen Beleg wirklich löschen? Das kann nicht rückgängig gemacht werden.')) return;
+		deleting = true;
+		try {
+			const res = await fetch(`/api/receipts/${receiptId}`, { method: 'DELETE', credentials: 'include' });
+			if (res.ok || res.status === 204) onDeleted?.();
+		} finally {
+			deleting = false;
+		}
+	}
 
 	function statusLabel(s: string): string {
 		switch (s) {
@@ -125,6 +143,7 @@
 
 	// --- Artikel (aufklappbare Liste, eigene CRUD-Aktionen unabhängig vom Bearbeiten-Modus) ---
 	let itemsExpanded = true;
+	let ocrTextExpanded = false;
 
 	let addingItem = false;
 	let newItemName = '';
@@ -222,21 +241,33 @@
 	</button>
 
 	<div class="grid grid-cols-1 gap-6 rounded-[20px] border border-border bg-surface p-2 sm:grid-cols-[1.1fr_0.9fr]">
-		<!-- Links: Vorschau-Panel (Platzhalter, echtes PDF/Bild-Rendering ist eigenes Paket) -->
-		<div class="relative flex min-h-[320px] items-center justify-center rounded-2xl sm:min-h-[520px]" style="background: repeating-linear-gradient(135deg, oklch(58% 0.19 290 / 0.08) 0, oklch(58% 0.19 290 / 0.08) 10px, oklch(58% 0.19 290 / 0.03) 10px, oklch(58% 0.19 290 / 0.03) 20px);">
-			<span class="rounded-md bg-white/80 px-3 py-1.5 font-mono text-xs font-semibold text-accent">
-				Vorschau folgt
-			</span>
-			<button
-				class="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium"
-				disabled
-				title="Download folgt, sobald echte Dateivorschau existiert"
+		<!-- Links: Vorschau-Panel — Bild direkt eingebettet, PDF als Kachel mit Öffnen-Link
+		     (kein <iframe>, um von PDF-Viewer-Eigenheiten je Browser unabhängig zu bleiben) -->
+		<div class="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl bg-surface-raised sm:min-h-[520px]">
+			{#if isImageFile}
+				<img src={fileUrl} alt="Beleg-Vorschau" class="h-full max-h-[520px] w-full object-contain" />
+			{:else}
+				<div class="flex flex-col items-center gap-2" style="background: repeating-linear-gradient(135deg, oklch(58% 0.19 290 / 0.08) 0, oklch(58% 0.19 290 / 0.08) 10px, oklch(58% 0.19 290 / 0.03) 10px, oklch(58% 0.19 290 / 0.03) 20px); position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+					<a
+						href={fileUrl}
+						target="_blank"
+						rel="noopener noreferrer"
+						class="flex items-center gap-2 rounded-md bg-white/80 px-3 py-1.5 font-mono text-xs font-semibold text-accent hover:bg-white"
+					>
+						PDF-Dokument öffnen
+					</a>
+				</div>
+			{/if}
+			<a
+				href={fileUrl}
+				download
+				class="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-xs font-medium hover:bg-surface-raised"
 			>
 				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					<path d="M12 3v12M7 10l5 5 5-5" /><path d="M5 21h14" />
 				</svg>
 				Herunterladen
-			</button>
+			</a>
 		</div>
 
 		<!-- Rechts: Metadaten -->
@@ -522,8 +553,33 @@
 			</div>
 
 			{#if ocrRawText}
-				<div class="max-h-40 overflow-auto rounded-lg border border-border bg-surface-raised p-3 text-xs text-text-muted">
-					{ocrRawText}
+				<div class="rounded-lg border border-border">
+					<button
+						type="button"
+						class="flex w-full items-center justify-between px-3 py-2.5 text-left"
+						on:click={() => (ocrTextExpanded = !ocrTextExpanded)}
+						aria-expanded={ocrTextExpanded}
+					>
+						<span class="text-sm font-medium">Erkannter Text</span>
+						<svg
+							width="14"
+							height="14"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							class="text-text-muted"
+							class:rotate-180={!ocrTextExpanded}
+							aria-hidden="true"
+						>
+							<path d="M6 9l6 6 6-6" />
+						</svg>
+					</button>
+					{#if ocrTextExpanded}
+						<div class="max-h-40 overflow-auto border-t border-border bg-surface-raised p-3 text-xs text-text-muted">
+							{ocrRawText}
+						</div>
+					{/if}
 				</div>
 			{/if}
 
@@ -531,7 +587,13 @@
 				<button disabled title="Folgt in einem späteren Paket" class="flex h-9 w-9 items-center justify-center rounded-full border border-border text-text-muted disabled:opacity-40">
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" /></svg>
 				</button>
-				<button disabled title="Folgt in einem späteren Paket" class="flex h-9 w-9 items-center justify-center rounded-full border border-border text-text-muted disabled:opacity-40">
+				<button
+					on:click={deleteReceipt}
+					disabled={deleting}
+					aria-label="Beleg löschen"
+					title="Beleg löschen"
+					class="flex h-9 w-9 items-center justify-center rounded-full border border-border text-text-muted hover:border-danger-border hover:text-danger disabled:opacity-40"
+				>
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" /></svg>
 				</button>
 			</div>

@@ -1,8 +1,10 @@
 import calendar
 import uuid
 from datetime import date
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlalchemy import exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -213,6 +215,34 @@ async def get_receipt(
     return receipt
 
 
+@router.get("/{receipt_id}/file")
+async def get_receipt_file(
+    receipt_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> FileResponse:
+    """
+    Liefert die Originaldatei aus, `inline` statt `attachment` — funktioniert damit sowohl
+    als <img>/<iframe>-Vorschau als auch als Download-Link (Browser respektieren das
+    HTML-`download`-Attribut auf <a> auch bei inline Content-Disposition). Nur Lesezugriff
+    nötig, kein Schreibzugriff wie bei _get_writable_receipt.
+    """
+    result = await db.execute(
+        select(Receipt).where(
+            Receipt.id == receipt_id, Receipt.bucket_id.in_(visible_bucket_ids_query(user))
+        )
+    )
+    receipt = result.scalar_one_or_none()
+    if receipt is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Beleg nicht gefunden")
+
+    file_path = Path(receipt.file_path)
+    if not file_path.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Datei nicht vorhanden")
+
+    return FileResponse(file_path, filename=file_path.name, content_disposition_type="inline")
+
+
 async def _get_writable_receipt(db: AsyncSession, receipt_id: uuid.UUID, user: User) -> Receipt:
     """Wie get_receipt, aber prüft zusätzlich Schreibzugriff auf den Bucket des Belegs."""
     result = await db.execute(
@@ -265,6 +295,23 @@ async def update_receipt(
 
     await db.commit()
     return await _reload_receipt_detail(db, receipt_id)
+
+
+@router.delete("/{receipt_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_receipt(
+    receipt_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """Löscht Beleg + Artikel (DB-CASCADE) sowie Original- und Thumbnail-Datei im Storage."""
+    receipt = await _get_writable_receipt(db, receipt_id, user)
+
+    Path(receipt.file_path).unlink(missing_ok=True)
+    if receipt.thumb_path:
+        Path(receipt.thumb_path).unlink(missing_ok=True)
+
+    await db.delete(receipt)
+    await db.commit()
 
 
 @router.post(
