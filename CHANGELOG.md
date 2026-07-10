@@ -1,3 +1,13 @@
+## [0.18.0](https://github.com/Thoomaastb/receiptly/compare/v0.17.3...v0.18.0) (2026-07-10)
+
+### Features
+
+* **receipts:** Suche-&-Filter-Screen mit Volltext-Suche, Typ-/Kategorie-Chips und Zeilen-Ergebnisliste ([c8fe6ce](https://github.com/Thoomaastb/receiptly/commit/c8fe6ce4d38fdb3c2fbb4cfd6ccacdf2a5872637))
+
+### Bug Fixes
+
+* **dev:** vite dev proxy stripped /api prefix, brach jeden API-Call unter npm run dev ([512a716](https://github.com/Thoomaastb/receiptly/commit/512a716040b5b049d5befbc172d84424c9b2f691))
+
 ## [0.17.3](https://github.com/Thoomaastb/receiptly/compare/v0.17.2...v0.17.3) (2026-07-07)
 
 ### Bug Fixes
