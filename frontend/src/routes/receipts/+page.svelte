@@ -27,6 +27,8 @@
 		unit: string | null;
 		unit_price: number | null;
 		total_price: number;
+		pack_amount: number | null;
+		pack_unit: string | null;
 	}
 
 	interface ReceiptDetail extends Receipt {

@@ -22,6 +22,8 @@ class ItemResponse(BaseModel):
     unit: str | None
     unit_price: float | None
     total_price: float
+    pack_amount: float | None
+    pack_unit: str | None
 
     model_config = {"from_attributes": True}
 
@@ -32,6 +34,8 @@ class ItemCreate(BaseModel):
     unit: str | None = Field(default=None, max_length=20)
     unit_price: float | None = Field(default=None, ge=0)
     total_price: float = Field(ge=0)
+    pack_amount: float | None = Field(default=None, gt=0)
+    pack_unit: str | None = Field(default=None, max_length=20)
 
 
 class ItemUpdate(BaseModel):
@@ -40,6 +44,8 @@ class ItemUpdate(BaseModel):
     unit: str | None = Field(default=None, max_length=20)
     unit_price: float | None = Field(default=None, ge=0)
     total_price: float | None = Field(default=None, ge=0)
+    pack_amount: float | None = Field(default=None, gt=0)
+    pack_unit: str | None = Field(default=None, max_length=20)
 
 
 class ReceiptListItem(BaseModel):

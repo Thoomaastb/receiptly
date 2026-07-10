@@ -332,6 +332,8 @@ async def add_item(
         unit=payload.unit,
         unit_price=payload.unit_price,
         total_price=payload.total_price,
+        pack_amount=payload.pack_amount,
+        pack_unit=payload.pack_unit,
     )
     db.add(item)
     await db.commit()
@@ -366,6 +368,10 @@ async def update_item(
         item.unit_price = payload.unit_price
     if payload.total_price is not None:
         item.total_price = payload.total_price
+    if payload.pack_amount is not None:
+        item.pack_amount = payload.pack_amount
+    if payload.pack_unit is not None:
+        item.pack_unit = payload.pack_unit
 
     await db.commit()
     await db.refresh(item)

@@ -6,6 +6,8 @@
 		unit: string | null;
 		unit_price: number | null;
 		total_price: number;
+		pack_amount: number | null;
+		pack_unit: string | null;
 	}
 
 	export let receiptId: string;
@@ -151,6 +153,9 @@
 	let newItemUnit = '';
 	let newItemUnitPrice = '';
 	let newItemTotalPrice = '';
+	let newItemTotalPriceTouched = false;
+	let newItemPackAmount = '';
+	let newItemPackUnit = '';
 
 	function resetNewItemForm() {
 		newItemName = '';
@@ -158,7 +163,26 @@
 		newItemUnit = '';
 		newItemUnitPrice = '';
 		newItemTotalPrice = '';
+		newItemTotalPriceTouched = false;
+		newItemPackAmount = '';
+		newItemPackUnit = '';
 	}
+
+	// Menge × Einzelpreis rechnet die Gesamtsumme automatisch vor, solange der Nutzer das
+	// Gesamt-Feld nicht selbst angefasst hat (z.B. für Rabatte) — sonst blieb bei "3x 4,99€"
+	// nur 4,99€ in der Summe hängen, weil total_price ein reines Freitextfeld war.
+	$: if (!newItemTotalPriceTouched && newItemUnitPrice) {
+		const qty = Number(newItemQuantity) || 1;
+		const unitPrice = Number(newItemUnitPrice);
+		if (unitPrice >= 0) newItemTotalPrice = (qty * unitPrice).toFixed(2);
+	}
+
+	// Anzahl (quantity) vs. Menge pro Einheit (pack_amount): "6x Wasser à 1,5l" ergibt 9l
+	// Gesamtmenge — getrennt von der Preis-Berechnung oben, siehe Kommentar am Item-Modell.
+	$: newItemTotalAmount =
+		newItemPackAmount && newItemPackUnit
+			? (Number(newItemQuantity) || 1) * Number(newItemPackAmount)
+			: null;
 
 	async function addItem() {
 		if (!newItemName.trim() || !newItemTotalPrice) return;
@@ -171,7 +195,9 @@
 				quantity: newItemQuantity ? Number(newItemQuantity) : 1,
 				unit: newItemUnit.trim() || null,
 				unit_price: newItemUnitPrice ? Number(newItemUnitPrice) : null,
-				total_price: Number(newItemTotalPrice)
+				total_price: Number(newItemTotalPrice),
+				pack_amount: newItemPackAmount ? Number(newItemPackAmount) : null,
+				pack_unit: newItemPackUnit.trim() || null
 			})
 		});
 		if (res.ok) {
@@ -186,19 +212,39 @@
 	let editItemName = '';
 	let editItemQuantity = '';
 	let editItemUnit = '';
+	let editItemUnitPrice = '';
 	let editItemTotalPrice = '';
+	let editItemTotalPriceTouched = false;
+	let editItemPackAmount = '';
+	let editItemPackUnit = '';
 
 	function startEditItem(item: ItemRow) {
 		editingItemId = item.id;
 		editItemName = item.raw_name;
 		editItemQuantity = String(item.quantity);
 		editItemUnit = item.unit ?? '';
+		editItemUnitPrice = item.unit_price !== null ? String(item.unit_price) : '';
 		editItemTotalPrice = String(item.total_price);
+		editItemTotalPriceTouched = false;
+		editItemPackAmount = item.pack_amount !== null ? String(item.pack_amount) : '';
+		editItemPackUnit = item.pack_unit ?? '';
 	}
 
 	function cancelEditItem() {
 		editingItemId = null;
 	}
+
+	// Gleiche Auto-Berechnung wie im Hinzufügen-Formular (siehe Kommentar dort)
+	$: if (!editItemTotalPriceTouched && editItemUnitPrice) {
+		const qty = Number(editItemQuantity) || 1;
+		const unitPrice = Number(editItemUnitPrice);
+		if (unitPrice >= 0) editItemTotalPrice = (qty * unitPrice).toFixed(2);
+	}
+
+	$: editItemTotalAmount =
+		editItemPackAmount && editItemPackUnit
+			? (Number(editItemQuantity) || 1) * Number(editItemPackAmount)
+			: null;
 
 	async function saveEditItem(itemId: string) {
 		const res = await fetch(`/api/receipts/${receiptId}/items/${itemId}`, {
@@ -207,9 +253,12 @@
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
 				raw_name: editItemName.trim(),
+				unit_price: editItemUnitPrice ? Number(editItemUnitPrice) : null,
 				quantity: editItemQuantity ? Number(editItemQuantity) : undefined,
 				unit: editItemUnit.trim() || null,
-				total_price: editItemTotalPrice ? Number(editItemTotalPrice) : undefined
+				total_price: editItemTotalPrice ? Number(editItemTotalPrice) : undefined,
+				pack_amount: editItemPackAmount ? Number(editItemPackAmount) : null,
+				pack_unit: editItemPackUnit.trim() || null
 			})
 		});
 		if (res.ok) {
@@ -423,7 +472,7 @@
 													placeholder="Artikelname"
 													class="rounded border border-border bg-surface p-1.5 text-xs"
 												/>
-												<div class="grid grid-cols-3 gap-1.5">
+												<div class="grid grid-cols-4 gap-1.5">
 													<input
 														type="number"
 														step="0.001"
@@ -442,11 +491,41 @@
 														type="number"
 														step="0.01"
 														min="0"
+														bind:value={editItemUnitPrice}
+														placeholder="€/Stk"
+														class="rounded border border-border bg-surface p-1.5 text-xs"
+													/>
+													<input
+														type="number"
+														step="0.01"
+														min="0"
 														bind:value={editItemTotalPrice}
+														on:input={() => (editItemTotalPriceTouched = true)}
 														placeholder="Gesamt €"
 														class="rounded border border-border bg-surface p-1.5 text-xs"
 													/>
 												</div>
+												<div class="grid grid-cols-2 gap-1.5">
+													<input
+														type="number"
+														step="0.001"
+														min="0"
+														bind:value={editItemPackAmount}
+														placeholder="Menge/Einheit, z.B. 1.5"
+														class="rounded border border-border bg-surface p-1.5 text-xs"
+													/>
+													<input
+														type="text"
+														bind:value={editItemPackUnit}
+														placeholder="Einheit, z.B. l"
+														class="rounded border border-border bg-surface p-1.5 text-xs"
+													/>
+												</div>
+												{#if editItemTotalAmount !== null}
+													<p class="text-xs text-text-muted">
+														= {editItemTotalAmount} {editItemPackUnit} gesamt
+													</p>
+												{/if}
 												<div class="flex gap-2">
 													<button on:click={() => saveEditItem(item.id)} class="text-xs font-semibold text-accent">
 														Speichern
@@ -463,6 +542,8 @@
 													<div class="text-xs text-text-muted">
 														{item.quantity}{item.unit ? ` ${item.unit}` : ''}{item.unit_price !== null
 															? ` · ${item.unit_price.toFixed(2)} €/Stk`
+															: ''}{item.pack_amount !== null && item.pack_unit
+															? ` · ${item.pack_amount} ${item.pack_unit}/Stk = ${(item.quantity * item.pack_amount).toFixed(2)} ${item.pack_unit} gesamt`
 															: ''}
 													</div>
 												</div>
@@ -494,7 +575,7 @@
 									placeholder="Artikelname"
 									class="rounded border border-border bg-surface p-1.5 text-xs"
 								/>
-								<div class="grid grid-cols-3 gap-1.5">
+								<div class="grid grid-cols-4 gap-1.5">
 									<input
 										type="number"
 										step="0.001"
@@ -513,11 +594,39 @@
 										type="number"
 										step="0.01"
 										min="0"
+										bind:value={newItemUnitPrice}
+										placeholder="€/Stk"
+										class="rounded border border-border bg-surface p-1.5 text-xs"
+									/>
+									<input
+										type="number"
+										step="0.01"
+										min="0"
 										bind:value={newItemTotalPrice}
+										on:input={() => (newItemTotalPriceTouched = true)}
 										placeholder="Gesamt €"
 										class="rounded border border-border bg-surface p-1.5 text-xs"
 									/>
 								</div>
+								<div class="grid grid-cols-2 gap-1.5">
+									<input
+										type="number"
+										step="0.001"
+										min="0"
+										bind:value={newItemPackAmount}
+										placeholder="Menge/Einheit, z.B. 1.5"
+										class="rounded border border-border bg-surface p-1.5 text-xs"
+									/>
+									<input
+										type="text"
+										bind:value={newItemPackUnit}
+										placeholder="Einheit, z.B. l"
+										class="rounded border border-border bg-surface p-1.5 text-xs"
+									/>
+								</div>
+								{#if newItemTotalAmount !== null}
+									<p class="text-xs text-text-muted">= {newItemTotalAmount} {newItemPackUnit} gesamt</p>
+								{/if}
 								<div class="flex gap-2">
 									<button on:click={addItem} class="text-xs font-semibold text-accent">Hinzufügen</button>
 									<button
