@@ -142,6 +142,14 @@ async def upload_receipt(
     return receipt
 
 
+_SORT_OPTIONS = {
+    "date_desc": (Receipt.receipt_date.desc().nullslast(),),
+    "date_asc": (Receipt.receipt_date.asc().nullslast(),),
+    "amount_desc": (Receipt.total_amount.desc().nullslast(),),
+    "amount_asc": (Receipt.total_amount.asc().nullslast(),),
+}
+
+
 @router.get("", response_model=list[ReceiptListItem])
 async def list_receipts(
     q: str | None = Query(default=None, description="Volltext: Händler, OCR-Text, Artikel"),
@@ -149,13 +157,23 @@ async def list_receipts(
         default=None, description="Filter: high_value | warranty | needs_review"
     ),
     category: str | None = Query(default=None, description="Merchant-Kategorie"),
+    sort: str | None = Query(
+        default=None, description="date_desc | date_asc | amount_desc | amount_asc"
+    ),
+    limit: int | None = Query(
+        default=None, ge=1, le=200, description="Weglassen = alle (Startseiten-Stats brauchen das)"
+    ),
+    offset: int = Query(default=0, ge=0),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[Receipt]:
     """
-    Belege aus allen für den User sichtbaren Buckets, neueste zuerst. `q` durchsucht
-    Händlername, OCR-Rohtext und Artikelnamen (Volltext-Suche laut Produkt-Konzept) über
-    exists()-Subqueries statt Joins, damit kein Receipt durch Artikel-Treffer dupliziert wird.
+    Belege aus allen für den User sichtbaren Buckets, standardmäßig neueste zuerst (nach
+    Upload-Zeitpunkt) — `sort` wechselt auf Beleg-Datum/Betrag, unvollständige Werte
+    (noch kein Datum/Betrag von OCR/KI) landen dabei immer am Ende statt die Sortierung zu
+    verfälschen. `q` durchsucht Händlername, OCR-Rohtext und Artikelnamen (Volltext-Suche
+    laut Produkt-Konzept) über exists()-Subqueries statt Joins, damit kein Receipt durch
+    Artikel-Treffer dupliziert wird. `limit`/`offset` fürs Lazy-Load-Feed im Frontend.
     """
     stmt = (
         select(Receipt)
@@ -193,7 +211,12 @@ async def list_receipts(
             )
         )
 
-    result = await db.execute(stmt.order_by(Receipt.created_at.desc()))
+    order_by = _SORT_OPTIONS.get(sort, (Receipt.created_at.desc(),))
+    stmt = stmt.order_by(*order_by).offset(offset)
+    if limit is not None:
+        stmt = stmt.limit(limit)
+
+    result = await db.execute(stmt)
     return list(result.scalars().all())
 
 

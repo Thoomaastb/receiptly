@@ -55,6 +55,14 @@
 		{ value: 'needs_review', label: 'Prüfung nötig' }
 	];
 
+	const sortChips: { value: string | null; label: string }[] = [
+		{ value: null, label: 'Zuletzt hinzugefügt' },
+		{ value: 'date_desc', label: 'Datum' },
+		{ value: 'amount_desc', label: 'Betrag' }
+	];
+
+	const PAGE_SIZE = 30;
+
 	let receipts: Receipt[] = [];
 	let buckets: Bucket[] = [];
 	let loading = true;
@@ -67,21 +75,32 @@
 	let searchQuery = '';
 	let activeType: string | null = null;
 	let activeCategory: string | null = null;
+	let activeSort: string | null = null;
 	let allCategories: string[] = [];
 	let categoriesCaptured = false;
 	let searchDebounceHandle: ReturnType<typeof setTimeout> | undefined;
+	let hasMore = true;
+	let loadingMore = false;
 
+	function buildParams(offset: number): URLSearchParams {
+		const params = new URLSearchParams();
+		if (searchQuery.trim()) params.set('q', searchQuery.trim());
+		if (activeType) params.set('type', activeType);
+		if (activeCategory) params.set('category', activeCategory);
+		if (activeSort) params.set('sort', activeSort);
+		params.set('limit', String(PAGE_SIZE));
+		params.set('offset', String(offset));
+		return params;
+	}
+
+	// Ersetzt die Liste komplett (Filter/Sortierung geändert) und setzt die Lazy-Load-Seite zurück.
 	async function refreshReceipts() {
 		searching = true;
 		try {
-			const params = new URLSearchParams();
-			if (searchQuery.trim()) params.set('q', searchQuery.trim());
-			if (activeType) params.set('type', activeType);
-			if (activeCategory) params.set('category', activeCategory);
-			const qs = params.toString();
-			const res = await fetch(`/api/receipts${qs ? `?${qs}` : ''}`, { credentials: 'include' });
+			const res = await fetch(`/api/receipts?${buildParams(0)}`, { credentials: 'include' });
 			if (!res.ok) return;
 			receipts = await res.json();
+			hasMore = receipts.length === PAGE_SIZE;
 
 			// Kategorie-Chips bleiben stabil (Facetten-UX): nur beim allerersten,
 			// noch ungefilterten Laden befüllen, damit sie beim Filtern nicht schrumpfen.
@@ -94,6 +113,38 @@
 		} finally {
 			searching = false;
 		}
+	}
+
+	// Hängt die nächste Seite an (Endless Scroll laut UI-Konzept, keine klassische Pagination).
+	async function loadMore() {
+		if (!hasMore || loadingMore) return;
+		loadingMore = true;
+		try {
+			const res = await fetch(`/api/receipts?${buildParams(receipts.length)}`, {
+				credentials: 'include'
+			});
+			if (!res.ok) return;
+			const nextPage: Receipt[] = await res.json();
+			receipts = [...receipts, ...nextPage];
+			hasMore = nextPage.length === PAGE_SIZE;
+		} finally {
+			loadingMore = false;
+		}
+	}
+
+	function observeSentinel(node: HTMLDivElement) {
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (entries[0].isIntersecting) loadMore();
+			},
+			{ rootMargin: '200px' }
+		);
+		observer.observe(node);
+		return {
+			destroy() {
+				observer.disconnect();
+			}
+		};
 	}
 
 	function onSearchInput() {
@@ -111,15 +162,21 @@
 		refreshReceipts();
 	}
 
+	function selectSort(value: string | null) {
+		activeSort = value;
+		refreshReceipts();
+	}
+
 	onMount(async () => {
 		try {
 			const [receiptsRes, bucketsRes] = await Promise.all([
-				fetch('/api/receipts', { credentials: 'include' }),
+				fetch(`/api/receipts?${buildParams(0)}`, { credentials: 'include' }),
 				fetch('/api/buckets', { credentials: 'include' })
 			]);
 			if (!receiptsRes.ok) throw new Error(`Belege konnten nicht geladen werden (${receiptsRes.status})`);
 			if (!bucketsRes.ok) throw new Error(`Buckets konnten nicht geladen werden (${bucketsRes.status})`);
 			receipts = await receiptsRes.json();
+			hasMore = receipts.length === PAGE_SIZE;
 			buckets = await bucketsRes.json();
 			allCategories = Array.from(
 				new Set(receipts.map((r) => r.category).filter((c): c is string => !!c))
@@ -260,12 +317,28 @@
 	{/if}
 
 	{#if !loading && !errorMessage && visibleReceipts.length > 0}
-		<button
-			class="mb-4 block rounded-full border border-hifi-border px-3 py-1 text-xs text-hifi-text-muted hover:text-hifi-text"
-			on:click={() => (groupByBucket = !groupByBucket)}
-		>
-			{groupByBucket ? 'Flach anzeigen' : 'Nach Bucket gruppieren'}
-		</button>
+		<div class="mb-4 flex flex-wrap items-center gap-2">
+			<button
+				class="block rounded-full border border-hifi-border px-3 py-1 text-xs text-hifi-text-muted hover:text-hifi-text"
+				on:click={() => (groupByBucket = !groupByBucket)}
+			>
+				{groupByBucket ? 'Flach anzeigen' : 'Nach Bucket gruppieren'}
+			</button>
+			<span class="text-xs text-hifi-text-faint">·</span>
+			<span class="text-xs text-hifi-text-faint">Sortieren:</span>
+			{#each sortChips as chip (chip.label)}
+				<button
+					on:click={() => selectSort(chip.value)}
+					class="rounded-full px-3 py-1 text-xs font-medium transition-colors"
+					class:bg-hifi-accent-tint={activeSort === chip.value}
+					class:text-hifi-accent-text={activeSort === chip.value}
+					class:text-hifi-text-muted={activeSort !== chip.value}
+					class:hover:text-hifi-text={activeSort !== chip.value}
+				>
+					{chip.label}
+				</button>
+			{/each}
+		</div>
 	{/if}
 
 	{#if loading}
@@ -324,6 +397,12 @@
 					onOpen={openDetail}
 				/>
 			{/each}
+		</div>
+	{/if}
+
+	{#if !loading && !errorMessage && hasMore}
+		<div use:observeSentinel class="py-6 text-center text-xs text-hifi-text-faint">
+			{loadingMore ? 'Weitere Belege werden geladen …' : ''}
 		</div>
 	{/if}
 {/if}

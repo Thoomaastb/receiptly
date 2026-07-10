@@ -117,7 +117,8 @@
 		</div>
 
 		<div class="flex items-center gap-1.5 justify-self-end">
-			<button
+			<a
+				href="/receipts"
 				aria-label="Suche"
 				class="flex h-[38px] w-[38px] items-center justify-center rounded-[10px] text-hifi-text-muted transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text"
 			>
@@ -125,7 +126,7 @@
 					<circle cx="10" cy="10" r="6" />
 					<path d="M20 20l-5.5-5.5" />
 				</svg>
-			</button>
+			</a>
 			<button
 				aria-label="Benachrichtigungen"
 				class="flex h-[38px] w-[38px] items-center justify-center rounded-[10px] text-hifi-text-muted transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text"
