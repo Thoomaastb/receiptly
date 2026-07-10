@@ -4,13 +4,11 @@
 </script>
 
 <span
-	class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs"
-	class:bg-bucket-household={isDefault}
-	class:text-accent-contrast={isDefault}
-	class:bg-surface-raised={!isDefault}
-	class:text-text-muted={!isDefault}
-	class:border={!isDefault}
-	class:border-border={!isDefault}
+	class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11.5px] font-medium"
+	class:bg-hifi-accent={isDefault}
+	class:text-white={isDefault}
+	class:bg-hifi-accent-tint={!isDefault}
+	class:text-hifi-accent-text={!isDefault}
 >
 	{name}
 </span>

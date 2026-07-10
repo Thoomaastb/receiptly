@@ -76,5 +76,9 @@ class Receipt(Base, UpdatableTimestampMixin):
         return self.merchant.name if self.merchant else None
 
     @property
+    def category(self) -> str | None:
+        return self.merchant.category if self.merchant else None
+
+    @property
     def item_count(self) -> int:
         return len(self.items)

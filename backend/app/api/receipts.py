@@ -2,8 +2,8 @@ import calendar
 import uuid
 from datetime import date
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from sqlalchemy import exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -142,15 +142,56 @@ async def upload_receipt(
 
 @router.get("", response_model=list[ReceiptListItem])
 async def list_receipts(
-    user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    q: str | None = Query(default=None, description="Volltext: Händler, OCR-Text, Artikel"),
+    type: str | None = Query(
+        default=None, description="Filter: high_value | warranty | needs_review"
+    ),
+    category: str | None = Query(default=None, description="Merchant-Kategorie"),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
 ) -> list[Receipt]:
-    """Belege aus allen für den User sichtbaren Buckets, neueste zuerst."""
-    result = await db.execute(
+    """
+    Belege aus allen für den User sichtbaren Buckets, neueste zuerst. `q` durchsucht
+    Händlername, OCR-Rohtext und Artikelnamen (Volltext-Suche laut Produkt-Konzept) über
+    exists()-Subqueries statt Joins, damit kein Receipt durch Artikel-Treffer dupliziert wird.
+    """
+    stmt = (
         select(Receipt)
         .options(*_RECEIPT_DETAIL_OPTIONS)
         .where(Receipt.bucket_id.in_(visible_bucket_ids_query(user)))
-        .order_by(Receipt.created_at.desc())
     )
+
+    if q and q.strip():
+        pattern = f"%{q.strip()}%"
+        merchant_match = exists(
+            select(Merchant.id).where(
+                Merchant.id == Receipt.merchant_id, Merchant.name.ilike(pattern)
+            )
+        )
+        item_match = exists(
+            select(Item.id).where(Item.receipt_id == Receipt.id, Item.raw_name.ilike(pattern))
+        )
+        stmt = stmt.where(
+            or_(merchant_match, item_match, Receipt.ocr_raw_text.ilike(pattern))
+        )
+
+    if type == "high_value":
+        stmt = stmt.where(Receipt.is_high_value.is_(True))
+    elif type == "warranty":
+        stmt = stmt.where(Receipt.warranty_months.is_not(None))
+    elif type == "needs_review":
+        stmt = stmt.where(Receipt.status == ReceiptStatus.NEEDS_REVIEW)
+
+    if category:
+        stmt = stmt.where(
+            exists(
+                select(Merchant.id).where(
+                    Merchant.id == Receipt.merchant_id, Merchant.category == category
+                )
+            )
+        )
+
+    result = await db.execute(stmt.order_by(Receipt.created_at.desc()))
     return list(result.scalars().all())
 
 

@@ -51,6 +51,7 @@ class ReceiptListItem(BaseModel):
     currency: str
     thumb_path: str | None
     merchant_name: str | None
+    category: str | None
     item_count: int
     created_at: datetime
 
