@@ -1,3 +1,9 @@
+## [0.20.0](https://github.com/Thoomaastb/receiptly/compare/v0.19.1...v0.20.0) (2026-07-10)
+
+### Features
+
+* **receipts:** Belegliste-Feinschliff - Sortierung nach Datum/Betrag, Lazy-Load-Pagination, Topbar-Suche verlinkt ([a3e0e60](https://github.com/Thoomaastb/receiptly/commit/a3e0e60248f53759dec696fcee567d71120c1263))
+
 ## [0.19.1](https://github.com/Thoomaastb/receiptly/compare/v0.19.0...v0.19.1) (2026-07-10)
 
 ### Bug Fixes
