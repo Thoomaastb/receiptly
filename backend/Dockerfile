@@ -16,7 +16,13 @@ COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./alembic.ini
 
-RUN chown -R receiptly:receiptly /app
+# storage/originals + storage/thumbs vorab anlegen: die docker-compose-Volumes mounten
+# hier erst zur Laufzeit hinein, und Docker kopiert beim allerersten (leeren) Mount den
+# bestehenden Image-Inhalt inkl. Eigentümer in das Volume. Ohne das existiert der Pfad im
+# Image nicht (nur Python legt ihn zur Laufzeit per mkdir an) — das Volume landet dann
+# root-owned, und der non-root User "receiptly" kann nie hineinschreiben (jeder Upload
+# schlägt mit PermissionError fehl).
+RUN mkdir -p storage/originals storage/thumbs && chown -R receiptly:receiptly /app
 USER receiptly
 
 EXPOSE 8000
