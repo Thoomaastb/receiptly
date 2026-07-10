@@ -1,3 +1,13 @@
+## [0.19.0](https://github.com/Thoomaastb/receiptly/compare/v0.18.0...v0.19.0) (2026-07-10)
+
+### Features
+
+* **receipts:** Beleg-Lifecycle - Löschen, echte Datei-Vorschau/-Download, aufklappbarer Erkannter-Text-Bereich ([14318d7](https://github.com/Thoomaastb/receiptly/commit/14318d75891c6e4acd6774ab94fdb141c39867eb))
+
+### Bug Fixes
+
+* **docker:** storage-Volumes waren root-owned, non-root Backend-User konnte nie hineinschreiben — jeder Upload crashte ([56e603f](https://github.com/Thoomaastb/receiptly/commit/56e603f5485da8ba6be42042fd9ee7aa7e89c898))
+
 ## [0.18.0](https://github.com/Thoomaastb/receiptly/compare/v0.17.3...v0.18.0) (2026-07-10)
 
 ### Features
