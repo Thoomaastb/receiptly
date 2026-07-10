@@ -1,3 +1,9 @@
+## [0.19.1](https://github.com/Thoomaastb/receiptly/compare/v0.19.0...v0.19.1) (2026-07-10)
+
+### Bug Fixes
+
+* **receipts:** Artikel-Menge fließt jetzt in die Gesamtsumme ein, neues Feldpaar Anzahl/Menge-pro-Einheit für Mengen-Tracking (z.B. 6x1,5l = 9l) ([4c0f210](https://github.com/Thoomaastb/receiptly/commit/4c0f2105d41ec3f59338ac9d66bfc25a0d71cd34))
+
 ## [0.19.0](https://github.com/Thoomaastb/receiptly/compare/v0.18.0...v0.19.0) (2026-07-10)
 
 ### Features
