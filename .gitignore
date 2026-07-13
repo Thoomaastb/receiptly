@@ -26,7 +26,6 @@ Thumbs.db
 storage/originals/
 storage/thumbs/
 
-# Claude Code – lokale/persönliche Artefakte, nicht fürs Repo
-# (CLAUDE.md und .claude/agents/ sind geteilte Projekt-Config und bleiben getrackt)
-.claude/settings.local.json
-.claude/*.lock
+# Claude
+CLAUDE.md
+.claude/
