@@ -21,18 +21,18 @@
     "@fontsource/plus-jakarta-sans": "^5.2.8",
     "@sveltejs/adapter-static": "^3.0.10",
     "@tesseract.js-data/deu": "^1.0.0",
-    "tesseract.js": "^5.1.0"
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.4.1",
     "@sveltejs/kit": "^2.5.0",
-    "@sveltejs/vite-plugin-svelte": "^3.1.0",
+    "@sveltejs/vite-plugin-svelte": "^7.2.0",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
-    "svelte": "^4.2.18",
-    "svelte-check": "^3.8.0",
-    "tailwindcss": "^3.4.4",
-    "typescript": "^5.5.2",
-    "vite": "^5.3.1"
+    "svelte": "^5.56.4",
+    "svelte-check": "^4.7.2",
+    "tailwindcss": "^4.3.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.4"
   }
 }
