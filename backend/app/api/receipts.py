@@ -313,6 +313,18 @@ async def update_receipt(
     if payload.warranty_months is not None:
         receipt.warranty_months = payload.warranty_months
 
+    if payload.category is not None:
+        if receipt.merchant_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Kategorie braucht zuerst einen Händler",
+            )
+        merchant_result = await db.execute(
+            select(Merchant).where(Merchant.id == receipt.merchant_id)
+        )
+        merchant = merchant_result.scalar_one()
+        merchant.category = payload.category
+
     if receipt.warranty_months is not None and receipt.receipt_date is not None:
         receipt.warranty_expires_at = _add_months(receipt.receipt_date, receipt.warranty_months)
 

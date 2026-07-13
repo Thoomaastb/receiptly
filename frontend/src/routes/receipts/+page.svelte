@@ -5,6 +5,7 @@
 	import ReceiptRow from '$lib/components/ReceiptRow.svelte';
 	import ReceiptDetailView from '$lib/components/ReceiptDetailView.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
+	import { categoryLabel } from '$lib/categories';
 
 	interface Receipt {
 		id: string;
@@ -77,7 +78,6 @@
 	let activeCategory: string | null = null;
 	let activeSort: string | null = null;
 	let allCategories: string[] = [];
-	let categoriesCaptured = false;
 	let searchDebounceHandle: ReturnType<typeof setTimeout> | undefined;
 	let hasMore = true;
 	let loadingMore = false;
@@ -93,6 +93,17 @@
 		return params;
 	}
 
+	// Kategorie-Chips wachsen nur (Union), schrumpfen nie — weder durchs Filtern (Facetten-UX)
+	// noch bleiben sie hinter neu vergebenen Kategorien zurück, die erst nach dem initialen
+	// Laden dazukommen (z.B. direkt nach dem ersten Zuweisen einer Kategorie im Edit-Formular).
+	function mergeCategories(pageReceipts: Receipt[]) {
+		const found = pageReceipts.map((r) => r.category).filter((c): c is string => !!c);
+		if (found.length === 0) return;
+		allCategories = Array.from(new Set([...allCategories, ...found])).sort((a, b) =>
+			a.localeCompare(b)
+		);
+	}
+
 	// Ersetzt die Liste komplett (Filter/Sortierung geändert) und setzt die Lazy-Load-Seite zurück.
 	async function refreshReceipts() {
 		searching = true;
@@ -101,15 +112,7 @@
 			if (!res.ok) return;
 			receipts = await res.json();
 			hasMore = receipts.length === PAGE_SIZE;
-
-			// Kategorie-Chips bleiben stabil (Facetten-UX): nur beim allerersten,
-			// noch ungefilterten Laden befüllen, damit sie beim Filtern nicht schrumpfen.
-			if (!categoriesCaptured) {
-				allCategories = Array.from(
-					new Set(receipts.map((r) => r.category).filter((c): c is string => !!c))
-				).sort((a, b) => a.localeCompare(b));
-				categoriesCaptured = true;
-			}
+			mergeCategories(receipts);
 		} finally {
 			searching = false;
 		}
@@ -127,6 +130,7 @@
 			const nextPage: Receipt[] = await res.json();
 			receipts = [...receipts, ...nextPage];
 			hasMore = nextPage.length === PAGE_SIZE;
+			mergeCategories(nextPage);
 		} finally {
 			loadingMore = false;
 		}
@@ -178,10 +182,7 @@
 			receipts = await receiptsRes.json();
 			hasMore = receipts.length === PAGE_SIZE;
 			buckets = await bucketsRes.json();
-			allCategories = Array.from(
-				new Set(receipts.map((r) => r.category).filter((c): c is string => !!c))
-			).sort((a, b) => a.localeCompare(b));
-			categoriesCaptured = true;
+			mergeCategories(receipts);
 			for (const bucket of buckets) expandedBuckets[bucket.id] = true;
 
 			// Direktlink von der Startseite ("Zuletzt hinzugefügt") -> Detail sofort öffnen,
@@ -246,6 +247,7 @@
 		currency={openReceipt.currency}
 		status={openReceipt.status}
 		merchantName={openReceipt.merchant_name}
+		category={openReceipt.category}
 		ocrRawText={openReceipt.ocr_raw_text}
 		filePath={openReceipt.file_path}
 		isHighValue={openReceipt.is_high_value}
@@ -303,7 +305,7 @@
 					class:border-hifi-border={activeCategory !== cat}
 					class:text-hifi-text-muted={activeCategory !== cat}
 				>
-					{cat}
+					{categoryLabel(cat)}
 				</button>
 			{/each}
 		</div>

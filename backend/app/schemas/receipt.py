@@ -82,4 +82,9 @@ class ReceiptUpdate(BaseModel):
     merchant_name: str | None = Field(default=None, min_length=1, max_length=255)
     is_high_value: bool | None = None
     warranty_months: int | None = Field(default=None, ge=0, le=600)
+    # Kategorie hängt am Merchant, nicht am Receipt (siehe Merchant-Modell) — betrifft also
+    # automatisch alle Belege desselben Händlers. Wie merchant_name/warranty_months: None
+    # heißt "nicht mitschicken" (unverändert lassen), kein explizites Zurücksetzen über
+    # dieses Feld — konsistent mit den übrigen optionalen Feldern hier.
+    category: str | None = Field(default=None, max_length=100)
 

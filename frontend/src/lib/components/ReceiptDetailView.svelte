@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { CATEGORIES, categoryLabel, categoryColor } from '$lib/categories';
+
 	interface ItemRow {
 		id: string;
 		raw_name: string;
@@ -16,6 +18,7 @@
 	export let currency: string;
 	export let status: string;
 	export let merchantName: string | null = null;
+	export let category: string | null = null;
 	export let ocrRawText: string | null;
 	export let isHighValue: boolean = false;
 	export let warrantyMonths: number | null = null;
@@ -81,6 +84,7 @@
 	let draftMerchant = '';
 	let draftHighValue = false;
 	let draftWarrantyMonths = '';
+	let draftCategory = '';
 
 	function startEdit() {
 		draftDate = receiptDate ?? '';
@@ -88,6 +92,7 @@
 		draftMerchant = merchantName ?? '';
 		draftHighValue = isHighValue;
 		draftWarrantyMonths = warrantyMonths !== null ? String(warrantyMonths) : '';
+		draftCategory = category ?? '';
 		saveError = '';
 		editing = true;
 	}
@@ -100,6 +105,7 @@
 		receipt_date: string | null;
 		total_amount: number | null;
 		merchant_name: string | null;
+		category: string | null;
 		is_high_value: boolean;
 		warranty_months: number | null;
 		warranty_expires_at: string | null;
@@ -108,6 +114,7 @@
 		receiptDate = detail.receipt_date;
 		totalAmount = detail.total_amount;
 		merchantName = detail.merchant_name;
+		category = detail.category;
 		isHighValue = detail.is_high_value;
 		warrantyMonths = detail.warranty_months;
 		warrantyExpiresAt = detail.warranty_expires_at;
@@ -127,7 +134,8 @@
 					total_amount: draftAmount ? Number(draftAmount) : null,
 					merchant_name: draftMerchant.trim() || null,
 					is_high_value: draftHighValue,
-					warranty_months: draftWarrantyMonths ? Number(draftWarrantyMonths) : null
+					warranty_months: draftWarrantyMonths ? Number(draftWarrantyMonths) : null,
+					category: draftCategory || null
 				})
 			});
 			if (res.ok) {
@@ -331,6 +339,14 @@
 							Hochwertig
 						</span>
 					{/if}
+					{#if category}
+						<span
+							class="rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
+							style="background: {categoryColor(category)};"
+						>
+							{categoryLabel(category)}
+						</span>
+					{/if}
 				</div>
 				{#if !editing}
 					<button on:click={startEdit} class="text-xs font-semibold text-text-muted hover:text-text">
@@ -369,6 +385,22 @@
 					<label class="flex items-center gap-2 text-xs">
 						<input type="checkbox" bind:checked={draftHighValue} />
 						<span>Hochwertiger Kauf</span>
+					</label>
+					<label class="text-xs">
+						<span class="mb-1 block text-text-muted">Kategorie</span>
+						<select
+							bind:value={draftCategory}
+							disabled={!draftMerchant.trim()}
+							class="w-full rounded border border-border bg-surface p-2 text-sm disabled:opacity-50"
+						>
+							<option value="">Keine</option>
+							{#each CATEGORIES as cat (cat.value)}
+								<option value={cat.value}>{cat.label}</option>
+							{/each}
+						</select>
+						{#if !draftMerchant.trim()}
+							<span class="mt-1 block text-text-muted">Braucht zuerst einen Händlernamen.</span>
+						{/if}
 					</label>
 					<label class="text-xs">
 						<span class="mb-1 block text-text-muted">Garantie (Monate)</span>
