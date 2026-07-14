@@ -1,3 +1,13 @@
+## [0.21.0](https://github.com/Thoomaastb/receiptly/compare/v0.20.0...v0.21.0) (2026-07-14)
+
+### Features
+
+* **ui:** laufende App-Version im Benutzermenü anzeigen, aus Release-Tag via Docker-Build-Arg befüllt ([4deba91](https://github.com/Thoomaastb/receiptly/commit/4deba91da5e94f474e9f055698b9cbd7f99667a3))
+
+### Bug Fixes
+
+* **receipts:** PDF-Upload brach im OCR-Schritt ab, da TesseractJS nur Bilder verarbeiten kann ([2107c85](https://github.com/Thoomaastb/receiptly/commit/2107c858abe2a29fe096830c79e4cf348a318deb))
+
 ## [0.20.0](https://github.com/Thoomaastb/receiptly/compare/v0.19.1...v0.20.0) (2026-07-10)
 
 ### Features
