@@ -76,21 +76,31 @@
 		errorMessage = '';
 
 		try {
-			stage = 'ocr';
-			const provider = await getOCRProvider();
-			const { text: ocrText, confidence: ocrConfidence } = await provider.recognize(
-				selectedFile,
-				(fraction) => {
-					ocrProgress = Math.round(fraction * 100);
-				}
-			);
+			let ocrText: string | null = null;
+			let ocrConfidence: number | null = null;
 
-			stage = 'uploading';
+			if (selectedFile.type === 'application/pdf') {
+				// TesseractJS kann nur Rasterbilder dekodieren, keine PDFs — der Versuch ließ den
+				// Upload bisher schon im OCR-Schritt mit einer irreführenden "Upload fehlgeschlagen"-
+				// Meldung abbrechen, bevor die Datei überhaupt gesendet wurde. OCR hier bewusst
+				// überspringen statt den Upload daran scheitern zu lassen.
+				stage = 'uploading';
+			} else {
+				stage = 'ocr';
+				const provider = await getOCRProvider();
+				const result = await provider.recognize(selectedFile, (fraction) => {
+					ocrProgress = Math.round(fraction * 100);
+				});
+				ocrText = result.text;
+				ocrConfidence = result.confidence;
+				stage = 'uploading';
+			}
+
 			const formData = new FormData();
 			formData.append('file', selectedFile);
 			formData.append('bucket_id', selectedBucketId);
-			formData.append('ocr_text', ocrText);
-			formData.append('ocr_confidence', String(ocrConfidence));
+			if (ocrText !== null) formData.append('ocr_text', ocrText);
+			if (ocrConfidence !== null) formData.append('ocr_confidence', String(ocrConfidence));
 
 			await uploadWithProgress(formData);
 
@@ -180,6 +190,13 @@
 
 	{#if selectedFile}
 		<p class="mb-4 text-sm text-text-muted">Gewählt: {selectedFile.name}</p>
+		{#if selectedFile.type === 'application/pdf'}
+			<p class="mb-4 text-xs text-text-muted">
+				Texterkennung läuft aktuell nur bei Bildern automatisch — dieses PDF wird ohne erkannten
+				Text hochgeladen. Händler und Artikel lassen sich danach in der Belegansicht manuell
+				eintragen.
+			</p>
+		{/if}
 	{/if}
 
 	{#if stage === 'ocr'}
