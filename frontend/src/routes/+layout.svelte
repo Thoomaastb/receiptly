@@ -13,6 +13,8 @@
 	let currentUser: { username: string; email: string; role: string } | null = null;
 	$: userInitial = (currentUser?.username?.[0] ?? '?').toUpperCase();
 
+	let appVersion = '';
+
 	let userMenuOpen = false;
 	let userMenuEl: HTMLDivElement;
 
@@ -52,6 +54,16 @@
 			}
 		} catch {
 			// Avatar bleibt leer, wenn nicht eingeloggt — kein Fehler-UI nötig für dieses Detail
+		}
+
+		try {
+			const healthRes = await fetch('/api/health');
+			if (healthRes.ok) {
+				const health = await healthRes.json();
+				appVersion = health.version ?? '';
+			}
+		} catch {
+			// Versionsanzeige ist rein informativ — kein Fehler-UI nötig für dieses Detail
 		}
 
 		try {
@@ -194,6 +206,10 @@
 								</svg>
 								Abmelden
 							</button>
+							{#if appVersion}
+								<div class="my-1 h-px bg-hifi-border"></div>
+								<div class="px-3 pt-1 pb-1.5 text-[11px] text-hifi-text-faint">Version {appVersion}</div>
+							{/if}
 						</div>
 					{/if}
 				</div>

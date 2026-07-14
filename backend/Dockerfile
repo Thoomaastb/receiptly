@@ -1,5 +1,10 @@
 FROM python:3.12-slim AS base
 
+# von docker.yml aus dem Release-Git-Tag befüllt (siehe ARG APP_VERSION im Build-Step) —
+# lokale Builds ohne --build-arg bleiben beim "dev"-Platzhalter aus app/config.py
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
+
 # rootless: dedizierter, unprivilegierter User
 RUN groupadd -r receiptly && useradd -r -g receiptly -d /app -s /sbin/nologin receiptly
 

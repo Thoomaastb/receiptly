@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     app_port: int = 8000
     cors_origins: str = "http://localhost:5173"
 
+    # von der Docker-Build-Pipeline aus dem Release-Git-Tag gesetzt (siehe Dockerfile/docker.yml);
+    # lokal ohne Docker-Build bleibt es beim ehrlichen "dev"-Platzhalter
+    app_version: str = "dev"
+
     database_url: str
     redis_url: str = "redis://redis:6379/0"
 

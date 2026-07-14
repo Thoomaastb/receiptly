@@ -12,7 +12,7 @@ settings = get_settings()
 
 app = FastAPI(
     title="receiptly API",
-    version="0.1.0-alpha.1",
+    version=settings.app_version,
     description="Privacy-first Belege-DMS — Originalbild verlässt das Gerät nie.",
 )
 
