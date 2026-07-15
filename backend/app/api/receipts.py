@@ -312,6 +312,8 @@ async def update_receipt(
         receipt.is_high_value = payload.is_high_value
     if payload.warranty_months is not None:
         receipt.warranty_months = payload.warranty_months
+    if payload.custom_fields is not None:
+        receipt.custom_fields = payload.custom_fields
 
     if payload.category is not None:
         if receipt.merchant_id is None:

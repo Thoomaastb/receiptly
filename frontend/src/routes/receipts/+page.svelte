@@ -38,6 +38,7 @@
 		is_high_value: boolean;
 		warranty_months: number | null;
 		warranty_expires_at: string | null;
+		custom_fields: Record<string, unknown> | null;
 		items: ItemRow[];
 	}
 
@@ -253,6 +254,7 @@
 		isHighValue={openReceipt.is_high_value}
 		warrantyMonths={openReceipt.warranty_months}
 		warrantyExpiresAt={openReceipt.warranty_expires_at}
+		customFields={openReceipt.custom_fields}
 		items={openReceipt.items}
 		onBack={backToList}
 		onUpdated={refreshReceipts}

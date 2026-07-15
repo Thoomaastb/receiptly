@@ -1,5 +1,6 @@
 import uuid
 from datetime import date, datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -71,6 +72,7 @@ class ReceiptDetail(ReceiptListItem):
     is_high_value: bool
     warranty_months: int | None
     warranty_expires_at: date | None
+    custom_fields: dict[str, Any] | None
     items: list[ItemResponse]
 
 
@@ -87,4 +89,7 @@ class ReceiptUpdate(BaseModel):
     # heißt "nicht mitschicken" (unverändert lassen), kein explizites Zurücksetzen über
     # dieses Feld — konsistent mit den übrigen optionalen Feldern hier.
     category: str | None = Field(default=None, max_length=100)
+    # Kategorie-spezifische Zusatzfelder (siehe Receipt.custom_fields) — wie die übrigen
+    # Felder hier: komplettes Objekt ersetzt den bisherigen Wert, kein Merge auf Server-Seite.
+    custom_fields: dict[str, Any] | None = None
 

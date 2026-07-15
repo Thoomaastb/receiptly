@@ -34,6 +34,7 @@ export default {
 				'cat-furniture': 'var(--color-cat-furniture)',
 				'cat-fashion': 'var(--color-cat-fashion)',
 				'cat-dining': 'var(--color-cat-dining)',
+				'cat-fuel': 'var(--color-cat-fuel)',
 				success: 'var(--color-success)',
 				'success-bg': 'var(--color-success-bg)',
 				'success-border': 'var(--color-success-border)',

@@ -3,7 +3,7 @@ import uuid
 from datetime import date
 
 from sqlalchemy import Boolean, Date, Enum, ForeignKey, Numeric, SmallInteger, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -65,6 +65,11 @@ class Receipt(Base, UpdatableTimestampMixin):
     # Markiert Test-/Demo-Daten (siehe Migration 0004) — wird beim v1.0.0-Cutover per
     # eigener Migration gelöscht (DELETE WHERE is_demo=true), danach Spalte entfernt.
     is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    # Kategorie-spezifische Zusatzfelder (z.B. Kilometerstand bei "Tanken"), Struktur pro
+    # Kategorie in frontend/src/lib/categories.ts definiert. Bewusst JSONB statt eigener
+    # Spalte pro Feld — neue Kategorie-Felder brauchen so keine eigene Migration.
+    custom_fields: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
     items: Mapped[list["Item"]] = relationship(  # noqa: F821
         back_populates="receipt", cascade="all, delete-orphan"
