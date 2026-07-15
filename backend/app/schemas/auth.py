@@ -21,6 +21,15 @@ class InviteRequest(BaseModel):
     password: str = Field(min_length=8, max_length=255)
 
 
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str
+    new_password: str = Field(min_length=8, max_length=255)
+
+
 class UserResponse(BaseModel):
     id: uuid.UUID
     username: str

@@ -39,7 +39,10 @@
 		goto('/login');
 	}
 
-	$: isAuthRoute = $page.url.pathname === '/login';
+	// Routen ohne App-Shell/Session-Prüfung: Login sowie der Self-Service-
+	// Passwort-Reset-Flow, den auch ausgeloggte Nutzer über einen E-Mail-Link erreichen.
+	const AUTH_ROUTES = ['/login', '/forgot-password', '/reset-password'];
+	$: isAuthRoute = AUTH_ROUTES.includes($page.url.pathname);
 
 	onMount(async () => {
 		if (isAuthRoute) return;
@@ -123,7 +126,13 @@
 			>
 				Suche & Filter
 			</a>
-			<a href="/buckets" class="rounded-[10px] px-4 py-2 text-[14.5px] font-semibold text-hifi-text-muted transition-colors hover:text-hifi-text">
+			<a
+				href="/buckets"
+				class="rounded-[10px] px-4 py-2 text-[14.5px] font-semibold transition-colors"
+				class:bg-hifi-accent-tint={$page.url.pathname.startsWith('/buckets')}
+				class:text-hifi-accent-text={$page.url.pathname.startsWith('/buckets')}
+				class:text-hifi-text-muted={!$page.url.pathname.startsWith('/buckets')}
+			>
 				Buckets
 			</a>
 		</div>

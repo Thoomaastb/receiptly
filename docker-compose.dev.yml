@@ -4,6 +4,7 @@ services:
       APP_ENV: development
     volumes:
       - ./backend/app:/app/app
+      - ./VERSION:/app/VERSION:ro
       - storage-originals:/app/storage/originals
       - storage-thumbs:/app/storage/thumbs
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

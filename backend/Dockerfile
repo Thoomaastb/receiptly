@@ -1,8 +1,11 @@
 FROM python:3.12-slim AS base
 
-# von docker.yml aus dem Release-Git-Tag befüllt (siehe ARG APP_VERSION im Build-Step) —
-# lokale Builds ohne --build-arg bleiben beim "dev"-Platzhalter aus app/config.py
-ARG APP_VERSION=dev
+# von docker.yml aus dem Release-Git-Tag befüllt (siehe ARG APP_VERSION im Build-Step).
+# Bewusst OHNE Default: ein leerer ENV-Wert zählt dank env_ignore_empty in app/config.py als
+# "nicht gesetzt", erst dann greift dort der Fallback auf die gemountete VERSION-Datei. Ein
+# Default wie "dev" hier würde die Env-Variable immer befüllen und den Fallback nie feuern
+# lassen (pydantic-settings bevorzugt eine gesetzte Env-Variable immer vor dem Fallback).
+ARG APP_VERSION=
 ENV APP_VERSION=${APP_VERSION}
 
 # rootless: dedizierter, unprivilegierter User

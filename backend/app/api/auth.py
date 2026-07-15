@@ -1,3 +1,4 @@
+import logging
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
@@ -5,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user, require_admin
+from app.auth.password_reset import consume_reset_token, create_reset_token
 from app.auth.security import hash_password, verify_password
 from app.auth.session import create_session, destroy_session
 from app.config import get_settings
@@ -13,7 +15,17 @@ from app.models.bucket import Bucket, BucketType, BucketVisibility
 from app.models.household import Household
 from app.models.receipt import Receipt, ReceiptStatus
 from app.models.user import User, UserRole
-from app.schemas.auth import InviteRequest, LoginRequest, RegisterRequest, UserResponse
+from app.schemas.auth import (
+    InviteRequest,
+    LoginRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    RegisterRequest,
+    UserResponse,
+)
+from app.services.email import send_email
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
@@ -107,6 +119,62 @@ async def login(
 
     await create_session(user.id, response)
     return user
+
+
+@router.post("/password-reset/request", status_code=status.HTTP_204_NO_CONTENT)
+async def request_password_reset(
+    payload: PasswordResetRequest, db: AsyncSession = Depends(get_db)
+) -> None:
+    """
+    Immer 204, unabhängig davon ob die E-Mail einem User gehört (User-Enumeration-Schutz,
+    analog zum Login-Kommentar oben). Mail-Versand ist bewusst in try/except gekapselt —
+    ein Fehler darf niemals an den Client durchgereicht werden, sonst ließe sich über
+    Erfolg/Fehler auf die Existenz der E-Mail schließen.
+    """
+    result = await db.execute(select(User).where(User.email == payload.email))
+    user = result.scalar_one_or_none()
+
+    if user is not None:
+        token = await create_reset_token(user.id)
+        link = f"{settings.public_app_url}/reset-password?token={token}"
+        text_body = (
+            "Hallo,\n\n"
+            "für dein receiptly-Konto wurde ein Passwort-Reset angefordert. "
+            f"Über folgenden Link kannst du ein neues Passwort vergeben:\n\n{link}\n\n"
+            "Der Link ist gültig für 30 Minuten.\n\n"
+            "Falls du das nicht angefordert hast, kannst du diese E-Mail ignorieren."
+        )
+        try:
+            await send_email(
+                to=user.email, subject="receiptly – Passwort zurücksetzen", text_body=text_body
+            )
+        except Exception:
+            logger.exception("Versand der Passwort-Reset-Mail an %s fehlgeschlagen", user.email)
+
+
+@router.post("/password-reset/confirm", status_code=status.HTTP_204_NO_CONTENT)
+async def confirm_password_reset(
+    payload: PasswordResetConfirm, db: AsyncSession = Depends(get_db)
+) -> None:
+    user_id = await consume_reset_token(payload.token)
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Link ungültig oder abgelaufen — bitte neu anfordern.",
+        )
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Link ungültig oder abgelaufen — bitte neu anfordern.",
+        )
+
+    user.password_hash = hash_password(payload.new_password)
+    # Bewusst NICHT im Scope: bestehende Sessions des Users invalidieren — bräuchte einen
+    # Rückwärts-Index user_id→Sessions in session.py, geplant für v0.23.0 "Sitzungsverwaltung".
+    await db.commit()
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

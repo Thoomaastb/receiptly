@@ -118,25 +118,25 @@
 					type="text"
 					bind:value={householdName}
 					placeholder="Haushaltsname (z. B. Familie Müller)"
-					class="rounded-lg border border-hifi-border bg-hifi-bg p-2.5 text-sm"
+					class="rounded-[10px] border border-hifi-border bg-hifi-bg p-2.5 text-sm"
 				/>
 				<input
 					type="text"
 					bind:value={setupUsername}
 					placeholder="Benutzername"
-					class="rounded-lg border border-hifi-border bg-hifi-bg p-2.5 text-sm"
+					class="rounded-[10px] border border-hifi-border bg-hifi-bg p-2.5 text-sm"
 				/>
 				<input
 					type="email"
 					bind:value={setupEmail}
 					placeholder="E-Mail"
-					class="rounded-lg border border-hifi-border bg-hifi-bg p-2.5 text-sm"
+					class="rounded-[10px] border border-hifi-border bg-hifi-bg p-2.5 text-sm"
 				/>
 				<input
 					type="password"
 					bind:value={setupPassword}
 					placeholder="Passwort (mind. 8 Zeichen)"
-					class="rounded-lg border border-hifi-border bg-hifi-bg p-2.5 text-sm"
+					class="rounded-[10px] border border-hifi-border bg-hifi-bg p-2.5 text-sm"
 				/>
 				{#if errorMessage}
 					<p class="text-sm text-danger">{errorMessage}</p>
@@ -144,7 +144,7 @@
 				<button
 					type="submit"
 					disabled={submitting}
-					class="mt-1 rounded-lg bg-hifi-accent px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+					class="mt-1 rounded-[10px] bg-hifi-accent px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
 				>
 					{submitting ? 'Wird eingerichtet …' : 'Haushalt anlegen'}
 				</button>
@@ -158,21 +158,24 @@
 					type="text"
 					bind:value={username}
 					placeholder="Benutzername"
-					class="rounded-lg border border-hifi-border bg-hifi-bg p-2.5 text-sm"
+					class="rounded-[10px] border border-hifi-border bg-hifi-bg p-2.5 text-sm"
 				/>
 				<input
 					type="password"
 					bind:value={password}
 					placeholder="Passwort"
-					class="rounded-lg border border-hifi-border bg-hifi-bg p-2.5 text-sm"
+					class="rounded-[10px] border border-hifi-border bg-hifi-bg p-2.5 text-sm"
 				/>
+				<a href="/forgot-password" class="self-end text-sm text-hifi-accent-text">
+					Passwort vergessen?
+				</a>
 				{#if errorMessage}
 					<p class="text-sm text-danger">{errorMessage}</p>
 				{/if}
 				<button
 					type="submit"
 					disabled={submitting}
-					class="mt-1 rounded-lg bg-hifi-accent px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+					class="mt-1 rounded-[10px] bg-hifi-accent px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
 				>
 					{submitting ? 'Wird angemeldet …' : 'Anmelden'}
 				</button>
