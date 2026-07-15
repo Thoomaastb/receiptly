@@ -1,3 +1,14 @@
+## [0.22.0](https://github.com/Thoomaastb/receiptly/compare/v0.21.0...v0.22.0) (2026-07-15)
+
+### Features
+
+* **auth:** Self-Service-Passwort-Reset per E-Mail — Einmal-Token (30 Min TTL) über Redis, SMTP-Versand via aiosmtplib (STARTTLS/SSL konfigurierbar) ([5dd2dd5](https://github.com/Thoomaastb/receiptly/commit/5dd2dd5a14727e935052acbfc00db042741cfdda))
+* **receipts:** Kategorie-spezifische Zusatzfelder — neue Kategorie Tanken mit Kilometerstand, generisches JSONB-Feld für künftige Kategorie-Felder ohne weitere Migration ([5cedf6b](https://github.com/Thoomaastb/receiptly/commit/5cedf6b95d34c6e3bb022f51a07d6d903d1bbc88))
+
+### Bug Fixes
+
+* **ui:** Design-Token-Migration abgeschlossen — Buckets, Upload-Modal, CustomSelect, Settings auf Hifi-Tokens umgestellt, toten ReceiptModal.svelte entfernt ([26cf234](https://github.com/Thoomaastb/receiptly/commit/26cf2347017389cb1dbf30f72ce078c861763e37))
+
 ## [0.21.0](https://github.com/Thoomaastb/receiptly/compare/v0.20.0...v0.21.0) (2026-07-14)
 
 ### Features
