@@ -85,12 +85,12 @@
 		on:click={toggle}
 		on:keydown={handleTriggerKeydown}
 		{disabled}
-		class="flex w-full items-center justify-between rounded border border-border bg-surface p-2 text-left text-sm transition-colors hover:border-text-muted disabled:opacity-50"
+		class="flex w-full items-center justify-between rounded border border-hifi-border bg-hifi-surface p-2 text-left text-sm transition-colors hover:border-hifi-text-muted disabled:opacity-50"
 		aria-haspopup="listbox"
 		aria-expanded={open}
 		aria-labelledby={labelledBy}
 	>
-		<span class:text-text-muted={!options.some((o) => o.value === value)}>{selectedLabel}</span>
+		<span class:text-hifi-text-muted={!options.some((o) => o.value === value)}>{selectedLabel}</span>
 		<svg
 			width="14"
 			height="14"
@@ -98,7 +98,7 @@
 			fill="none"
 			stroke="currentColor"
 			stroke-width="2"
-			class="shrink-0 text-text-muted"
+			class="shrink-0 text-hifi-text-muted"
 			class:rotate-180={open}
 			aria-hidden="true"
 		>
@@ -112,7 +112,7 @@
 			role="listbox"
 			tabindex="-1"
 			on:keydown={handleListKeydown}
-			class="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded border border-border bg-surface py-1 text-sm"
+			class="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded border border-hifi-border bg-hifi-surface py-1 text-sm"
 		>
 			{#each options as opt, i (opt.value)}
 				<li role="presentation">
@@ -124,7 +124,7 @@
 						on:click={() => selectOption(opt)}
 						on:mouseenter={() => (highlightedIndex = i)}
 						class="block w-full px-3 py-2 text-left transition-colors"
-						class:bg-surface-raised={i === highlightedIndex}
+						class:bg-hifi-accent-tint={i === highlightedIndex}
 						class:font-medium={opt.value === value}
 					>
 						{opt.label}

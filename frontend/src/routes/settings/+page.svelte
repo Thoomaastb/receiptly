@@ -81,24 +81,24 @@
 	}
 </script>
 
-<h1 class="mb-6 text-xl font-semibold">Einstellungen</h1>
+<h1 class="mb-6 text-[26px] font-extrabold tracking-tight text-hifi-text">Einstellungen</h1>
 
 {#if checkingAccess}
-	<p class="text-sm text-text-muted">Wird geprüft …</p>
+	<p class="text-sm text-hifi-text-muted">Wird geprüft …</p>
 {:else if !isAdmin}
-	<p class="text-sm text-text-muted">Diese Einstellungen sind nur für Admins sichtbar.</p>
+	<p class="text-sm text-hifi-text-muted">Diese Einstellungen sind nur für Admins sichtbar.</p>
 {:else}
-	<div class="max-w-lg rounded-lg border border-border bg-surface-raised p-6">
-		<h2 class="mb-1 text-base font-medium">KI-Provider</h2>
-		<p class="mb-4 text-sm text-text-muted">
+	<div class="max-w-lg rounded-[14px] border border-hifi-border bg-hifi-surface p-6">
+		<h2 class="mb-1 text-[13.5px] font-bold text-hifi-text">KI-Provider</h2>
+		<p class="mb-4 text-sm text-hifi-text-muted">
 			Steuert, welcher Dienst Belegtexte für Struktur-Extraktion und Auto-Tagging verarbeitet.
 		</p>
 
 		{#if loading}
-			<p class="text-sm text-text-muted">Wird geladen …</p>
+			<p class="text-sm text-hifi-text-muted">Wird geladen …</p>
 		{:else}
 			<div class="mb-4">
-				<span id="provider-select-label" class="mb-1 block text-sm text-text-muted">Anbieter</span>
+				<span id="provider-select-label" class="mb-1 block text-sm text-hifi-text-muted">Anbieter</span>
 				<CustomSelect
 					bind:value={provider}
 					labelledBy="provider-select-label"
@@ -107,13 +107,13 @@
 			</div>
 
 			{#if provider !== 'ollama'}
-				<div class="mb-4 rounded-lg border border-warning-border bg-warning-bg p-3 text-sm">
+				<div class="mb-4 rounded-[14px] border border-warning-border bg-warning-bg p-3 text-sm">
 					⚠️ Belegtexte werden extern gesendet. Das Originalbild verlässt dein Gerät weiterhin
 					nie — aber der erkannte Text geht an {providerLabels[provider]}.
 				</div>
 
 				<label class="mb-4 block text-sm">
-					<span class="mb-1 block text-text-muted">
+					<span class="mb-1 block text-hifi-text-muted">
 						API-Key
 						{#if settings?.has_api_key}
 							<span class="text-xs">(bereits hinterlegt — leer lassen, um ihn zu behalten)</span>
@@ -123,34 +123,34 @@
 						type="password"
 						bind:value={apiKeyInput}
 						placeholder={settings?.has_api_key ? '••••••••••••' : 'sk-…'}
-						class="w-full rounded border border-border bg-surface p-2"
+						class="w-full rounded border border-hifi-border bg-hifi-surface p-2"
 					/>
 				</label>
 
 				{#if provider === 'custom'}
 					<label class="mb-4 block text-sm">
-						<span class="mb-1 block text-text-muted">Endpoint-URL</span>
+						<span class="mb-1 block text-hifi-text-muted">Endpoint-URL</span>
 						<input
 							type="text"
 							bind:value={customEndpoint}
 							placeholder="https://api.example.com/v1"
-							class="w-full rounded border border-border bg-surface p-2"
+							class="w-full rounded border border-hifi-border bg-hifi-surface p-2"
 						/>
 					</label>
 				{/if}
 			{/if}
 
 			{#if saveMessage}
-				<p class="mb-3 text-sm text-accent">{saveMessage}</p>
+				<p class="mb-3 text-sm text-hifi-accent-text">{saveMessage}</p>
 			{/if}
 			{#if errorMessage}
-				<p class="mb-3 text-sm text-red-500">{errorMessage}</p>
+				<p class="mb-3 text-sm text-danger">{errorMessage}</p>
 			{/if}
 
 			<button
 				on:click={handleSave}
 				disabled={saving}
-				class="rounded-lg bg-accent px-4 py-2 text-sm text-accent-contrast disabled:opacity-50"
+				class="rounded-[10px] bg-hifi-accent px-4 py-2 text-sm text-white disabled:opacity-50"
 			>
 				{saving ? 'Speichert …' : 'Speichern'}
 			</button>

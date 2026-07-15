@@ -253,25 +253,25 @@
 	}
 </script>
 
-<h1 class="mb-6 text-xl font-semibold">Buckets</h1>
+<h1 class="mb-6 text-[26px] font-extrabold tracking-tight text-hifi-text">Buckets</h1>
 
-<div class="relative mb-5 max-w-md">
-	<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" aria-hidden="true">
-		<circle cx="11" cy="11" r="7" />
-		<path d="M21 21l-4.3-4.3" stroke-linecap="round" />
+<div class="relative mb-4 max-w-md">
+	<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-hifi-text-faint" aria-hidden="true">
+		<circle cx="10" cy="10" r="6" />
+		<path d="M20 20l-5.5-5.5" />
 	</svg>
 	<input
 		type="text"
 		bind:value={query}
 		placeholder="Buckets durchsuchen"
-		class="w-full rounded-lg border border-border bg-surface py-2 pl-9 pr-3 text-sm"
+		class="w-full rounded-[12px] border border-hifi-border bg-hifi-surface py-3 pl-11 pr-4 text-[14px] text-hifi-text placeholder:text-hifi-text-faint focus:border-hifi-accent focus:outline-none"
 	/>
 </div>
 
 {#if loading}
-	<p class="text-sm text-text-muted">Wird geladen …</p>
+	<p class="text-sm text-hifi-text-muted">Wird geladen …</p>
 {:else if errorMessage}
-	<p class="text-sm text-red-500">{errorMessage}</p>
+	<p class="text-sm text-danger">{errorMessage}</p>
 {:else}
 	{#if actionError}
 		<p class="mb-4 max-w-md text-sm text-danger">{actionError}</p>
@@ -279,19 +279,19 @@
 
 	<ul class="mb-5 flex max-w-md flex-col gap-2">
 		{#each filteredBuckets as bucket (bucket.id)}
-			<li class="rounded-lg border border-border bg-surface-raised p-3">
+			<li class="rounded-[14px] border border-hifi-border bg-hifi-surface p-4">
 				{#if renamingId === bucket.id}
 					<div class="flex items-center gap-2">
 						<input
 							type="text"
 							bind:value={renameValue}
-							class="flex-1 rounded border border-border bg-surface p-1.5 text-sm"
+							class="flex-1 rounded-[9px] border border-hifi-border bg-hifi-surface p-1.5 text-sm text-hifi-text"
 							on:keydown={(e) => e.key === 'Enter' && saveRename(bucket)}
 						/>
-						<button on:click={() => saveRename(bucket)} class="text-xs font-semibold text-accent">
+						<button on:click={() => saveRename(bucket)} class="text-xs font-semibold text-hifi-accent-text">
 							Speichern
 						</button>
-						<button on:click={cancelRename} class="text-xs text-text-muted hover:text-text">
+						<button on:click={cancelRename} class="text-xs text-hifi-text-muted hover:text-hifi-text">
 							Abbrechen
 						</button>
 					</div>
@@ -300,16 +300,16 @@
 						<button on:click={() => openBucket(bucket)} class="flex flex-1 items-center gap-3 text-left">
 							<span
 								class="h-2.5 w-2.5 flex-none rounded-full"
-								style="background: {bucket.is_default ? 'var(--color-bucket-household)' : 'var(--color-accent)'}"
+								style="background: {bucket.is_default ? 'var(--color-bucket-household)' : 'var(--color-accent-hifi)'}"
 							></span>
 							<span class="flex-1">
-								<span class="block text-sm font-medium">{bucket.name}</span>
+								<span class="block text-[13.5px] font-bold text-hifi-text">{bucket.name}</span>
 								{#if bucket.visibility === 'private' && bucket.owner_id !== currentUserId}
-									<span class="block text-xs text-text-muted">Nur Ansicht</span>
+									<span class="block text-[12px] text-hifi-text-muted">Nur Ansicht</span>
 								{/if}
 							</span>
 							{#if bucket.visibility === 'private'}
-								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-text-muted" aria-hidden="true">
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="text-hifi-text-faint" aria-hidden="true">
 									<rect x="5" y="11" width="14" height="10" rx="1" />
 									<path d="M8 11V7a4 4 0 018 0v4" />
 								</svg>
@@ -318,28 +318,28 @@
 
 						{#if bucket.owner_id === currentUserId}
 							<div class="flex flex-none items-center gap-2.5 text-xs">
-								<button on:click={() => openSharing(bucket)} class="font-medium text-text-muted hover:text-text">
+								<button on:click={() => openSharing(bucket)} class="font-medium text-hifi-text-muted hover:text-hifi-text">
 									Teilen
 								</button>
 								{#if !bucket.is_default}
 									<button
 										on:click={() => togglePrivate(bucket)}
-										class="text-text-muted hover:text-text"
+										class="text-hifi-text-muted hover:text-hifi-text"
 										title={bucket.visibility === 'private' ? 'Auf transparent umschalten' : 'Auf privat umschalten'}
 									>
 										{bucket.visibility === 'private' ? 'Privat' : 'Transparent'}
 									</button>
-									<button on:click={() => startRename(bucket)} class="text-text-muted hover:text-text">
+									<button on:click={() => startRename(bucket)} class="text-hifi-text-muted hover:text-hifi-text">
 										Umbenennen
 									</button>
 									{#if confirmDeleteId === bucket.id}
-										<span class="text-text-muted">Sicher?</span>
+										<span class="text-hifi-text-muted">Sicher?</span>
 										<button on:click={() => deleteBucket(bucket)} class="font-semibold text-danger">Ja</button>
-										<button on:click={() => (confirmDeleteId = null)} class="text-text-muted hover:text-text">
+										<button on:click={() => (confirmDeleteId = null)} class="text-hifi-text-muted hover:text-hifi-text">
 											Nein
 										</button>
 									{:else}
-										<button on:click={() => (confirmDeleteId = bucket.id)} class="text-text-muted hover:text-danger">
+										<button on:click={() => (confirmDeleteId = bucket.id)} class="text-hifi-text-muted hover:text-danger">
 											Löschen
 										</button>
 									{/if}
@@ -349,25 +349,25 @@
 					</div>
 
 					{#if sharingId === bucket.id}
-						<div class="mt-3 border-t border-border pt-3">
-							<div class="mb-2 text-xs font-semibold uppercase tracking-wide text-text-muted">
+						<div class="mt-3 border-t border-hifi-border pt-3">
+							<div class="mb-2 text-xs font-semibold uppercase tracking-wide text-hifi-text-faint">
 								Freigegeben für
 							</div>
 							{#if (accessGrants[bucket.id] ?? []).length === 0}
-								<p class="mb-2 text-xs text-text-muted">Noch mit niemandem geteilt.</p>
+								<p class="mb-2 text-xs text-hifi-text-muted">Noch mit niemandem geteilt.</p>
 							{:else}
 								<ul class="mb-3 flex flex-col gap-1.5">
 									{#each accessGrants[bucket.id] as grant (grant.user_id)}
-										<li class="flex items-center justify-between text-xs">
+										<li class="flex items-center justify-between text-xs text-hifi-text">
 											<span>{grant.username}</span>
 											<span class="flex items-center gap-2">
 												<button
 													on:click={() => updateGrant(bucket, grant, grant.access_level === 'edit' ? 'view' : 'edit')}
-													class="text-text-muted hover:text-text"
+													class="text-hifi-text-muted hover:text-hifi-text"
 												>
 													{grant.access_level === 'edit' ? 'Bearbeiten' : 'Ansehen'}
 												</button>
-												<button on:click={() => removeGrant(bucket, grant)} class="text-text-muted hover:text-danger">
+												<button on:click={() => removeGrant(bucket, grant)} class="text-hifi-text-muted hover:text-danger">
 													Entfernen
 												</button>
 											</span>
@@ -377,19 +377,19 @@
 							{/if}
 
 							{#each grantableMembers(bucket) as member (member.id)}
-								<div class="mb-1.5 flex items-center justify-between text-xs">
+								<div class="mb-1.5 flex items-center justify-between text-xs text-hifi-text">
 									<span>{member.username}</span>
 									<span class="flex items-center gap-2">
-										<button on:click={() => toggleCandidateLevel(member.id)} class="text-text-muted hover:text-text">
+										<button on:click={() => toggleCandidateLevel(member.id)} class="text-hifi-text-muted hover:text-hifi-text">
 											{(candidateLevel[member.id] ?? 'view') === 'edit' ? 'Bearbeiten' : 'Ansehen'}
 										</button>
-										<button on:click={() => addGrant(bucket, member)} class="font-semibold text-accent">
+										<button on:click={() => addGrant(bucket, member)} class="font-semibold text-hifi-accent-text">
 											Hinzufügen
 										</button>
 									</span>
 								</div>
 							{:else}
-								<p class="text-xs text-text-muted">
+								<p class="text-xs text-hifi-text-muted">
 									{otherMembers.length === 0
 										? 'Noch keine weiteren Haushaltsmitglieder — lade zuerst jemanden ein.'
 										: 'Bereits mit allen Haushaltsmitgliedern geteilt.'}
@@ -408,25 +408,25 @@
 				type="text"
 				bind:value={newBucketName}
 				placeholder="Name des Buckets"
-				class="flex-1 rounded-lg border border-border bg-surface p-2 text-sm"
+				class="flex-1 rounded-[10px] border border-hifi-border bg-hifi-surface p-2 text-sm text-hifi-text placeholder:text-hifi-text-faint"
 				on:keydown={(e) => e.key === 'Enter' && createBucket()}
 			/>
-			<button on:click={createBucket} class="rounded-lg bg-accent px-4 py-2 text-sm text-accent-contrast">
+			<button on:click={createBucket} class="rounded-[10px] bg-hifi-accent px-4 py-2 text-sm font-semibold text-white">
 				Anlegen
 			</button>
 		</div>
 	{:else}
-		<button on:click={() => (creating = true)} class="text-sm font-medium text-accent">
+		<button on:click={() => (creating = true)} class="text-sm font-medium text-hifi-accent-text">
 			+ Eigenen Bucket anlegen
 		</button>
 	{/if}
 
-	<div class="mt-8 max-w-md border-t border-border pt-6">
-		<div class="mb-3 text-sm font-semibold">Haushaltsmitglieder</div>
+	<div class="mt-8 max-w-md border-t border-hifi-border pt-6">
+		<div class="mb-3 text-[13.5px] font-bold text-hifi-text">Haushaltsmitglieder</div>
 		{#if members.length > 0}
 			<ul class="mb-3 flex flex-col gap-1.5">
 				{#each members as member (member.id)}
-					<li class="flex items-center justify-between text-xs text-text-muted">
+					<li class="flex items-center justify-between text-[12px] text-hifi-text-muted">
 						<span>{member.username}{member.id === currentUserId ? ' (Du)' : ''}</span>
 						<span>{member.role === 'admin' ? 'Admin' : 'Mitglied'}</span>
 					</li>
@@ -437,23 +437,23 @@
 		{#if isAdmin}
 			{#if inviting}
 				<div class="flex flex-col gap-2">
-					<input type="text" bind:value={inviteUsername} placeholder="Benutzername" class="rounded-lg border border-border bg-surface p-2 text-sm" />
-					<input type="email" bind:value={inviteEmail} placeholder="E-Mail" class="rounded-lg border border-border bg-surface p-2 text-sm" />
-					<input type="password" bind:value={invitePassword} placeholder="Passwort (mind. 8 Zeichen)" class="rounded-lg border border-border bg-surface p-2 text-sm" />
+					<input type="text" bind:value={inviteUsername} placeholder="Benutzername" class="rounded-[10px] border border-hifi-border bg-hifi-surface p-2 text-sm text-hifi-text placeholder:text-hifi-text-faint" />
+					<input type="email" bind:value={inviteEmail} placeholder="E-Mail" class="rounded-[10px] border border-hifi-border bg-hifi-surface p-2 text-sm text-hifi-text placeholder:text-hifi-text-faint" />
+					<input type="password" bind:value={invitePassword} placeholder="Passwort (mind. 8 Zeichen)" class="rounded-[10px] border border-hifi-border bg-hifi-surface p-2 text-sm text-hifi-text placeholder:text-hifi-text-faint" />
 					{#if inviteError}
 						<p class="text-xs text-danger">{inviteError}</p>
 					{/if}
 					<div class="flex gap-2">
-						<button on:click={inviteMember} class="rounded-lg bg-accent px-4 py-2 text-sm text-accent-contrast">
+						<button on:click={inviteMember} class="rounded-[10px] bg-hifi-accent px-4 py-2 text-sm font-semibold text-white">
 							Einladen
 						</button>
-						<button on:click={() => (inviting = false)} class="text-sm text-text-muted hover:text-text">
+						<button on:click={() => (inviting = false)} class="text-sm text-hifi-text-muted hover:text-hifi-text">
 							Abbrechen
 						</button>
 					</div>
 				</div>
 			{:else}
-				<button on:click={() => (inviting = true)} class="text-sm font-medium text-accent">
+				<button on:click={() => (inviting = true)} class="text-sm font-medium text-hifi-accent-text">
 					+ Haushaltsmitglied einladen
 				</button>
 			{/if}

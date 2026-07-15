@@ -138,12 +138,12 @@
 	}
 </script>
 
-<div class="max-w-md rounded-lg border border-border bg-surface-raised p-6">
+<div class="max-w-md rounded-[14px] border border-hifi-border bg-hifi-surface p-6">
 	{#if bucketsLoading}
-		<p class="mb-4 text-sm text-text-muted">Buckets werden geladen …</p>
+		<p class="mb-4 text-sm text-hifi-text-muted">Buckets werden geladen …</p>
 	{:else if buckets.length > 1}
 		<div class="mb-4">
-			<span id="bucket-select-label" class="mb-1 block text-sm text-text-muted">Bucket</span>
+			<span id="bucket-select-label" class="mb-1 block text-sm text-hifi-text-muted">Bucket</span>
 			<CustomSelect
 				bind:value={selectedBucketId}
 				labelledBy="bucket-select-label"
@@ -151,15 +151,15 @@
 			/>
 		</div>
 	{:else if buckets.length === 1}
-		<p class="mb-4 text-sm text-text-muted">Bucket: {buckets[0].name}</p>
+		<p class="mb-4 text-sm text-hifi-text-muted">Bucket: {buckets[0].name}</p>
 	{:else if !errorMessage}
-		<p class="mb-4 text-sm text-red-500">Kein Bucket verfügbar — bitte einloggen.</p>
+		<p class="mb-4 text-sm text-danger">Kein Bucket verfügbar — bitte einloggen.</p>
 	{/if}
 
 	{#if isNativeApp && captureMode === 'camera'}
 		<button
 			on:click={openNativeCamera}
-			class="mb-4 flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-surface py-3 text-sm font-medium"
+			class="mb-4 flex w-full items-center justify-center gap-2 rounded-[10px] border border-hifi-border bg-hifi-surface py-3 text-sm font-medium"
 		>
 			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 				<rect x="3" y="7" width="18" height="13" rx="2" />
@@ -173,11 +173,11 @@
 			accept={captureMode === 'camera' ? 'image/*' : 'application/pdf,image/jpeg,image/png'}
 			capture={captureMode === 'camera' ? 'environment' : undefined}
 			on:change={handleFileSelect}
-			class="mb-4 block w-full text-sm text-text-muted"
+			class="mb-4 block w-full text-sm text-hifi-text-muted"
 		/>
 	{/if}
 	{#if captureMode === 'camera'}
-		<p class="mb-4 text-xs text-text-muted">
+		<p class="mb-4 text-xs text-hifi-text-muted">
 			{#if isNativeApp}
 				Öffnet die native Kamera-App direkt.
 			{:else}
@@ -189,9 +189,9 @@
 	{/if}
 
 	{#if selectedFile}
-		<p class="mb-4 text-sm text-text-muted">Gewählt: {selectedFile.name}</p>
+		<p class="mb-4 text-sm text-hifi-text-muted">Gewählt: {selectedFile.name}</p>
 		{#if selectedFile.type === 'application/pdf'}
-			<p class="mb-4 text-xs text-text-muted">
+			<p class="mb-4 text-xs text-hifi-text-muted">
 				Texterkennung läuft aktuell nur bei Bildern automatisch — dieses PDF wird ohne erkannten
 				Text hochgeladen. Händler und Artikel lassen sich danach in der Belegansicht manuell
 				eintragen.
@@ -201,24 +201,24 @@
 
 	{#if stage === 'ocr'}
 		<p class="mb-2 text-sm">Texterkennung läuft (on-device) … {ocrProgress}%</p>
-		<div class="h-2 rounded-full bg-border">
-			<div class="h-2 rounded-full bg-accent" style="width: {ocrProgress}%"></div>
+		<div class="h-2 rounded-full bg-hifi-border">
+			<div class="h-2 rounded-full bg-hifi-accent" style="width: {ocrProgress}%"></div>
 		</div>
 	{:else if stage === 'uploading'}
 		<p class="mb-2 text-sm">Hochladen … {uploadProgress}%</p>
-		<div class="h-2 rounded-full bg-border">
-			<div class="h-2 rounded-full bg-accent" style="width: {uploadProgress}%"></div>
+		<div class="h-2 rounded-full bg-hifi-border">
+			<div class="h-2 rounded-full bg-hifi-accent" style="width: {uploadProgress}%"></div>
 		</div>
 	{:else if stage === 'done'}
-		<p class="text-sm text-accent">Beleg erfolgreich hochgeladen.</p>
+		<p class="text-sm text-hifi-accent-text">Beleg erfolgreich hochgeladen.</p>
 	{:else if stage === 'error'}
-		<p class="text-sm text-red-500">{errorMessage}</p>
+		<p class="text-sm text-danger">{errorMessage}</p>
 	{/if}
 
 	<button
 		on:click={handleSubmit}
 		disabled={!selectedFile || !selectedBucketId || stage === 'ocr' || stage === 'uploading'}
-		class="mt-4 rounded-lg bg-accent px-4 py-2 text-sm text-accent-contrast disabled:opacity-50"
+		class="mt-4 rounded-[10px] bg-hifi-accent px-4 py-2 text-sm text-white disabled:opacity-50"
 	>
 		Hochladen
 	</button>
