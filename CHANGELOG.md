@@ -3,6 +3,7 @@
 ### Features
 
 * **ui:** laufende App-Version im Benutzermenü anzeigen, aus Release-Tag via Docker-Build-Arg befüllt ([4deba91](https://github.com/Thoomaastb/receiptly/commit/4deba91da5e94f474e9f055698b9cbd7f99667a3))
+* **receipts:** Kategorien manuell zuweisbar (hängt am Händler, gilt für alle seine Belege), macht die Kategorie-Chips im Such-&-Filter-Screen nutzbar — nachträglich ergänzt, ursprünglich fälschlich als `chore` committet ([d70017d](https://github.com/Thoomaastb/receiptly/commit/d70017d20aa362637ab0d4f24f573d4be16e1f43))
 
 ### Bug Fixes
 
