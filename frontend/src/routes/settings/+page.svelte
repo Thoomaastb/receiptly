@@ -86,7 +86,10 @@
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(body)
 			});
-			if (!res.ok) throw new Error(`Speichern fehlgeschlagen (${res.status})`);
+			if (!res.ok) {
+				const errBody = await res.json().catch(() => null);
+				throw new Error(errBody?.detail ?? `Speichern fehlgeschlagen (${res.status})`);
+			}
 
 			settings = await res.json();
 			apiKeyInput = '';

@@ -110,7 +110,8 @@
 			setTimeout(onSuccess, 900);
 		} catch (err) {
 			stage = 'error';
-			errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler beim Upload.';
+			console.error('Upload fehlgeschlagen:', err);
+			errorMessage = err instanceof Error ? err.message : `Unbekannter Fehler beim Upload: ${String(err)}`;
 		}
 	}
 
