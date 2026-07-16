@@ -29,3 +29,6 @@ storage/thumbs/
 # Claude
 CLAUDE.md
 .claude/
+
+# Konzept-Dokumente (nur lokal, nie im Repo)
+concepts/
