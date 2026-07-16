@@ -1,8 +1,18 @@
 import enum
 import uuid
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, Enum, ForeignKey, Numeric, SmallInteger, String, Text
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Numeric,
+    SmallInteger,
+    String,
+    Text,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -70,6 +80,16 @@ class Receipt(Base, UpdatableTimestampMixin):
     # Kategorie in frontend/src/lib/categories.ts definiert. Bewusst JSONB statt eigener
     # Spalte pro Feld — neue Kategorie-Felder brauchen so keine eigene Migration.
     custom_fields: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+    # KI-Struktur-Extraktions-Vorschläge (siehe app/services/ai_extraction.py) — bewusst
+    # getrennt von merchant_id/category, bis der Nutzer den Vorschlag bestätigt (KI legt
+    # nie selbst einen Merchant an).
+    ai_suggested_merchant_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    ai_suggested_category: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # Menschenlesbarer Grund bei needs_review (z.B. "Kein KI-Anbieter konfiguriert")
+    ai_extraction_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Markiert "Extraktion wurde versucht" (Erfolg oder Fehlschlag), unabhängig vom Ergebnis
+    ai_extracted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     items: Mapped[list["Item"]] = relationship(  # noqa: F821
         back_populates="receipt", cascade="all, delete-orphan"
