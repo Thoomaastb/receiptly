@@ -74,6 +74,12 @@ class ReceiptDetail(ReceiptListItem):
     warranty_expires_at: date | None
     custom_fields: dict[str, Any] | None
     items: list[ItemResponse]
+    # KI-Struktur-Extraktions-Vorschläge (siehe app/services/ai_extraction.py) — Vorschlag,
+    # bis der Nutzer ihn per PATCH übernimmt oder verwirft (dismiss_ai_suggestion).
+    ai_suggested_merchant_name: str | None
+    ai_suggested_category: str | None
+    ai_extraction_note: str | None
+    ai_extracted_at: datetime | None
 
 
 class ReceiptUpdate(BaseModel):
@@ -92,4 +98,7 @@ class ReceiptUpdate(BaseModel):
     # Kategorie-spezifische Zusatzfelder (siehe Receipt.custom_fields) — wie die übrigen
     # Felder hier: komplettes Objekt ersetzt den bisherigen Wert, kein Merge auf Server-Seite.
     custom_fields: dict[str, Any] | None = None
+    # True verwirft beide ai_suggested_*-Felder (unabhängig davon, ob merchant_name/category
+    # in derselben Anfrage übernommen werden) — siehe update_receipt.
+    dismiss_ai_suggestion: bool = False
 

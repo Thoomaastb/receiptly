@@ -41,9 +41,15 @@ class Settings(BaseSettings):
 
     encryption_key: str  # Fernet-Key (Fernet.generate_key()), separat von session_secret rotierbar
 
-    ai_provider: str = "ollama"
-    ollama_base_url: str = "http://ollama:11434"
-    external_ai_api_key: str | None = None
+    # Server-weite KI-Provider-Konfiguration — 3-stufige Prioritätskette, siehe
+    # app/services/ai_provider_resolution.py: ollama_host > ai_host/ai_key >
+    # Haushalts-AISettings > None (nur lokale Texterfassung, keine KI-Strukturierung).
+    ollama_host: str | None = None  # z.B. http://ollama:11434 — erzwingt Ollama server-weit
+    ollama_model: str | None = None  # z.B. llama3.1 — Modell-Override, nur mit ollama_host relevant
+    ai_host: str | None = None  # "openai" | "anthropic" | "google" — erzwingt diesen Provider
+    ai_key: str | None = None  # zugehöriger API-Key, direkt aus .env, nie in der DB
+    ai_extraction_timeout_seconds: float = 25.0
+    ai_extraction_max_ocr_chars: int = 4000
 
     smtp_host: str = ""
     smtp_port: int = 587

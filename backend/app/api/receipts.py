@@ -3,7 +3,17 @@ import uuid
 from datetime import date
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    UploadFile,
+    status,
+)
 from fastapi.responses import FileResponse
 from sqlalchemy import exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -25,6 +35,7 @@ from app.schemas.receipt import (
     ReceiptUpdate,
     ReceiptUploadResponse,
 )
+from app.services.ai_extraction import run_ai_extraction
 from app.services.bucket_access import visible_bucket_ids_query
 from app.services.storage import (
     FileTooLargeError,
@@ -103,6 +114,7 @@ async def _assert_bucket_writable(db: AsyncSession, bucket_id: uuid.UUID, user: 
 
 @router.post("/upload", response_model=ReceiptUploadResponse, status_code=status.HTTP_201_CREATED)
 async def upload_receipt(
+    background_tasks: BackgroundTasks,
     bucket_id: uuid.UUID = Form(...),
     file: UploadFile = File(...),
     ocr_text: str | None = Form(default=None),
@@ -113,8 +125,8 @@ async def upload_receipt(
     """
     Nimmt Kamerascan oder Datei-Upload entgegen (PDF, JPG, PNG), inkl. optionalem
     client-seitig erzeugtem OCR-Text (das Originalbild selbst verlässt das Gerät nie).
-    receipt_date/total_amount bleiben hier bewusst leer — Struktur-Extraktion aus dem
-    OCR-Text übernimmt ein späteres KI-Paket.
+    receipt_date/total_amount bleiben hier bewusst leer — die KI-Struktur-Extraktion
+    (app/services/ai_extraction.py) läuft asynchron nach dem Response als BackgroundTask.
     """
     await _assert_bucket_writable(db, bucket_id, user)
 
@@ -139,6 +151,8 @@ async def upload_receipt(
     db.add(receipt)
     await db.commit()
     await db.refresh(receipt)
+
+    background_tasks.add_task(run_ai_extraction, receipt.id, user.household_id)
     return receipt
 
 
@@ -287,6 +301,28 @@ async def _reload_receipt_detail(db: AsyncSession, receipt_id: uuid.UUID) -> Rec
     return result.scalar_one()
 
 
+@router.post("/{receipt_id}/extract", response_model=ReceiptDetail, status_code=status.HTTP_202_ACCEPTED)
+async def extract_receipt(
+    receipt_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> Receipt:
+    """
+    "Neu analysieren" — setzt den Beleg zurück auf pending und stößt die KI-Struktur-
+    Extraktion erneut als BackgroundTask an (z.B. nachdem der KI-Anbieter nachträglich
+    konfiguriert wurde). Bereits vorhandene Artikel werden dabei nicht dupliziert
+    (siehe app/services/ai_extraction.py).
+    """
+    receipt = await _get_writable_receipt(db, receipt_id, user)
+
+    receipt.status = ReceiptStatus.PENDING
+    await db.commit()
+
+    background_tasks.add_task(run_ai_extraction, receipt.id, user.household_id)
+    return await _reload_receipt_detail(db, receipt_id)
+
+
 @router.patch("/{receipt_id}", response_model=ReceiptDetail)
 async def update_receipt(
     receipt_id: uuid.UUID,
@@ -295,9 +331,9 @@ async def update_receipt(
     db: AsyncSession = Depends(get_db),
 ) -> Receipt:
     """
-    Manuelle Bearbeitung der Kernfelder, solange die KI-Struktur-Extraktion aus dem
-    OCR-Text noch nicht existiert (siehe Backlog). merchant_name wird per Get-or-Create
-    auf einen Merchant-Datensatz gemappt (dedupliziert über normalized_name).
+    Manuelle Bearbeitung der Kernfelder — inkl. Übernehmen/Verwerfen von KI-Vorschlägen
+    (siehe app/services/ai_extraction.py). merchant_name wird per Get-or-Create auf einen
+    Merchant-Datensatz gemappt (dedupliziert über normalized_name).
     """
     receipt = await _get_writable_receipt(db, receipt_id, user)
 
@@ -308,6 +344,9 @@ async def update_receipt(
     if payload.merchant_name is not None:
         merchant = await _get_or_create_merchant(db, payload.merchant_name)
         receipt.merchant_id = merchant.id
+        # Vorschlag wurde gerade (implizit oder explizit) übernommen bzw. überschrieben —
+        # der KI-Vorschlag ist damit erledigt, unabhängig vom Wert selbst.
+        receipt.ai_suggested_merchant_name = None
     if payload.is_high_value is not None:
         receipt.is_high_value = payload.is_high_value
     if payload.warranty_months is not None:
@@ -326,6 +365,11 @@ async def update_receipt(
         )
         merchant = merchant_result.scalar_one()
         merchant.category = payload.category
+        receipt.ai_suggested_category = None
+
+    if payload.dismiss_ai_suggestion:
+        receipt.ai_suggested_merchant_name = None
+        receipt.ai_suggested_category = None
 
     if receipt.warranty_months is not None and receipt.receipt_date is not None:
         receipt.warranty_expires_at = _add_months(receipt.receipt_date, receipt.warranty_months)
