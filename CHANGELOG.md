@@ -1,3 +1,10 @@
+## [0.23.1](https://github.com/Thoomaastb/receiptly/compare/v0.23.0...v0.23.1) (2026-07-16)
+
+### Bug Fixes
+
+* **receipts:** OpenAI Structured-Output-Schema erfüllt additionalProperties:false-Pflicht — behob 400 bei jedem OpenAI-Extraktionsversuch ([13a46d4](https://github.com/Thoomaastb/receiptly/commit/13a46d41d9bb1a9d06eb210c77e73083ff07fd7c))
+* **ui:** KI-Extraktion — echte Fehlermeldungen statt generischer Texte (Settings/Upload), "Neu analysieren"-Icon korrigiert (wirkte wie Teilen-Symbol), Auto-Refresh nach Update/Reanalyse repariert ([e4d8664](https://github.com/Thoomaastb/receiptly/commit/e4d86649695415ae225e7830489d5b48fe5589dd))
+
 ## [0.23.0](https://github.com/Thoomaastb/receiptly/compare/v0.22.0...v0.23.0) (2026-07-16)
 
 ### Features
