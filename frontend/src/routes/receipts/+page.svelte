@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import ReceiptRow from '$lib/components/ReceiptRow.svelte';
@@ -40,6 +40,10 @@
 		warranty_expires_at: string | null;
 		custom_fields: Record<string, unknown> | null;
 		items: ItemRow[];
+		ai_suggested_merchant_name: string | null;
+		ai_suggested_category: string | null;
+		ai_extraction_note: string | null;
+		ai_extracted_at: string | null;
 	}
 
 	interface Bucket {
@@ -223,15 +227,49 @@
 				.filter((section) => section.items.length > 0)
 		: [];
 
+	// Begrenztes Polling, solange die KI-Extraktion im Hintergrund läuft (status=pending) —
+	// bewusst lokal hier statt als generische Store-/Polling-Infrastruktur, da es im Projekt
+	// noch kein vergleichbares Muster gibt. Bricht nach ~10 Versuchen (30s) ab, damit ein
+	// hängender Beleg nicht endlos weiterpollt.
+	const PENDING_POLL_INTERVAL_MS = 3000;
+	const PENDING_POLL_MAX_ATTEMPTS = 10;
+	let pollHandle: ReturnType<typeof setTimeout> | undefined;
+	let pollAttempts = 0;
+
+	function schedulePendingPoll() {
+		clearTimeout(pollHandle);
+		if (!openReceipt || openReceipt.status !== 'pending' || pollAttempts >= PENDING_POLL_MAX_ATTEMPTS) {
+			return;
+		}
+		pollHandle = setTimeout(async () => {
+			if (!openReceipt) return;
+			pollAttempts += 1;
+			const res = await fetch(`/api/receipts/${openReceipt.id}`, { credentials: 'include' });
+			if (!res.ok) return;
+			const updated: ReceiptDetail = await res.json();
+			const statusChanged = updated.status !== openReceipt.status;
+			openReceipt = updated;
+			// Badges/Filter-Chip ("Prüfung nötig" etc.) in der Liste dahinter aktualisieren,
+			// sobald die Extraktion einen Endzustand erreicht hat.
+			if (statusChanged) refreshReceipts();
+			schedulePendingPoll();
+		}, PENDING_POLL_INTERVAL_MS);
+	}
+
 	async function openDetail(id: string) {
 		const res = await fetch(`/api/receipts/${id}`, { credentials: 'include' });
 		if (!res.ok) return;
 		openReceipt = await res.json();
+		pollAttempts = 0;
+		schedulePendingPoll();
 	}
 
 	function backToList() {
+		clearTimeout(pollHandle);
 		openReceipt = null;
 	}
+
+	onDestroy(() => clearTimeout(pollHandle));
 
 	function handleDeleted() {
 		openReceipt = null;
@@ -256,6 +294,10 @@
 		warrantyExpiresAt={openReceipt.warranty_expires_at}
 		customFields={openReceipt.custom_fields}
 		items={openReceipt.items}
+		aiSuggestedMerchantName={openReceipt.ai_suggested_merchant_name}
+		aiSuggestedCategory={openReceipt.ai_suggested_category}
+		aiExtractionNote={openReceipt.ai_extraction_note}
+		aiExtractedAt={openReceipt.ai_extracted_at}
 		onBack={backToList}
 		onUpdated={refreshReceipts}
 		onDeleted={handleDeleted}

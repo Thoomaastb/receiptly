@@ -26,6 +26,10 @@
 	export let customFields: Record<string, unknown> | null = null;
 	export let filePath: string;
 	export let items: ItemRow[] = [];
+	export let aiSuggestedMerchantName: string | null = null;
+	export let aiSuggestedCategory: string | null = null;
+	export let aiExtractionNote: string | null = null;
+	export let aiExtractedAt: string | null = null;
 	export let onBack: () => void;
 	export let onUpdated: (() => void) | undefined = undefined;
 	export let onDeleted: (() => void) | undefined = undefined;
@@ -119,6 +123,11 @@
 		warranty_expires_at: string | null;
 		custom_fields: Record<string, unknown> | null;
 		items: ItemRow[];
+		status?: string;
+		ai_suggested_merchant_name?: string | null;
+		ai_suggested_category?: string | null;
+		ai_extraction_note?: string | null;
+		ai_extracted_at?: string | null;
 	}) {
 		receiptDate = detail.receipt_date;
 		totalAmount = detail.total_amount;
@@ -129,6 +138,81 @@
 		warrantyExpiresAt = detail.warranty_expires_at;
 		customFields = detail.custom_fields;
 		items = detail.items;
+		if (detail.status !== undefined) status = detail.status;
+		if (detail.ai_suggested_merchant_name !== undefined) {
+			aiSuggestedMerchantName = detail.ai_suggested_merchant_name;
+		}
+		if (detail.ai_suggested_category !== undefined) aiSuggestedCategory = detail.ai_suggested_category;
+		if (detail.ai_extraction_note !== undefined) aiExtractionNote = detail.ai_extraction_note;
+		if (detail.ai_extracted_at !== undefined) aiExtractedAt = detail.ai_extracted_at;
+	}
+
+	// --- KI-Struktur-Extraktions-Vorschlag (Übernehmen/Verwerfen/Neu analysieren) ---
+	// Kategorie-Vorschlag der KI wird gegen die feste CATEGORIES-Liste geprüft — nur
+	// bekannte Werte werden angezeigt/übernommen, sonst bliebe eine Freitext-Kategorie im
+	// System, die categoryLabel()/categoryColor() nicht kennen.
+	$: validSuggestedCategory =
+		aiSuggestedCategory && CATEGORIES.some((c) => c.value === aiSuggestedCategory)
+			? aiSuggestedCategory
+			: null;
+	$: hasSuggestion = !!aiSuggestedMerchantName || !!validSuggestedCategory;
+
+	let suggestionSaving = false;
+	let reanalyzing = false;
+
+	async function acceptSuggestion() {
+		suggestionSaving = true;
+		try {
+			const payload: Record<string, unknown> = { dismiss_ai_suggestion: true };
+			if (aiSuggestedMerchantName) payload.merchant_name = aiSuggestedMerchantName;
+			if (validSuggestedCategory) payload.category = validSuggestedCategory;
+			const res = await fetch(`/api/receipts/${receiptId}`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(payload)
+			});
+			if (res.ok) {
+				applyDetail(await res.json());
+				onUpdated?.();
+			}
+		} finally {
+			suggestionSaving = false;
+		}
+	}
+
+	async function dismissSuggestion() {
+		suggestionSaving = true;
+		try {
+			const res = await fetch(`/api/receipts/${receiptId}`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ dismiss_ai_suggestion: true })
+			});
+			if (res.ok) {
+				applyDetail(await res.json());
+				onUpdated?.();
+			}
+		} finally {
+			suggestionSaving = false;
+		}
+	}
+
+	async function reanalyze() {
+		reanalyzing = true;
+		try {
+			const res = await fetch(`/api/receipts/${receiptId}/extract`, {
+				method: 'POST',
+				credentials: 'include'
+			});
+			if (res.ok) {
+				applyDetail(await res.json());
+				onUpdated?.();
+			}
+		} finally {
+			reanalyzing = false;
+		}
 	}
 
 	async function saveEdit() {
@@ -540,7 +624,7 @@
 						<path d="M6 9l6 6 6-6" />
 					</svg>
 				</button>
-				{#if itemsIncomplete}
+				{#if itemsIncomplete && itemsSumDiff !== null}
 					<div class="border-t border-status-warning-border bg-status-warning-bg px-3 py-2 text-xs text-status-warning">
 						{#if itemsSumDiff > 0}
 							Noch {itemsSumDiff.toFixed(2)} {currency} nicht auf Artikel aufgeteilt.
@@ -742,17 +826,70 @@
 				{/if}
 			</div>
 
-			<div class="rounded-[14px] bg-hifi-accent-tint p-3.5">
-				<div class="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-hifi-accent-text">
-					<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-						<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
-					</svg>
-					KI-Zusammenfassung
+			{#if status === 'pending'}
+				<div class="rounded-[14px] bg-hifi-accent-tint p-3.5">
+					<div class="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-hifi-accent-text">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
+						</svg>
+						KI-Zusammenfassung
+					</div>
+					<div class="text-xs text-hifi-text-muted">Wird analysiert …</div>
 				</div>
-				<div class="text-xs text-hifi-text-muted">
-					Noch keine KI-Analyse — das Struktur-Extraktions-Paket ist noch nicht gebaut.
+			{:else if hasSuggestion}
+				<div class="rounded-[14px] bg-hifi-accent-tint p-3.5">
+					<div class="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-hifi-accent-text">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
+						</svg>
+						KI-Vorschlag
+					</div>
+					<div class="mb-3 text-xs text-hifi-text">
+						{#if aiSuggestedMerchantName}
+							<div>Händler: <span class="font-semibold">{aiSuggestedMerchantName}</span></div>
+						{/if}
+						{#if validSuggestedCategory}
+							<div>Kategorie: <span class="font-semibold">{categoryLabel(validSuggestedCategory)}</span></div>
+						{/if}
+					</div>
+					<div class="flex gap-2">
+						<button
+							on:click={acceptSuggestion}
+							disabled={suggestionSaving}
+							class="rounded-[10px] bg-hifi-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+						>
+							Übernehmen
+						</button>
+						<button
+							on:click={dismissSuggestion}
+							disabled={suggestionSaving}
+							class="text-xs text-hifi-text-muted hover:text-hifi-text disabled:opacity-50"
+						>
+							Verwerfen
+						</button>
+					</div>
 				</div>
-			</div>
+			{:else if status === 'needs_review' && aiExtractionNote}
+				<div class="rounded-[14px] border border-status-warning-border bg-status-warning-bg p-3.5 text-xs text-status-warning">
+					<div class="mb-1 flex items-center gap-1.5 font-bold">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
+						</svg>
+						KI-Zusammenfassung
+					</div>
+					{aiExtractionNote}
+				</div>
+			{:else}
+				<div class="rounded-[14px] bg-hifi-accent-tint p-3.5">
+					<div class="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-hifi-accent-text">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
+						</svg>
+						KI-Zusammenfassung
+					</div>
+					<div class="text-xs text-hifi-text-muted">Noch keine KI-Analyse für diesen Beleg.</div>
+				</div>
+			{/if}
 
 			{#if ocrRawText}
 				<div class="rounded-[14px] border border-hifi-border">
@@ -786,7 +923,13 @@
 			{/if}
 
 			<div class="mt-auto flex gap-2 border-t border-hifi-border pt-4">
-				<button disabled title="Folgt in einem späteren Paket" class="flex h-9 w-9 items-center justify-center rounded-full border border-hifi-border text-hifi-text-muted disabled:opacity-40">
+				<button
+					on:click={reanalyze}
+					disabled={reanalyzing || status === 'pending'}
+					aria-label="Neu analysieren"
+					title="Neu analysieren"
+					class="flex h-9 w-9 items-center justify-center rounded-full border border-hifi-border text-hifi-text-muted hover:border-hifi-accent hover:text-hifi-accent-text disabled:opacity-40"
+				>
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" /></svg>
 				</button>
 				<button
