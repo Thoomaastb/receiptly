@@ -275,6 +275,22 @@
 		openReceipt = null;
 		refreshReceipts();
 	}
+
+	// Ein einziger onUpdated-Callback deckt saveEdit/Items/Vorschlag-Übernehmen/-Verwerfen
+	// UND "Neu analysieren" ab. Letzteres setzt den Beleg serverseitig zurück auf pending,
+	// aber ReceiptDetailView aktualisiert nur seine eigenen lokalen Props, nicht das
+	// openReceipt-Objekt hier — ohne diesen Re-Fetch bliebe das Polling unten (das nur in
+	// openDetail() angestoßen wird) für den neuen Extraktionslauf inaktiv, und die UI würde
+	// den Ausgang erst nach einem manuellen Reload zeigen.
+	async function handleReceiptUpdated() {
+		refreshReceipts();
+		if (!openReceipt) return;
+		const res = await fetch(`/api/receipts/${openReceipt.id}`, { credentials: 'include' });
+		if (!res.ok) return;
+		openReceipt = await res.json();
+		pollAttempts = 0;
+		schedulePendingPoll();
+	}
 </script>
 
 {#if openReceipt}
@@ -299,7 +315,7 @@
 		aiExtractionNote={openReceipt.ai_extraction_note}
 		aiExtractedAt={openReceipt.ai_extracted_at}
 		onBack={backToList}
-		onUpdated={refreshReceipts}
+		onUpdated={handleReceiptUpdated}
 		onDeleted={handleDeleted}
 	/>
 {:else}
