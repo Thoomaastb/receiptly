@@ -1,3 +1,11 @@
+## [0.23.0](https://github.com/Thoomaastb/receiptly/compare/v0.22.0...v0.23.0) (2026-07-16)
+
+### Features
+
+* **db:** KI-Struktur-Extraktion — Vorschlagsfelder auf Receipt, Provider-Enum-Rework (custom raus, google rein, endpoint_url) ([0e46776](https://github.com/Thoomaastb/receiptly/commit/0e4677635476427c59ed3dff123d256195d56d84))
+* **receipts:** KI-gestützte Struktur-Extraktion aus Beleg-OCR-Text — Provider-Pipeline (Ollama/OpenAI/Anthropic/Google), PII-Redaction, SSRF-Schutz für Ollama-Host, Response-Size-Limit ([c8fb85e](https://github.com/Thoomaastb/receiptly/commit/c8fb85e6a4a83f53cf807b5970f33129760c0ba1))
+* **ui:** KI-Extraktions-Vorschläge in der Belegansicht (Übernehmen/Verwerfen/Neu analysieren), Provider-Auswahl (Ollama/OpenAI/Anthropic/Google) in den Einstellungen mit Server-Lock-Banner ([796b1c6](https://github.com/Thoomaastb/receiptly/commit/796b1c68235aad9d4acbeb64947cb8e3758c3451))
+
 ## [0.22.0](https://github.com/Thoomaastb/receiptly/compare/v0.21.0...v0.22.0) (2026-07-15)
 
 ### Features
