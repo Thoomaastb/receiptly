@@ -74,11 +74,17 @@ _JSON_SCHEMA = {
                     "unit_price": {"type": ["number", "null"]},
                     "total_price": {"type": ["number", "null"]},
                 },
-                "required": ["raw_name"],
+                # OpenAI Structured Outputs (strict) verlangt additionalProperties:false UND
+                # jede Property in required (Pflicht schließt "optional" nicht aus — dafür
+                # steht null im type-Array, siehe oben) — sonst 400 "additionalProperties is
+                # required to be supplied and to be false".
+                "required": ["raw_name", "quantity", "unit_price", "total_price"],
+                "additionalProperties": False,
             },
         },
     },
     "required": ["receipt_date", "total_amount", "currency", "merchant_name", "category", "items"],
+    "additionalProperties": False,
 }
 
 
