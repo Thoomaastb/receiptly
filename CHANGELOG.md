@@ -1,3 +1,13 @@
+## [0.25.0](https://github.com/Thoomaastb/receiptly/compare/v0.24.0...v0.25.0) (2026-07-17)
+
+### Features
+
+* **receipts:** KI-Token-/Kosten-Zähler + serverseitige PDF-Texterkennung ([01e75aa](https://github.com/Thoomaastb/receiptly/commit/01e75aa4071842cd8761c5da336d89802ea0c81c))
+
+### Bug Fixes
+
+* **ui:** Dark-Mode-Theme-Icon synchronisiert Topbar/Settings nicht mehr getrennt ([bc1a394](https://github.com/Thoomaastb/receiptly/commit/bc1a394bdf3322e30a60a049a03e21190cc8a462))
+
 ## [0.24.0](https://github.com/Thoomaastb/receiptly/compare/v0.23.1...v0.24.0) (2026-07-17)
 
 ### Features
