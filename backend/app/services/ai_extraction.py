@@ -1,7 +1,9 @@
+import asyncio
 import logging
 import re
 import uuid
 from datetime import date, datetime, timezone
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,10 +11,13 @@ from sqlalchemy.orm import selectinload
 
 from app.config import get_settings
 from app.database import AsyncSessionLocal
+from app.models.ai_usage_event import AIUsageEvent
 from app.models.item import Item
 from app.models.receipt import Receipt, ReceiptStatus
-from app.services.ai_provider_client import AIProviderError, call_structured
-from app.services.ai_provider_resolution import resolve_effective_provider
+from app.services import ai_pricing
+from app.services.ai_provider_client import AIProviderError, StructuredCallResult, call_structured, resolve_model_name
+from app.services.ai_provider_resolution import EffectiveProviderConfig, resolve_effective_provider
+from app.services.pdf_extraction import extract_pdf_text
 from app.services.pii_redaction import redact_sensitive_patterns
 
 logger = logging.getLogger(__name__)
@@ -150,6 +155,15 @@ async def _run(db: AsyncSession, receipt_id: uuid.UUID, household_id: uuid.UUID)
         return
 
     if not receipt.ocr_raw_text or not receipt.ocr_raw_text.strip():
+        # Client-seitiges OCR (tesseract.js) kann keine PDFs dekodieren und überspringt sie
+        # deshalb bewusst (siehe UploadFlow.svelte) — hier stattdessen serverseitig aus dem
+        # PDF selbst extrahieren, bevor der Beleg vorschnell auf needs_review landet.
+        if receipt.file_path.lower().endswith(".pdf"):
+            pdf_text = await asyncio.to_thread(extract_pdf_text, Path(receipt.file_path))
+            if pdf_text.strip():
+                receipt.ocr_raw_text = pdf_text
+
+    if not receipt.ocr_raw_text or not receipt.ocr_raw_text.strip():
         await _finish_needs_review(db, receipt, "Kein OCR-Text vorhanden")
         return
 
@@ -170,7 +184,7 @@ async def _run(db: AsyncSession, receipt_id: uuid.UUID, household_id: uuid.UUID)
     outbound_text = outbound_text[: settings.ai_extraction_max_ocr_chars]
 
     try:
-        extracted = await call_structured(
+        result = await call_structured(
             provider=effective.provider,
             api_key=effective.api_key,
             endpoint=effective.endpoint,
@@ -182,11 +196,48 @@ async def _run(db: AsyncSession, receipt_id: uuid.UUID, household_id: uuid.UUID)
         )
     except AIProviderError as exc:
         # Nur Fehlerklasse/-meldung loggen, nie den (redigierten oder rohen) KI-Payload.
+        # Kein Usage-Event hier: AIProviderError kann bereits vor dem eigentlichen HTTP-Call
+        # geworfen werden (z.B. fehlender api_key) — dann wurden keine Tokens verbraucht,
+        # ein Log-Eintrag wäre ein Phantom-Eintrag.
         logger.warning("KI-Provider-Call fehlgeschlagen für Beleg %s: %s", receipt_id, exc)
         await _finish_needs_review(db, receipt, "KI-Anbieter konnte nicht abgefragt werden")
         return
 
-    await _apply_extraction_result(db, receipt, extracted)
+    await _apply_extraction_result(db, receipt, result.content)
+
+    # Tokens wurden real verbraucht, unabhängig davon, ob die Extraktion inhaltlich
+    # erfolgreich ist — aber bewusst ERST NACH dem obigen Commit und in einem eigenen
+    # Try/Except: das Usage-Logging ist ein Nice-to-have (Admin-Zähler) und darf unter
+    # keinen Umständen das eigentliche Extraktionsergebnis mit sich reißen, falls es aus
+    # irgendeinem Grund fehlschlägt (z.B. Migration fehlt, Constraint-Verletzung).
+    try:
+        _log_usage_event(db, effective, result)
+        await db.commit()
+    except Exception:
+        logger.exception(
+            "KI-Usage-Event für Beleg %s konnte nicht gespeichert werden (Extraktion war "
+            "trotzdem erfolgreich, nur der Admin-Zähler bleibt für diesen Call ungenau)",
+            receipt_id,
+        )
+        await db.rollback()
+
+
+def _log_usage_event(
+    db: AsyncSession, effective: EffectiveProviderConfig, result: StructuredCallResult
+) -> None:
+    model = resolve_model_name(effective.provider, effective.model_name)
+    db.add(
+        AIUsageEvent(
+            provider=effective.provider.value,
+            model=model,
+            prompt_tokens=result.prompt_tokens,
+            completion_tokens=result.completion_tokens,
+            total_tokens=result.prompt_tokens + result.completion_tokens,
+            estimated_cost_usd=ai_pricing.estimate_cost_usd(
+                model, result.prompt_tokens, result.completion_tokens
+            ),
+        )
+    )
 
 
 async def _apply_extraction_result(db: AsyncSession, receipt: Receipt, data: dict) -> None:

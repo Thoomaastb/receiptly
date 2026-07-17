@@ -13,8 +13,13 @@ RUN groupadd -r receiptly && useradd -r -g receiptly -d /app -s /sbin/nologin re
 
 WORKDIR /app
 
+
+# tesseract-ocr + deutsches Sprachpaket: OCR-Fallback für PDFs ohne Text-Ebene (siehe
+# app/services/pdf_extraction.py), passend zum client-seitigen Tesseract (auch dort "deu",
+# siehe frontend/src/lib/ocr/tesseract-provider.ts). Debian installiert das Binary nach
+# /usr/bin/tesseract, das liegt bereits im Standard-PATH.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential libpq-dev curl \
+    build-essential libpq-dev curl tesseract-ocr tesseract-ocr-deu \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml ./

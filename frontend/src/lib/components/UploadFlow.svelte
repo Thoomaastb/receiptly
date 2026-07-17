@@ -193,9 +193,7 @@
 		<p class="mb-4 text-sm text-hifi-text-muted">Gewählt: {selectedFile.name}</p>
 		{#if selectedFile.type === 'application/pdf'}
 			<p class="mb-4 text-xs text-hifi-text-muted">
-				Texterkennung läuft aktuell nur bei Bildern automatisch — dieses PDF wird ohne erkannten
-				Text hochgeladen. Händler und Artikel lassen sich danach in der Belegansicht manuell
-				eintragen.
+				Texterkennung für PDFs läuft nach dem Hochladen automatisch auf dem Server.
 			</p>
 		{/if}
 	{/if}
