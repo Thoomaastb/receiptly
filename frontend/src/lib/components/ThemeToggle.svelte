@@ -1,15 +1,11 @@
 <script lang="ts">
-	import { getStoredPreference, setPreference, resolveEffectiveTheme, type ThemePreference } from '$lib/theme';
+	import { themePreference, effectiveTheme, setPreference, type ThemePreference } from '$lib/theme';
 
-	// getStoredPreference() ist SSR-sicher (guardet auf typeof localStorage), daher
-	// hier ohne onMount direkt lesbar.
-	let preference: ThemePreference = getStoredPreference();
+	// Das Icon zeigt IMMER das effektive Theme (Sonne/Mond) — auch bei "System" wird
+	// direkt das gerade aktive Theme angezeigt, kein eigenes drittes Icon dafür. Das
+	// Dropdown markiert zusätzlich, welche Präferenz explizit gewählt ist.
 	let open = false;
 	let menuEl: HTMLDivElement;
-
-	// Icon folgt dem EFFEKTIVEN Theme (System löst sich sichtbar zu Sonne/Mond auf),
-	// das Dropdown selbst markiert aber weiterhin, ob "System" explizit gewählt ist.
-	$: effective = resolveEffectiveTheme(preference);
 
 	const options: { value: ThemePreference; label: string }[] = [
 		{ value: 'system', label: 'System' },
@@ -18,7 +14,6 @@
 	];
 
 	function choose(pref: ThemePreference) {
-		preference = pref;
 		setPreference(pref);
 		open = false;
 	}
@@ -49,12 +44,7 @@
 		aria-expanded={open}
 		class="flex h-[38px] w-[38px] items-center justify-center rounded-[10px] text-hifi-text-muted transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text"
 	>
-		{#if preference === 'system'}
-			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-				<rect x="3" y="4" width="18" height="12" rx="2" />
-				<path d="M8 20h8M12 16v4" />
-			</svg>
-		{:else if effective === 'dark'}
+		{#if $effectiveTheme === 'dark'}
 			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 				<path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z" />
 			</svg>
@@ -74,12 +64,12 @@
 			{#each options as option (option.value)}
 				<button
 					role="menuitemradio"
-					aria-checked={preference === option.value}
+					aria-checked={$themePreference === option.value}
 					on:click={() => choose(option.value)}
 					class="flex w-full items-center justify-between gap-2 rounded-[9px] px-3 py-2 text-left text-[13px] font-medium text-hifi-text transition-colors hover:bg-hifi-accent-tint"
 				>
 					{option.label}
-					{#if preference === option.value}
+					{#if $themePreference === option.value}
 						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="text-hifi-accent-text">
 							<path d="M20 6L9 17l-5-5" />
 						</svg>
