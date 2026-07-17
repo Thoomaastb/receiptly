@@ -1,3 +1,9 @@
+## [0.24.0](https://github.com/Thoomaastb/receiptly/compare/v0.23.1...v0.24.0) (2026-07-17)
+
+### Features
+
+* **auth:** Passwort ändern, Sitzungsverwaltung, Settings-Navigation + Dark-Mode ([2537766](https://github.com/Thoomaastb/receiptly/commit/25377667fa2f2cafb80f6bb790dccb54174b4221))
+
 ## [0.23.1](https://github.com/Thoomaastb/receiptly/compare/v0.23.0...v0.23.1) (2026-07-16)
 
 ### Bug Fixes
