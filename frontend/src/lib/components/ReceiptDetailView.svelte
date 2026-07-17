@@ -418,12 +418,12 @@
 			{#if isImageFile}
 				<img src={fileUrl} alt="Beleg-Vorschau" class="h-full max-h-[520px] w-full object-contain" />
 			{:else}
-				<div class="flex flex-col items-center gap-2" style="background: repeating-linear-gradient(135deg, oklch(58% 0.19 290 / 0.08) 0, oklch(58% 0.19 290 / 0.08) 10px, oklch(58% 0.19 290 / 0.03) 10px, oklch(58% 0.19 290 / 0.03) 20px); position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+				<div class="flex flex-col items-center gap-2" style="background: repeating-linear-gradient(135deg, var(--color-stripe-doc-a) 0, var(--color-stripe-doc-a) 10px, var(--color-stripe-doc-b) 10px, var(--color-stripe-doc-b) 20px); position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
 					<a
 						href={fileUrl}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="flex items-center gap-2 rounded-md bg-white/80 px-3 py-1.5 font-mono text-xs font-semibold text-hifi-accent-text hover:bg-white"
+						class="flex items-center gap-2 rounded-md bg-hifi-surface/80 px-3 py-1.5 font-mono text-xs font-semibold text-hifi-accent-text hover:bg-hifi-surface"
 					>
 						PDF-Dokument öffnen
 					</a>

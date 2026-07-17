@@ -3,6 +3,9 @@
 	import '../app.css';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import SettingsNav from '$lib/components/SettingsNav.svelte';
+	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
+	import { initThemeSync } from '$lib/theme';
 
 	// Kategorien kommen aus merchant.category — aktuell noch leer, da Auto-Tagging
 	// (KI-Provider-Paket) noch nicht gebaut ist. Ehrlicher Leer-Zustand statt Fake-Daten.
@@ -12,6 +15,7 @@
 
 	let currentUser: { username: string; email: string; role: string } | null = null;
 	$: userInitial = (currentUser?.username?.[0] ?? '?').toUpperCase();
+	$: isAdmin = currentUser?.role === 'admin';
 
 	let appVersion = '';
 
@@ -43,8 +47,11 @@
 	// Passwort-Reset-Flow, den auch ausgeloggte Nutzer über einen E-Mail-Link erreichen.
 	const AUTH_ROUTES = ['/login', '/forgot-password', '/reset-password'];
 	$: isAuthRoute = AUTH_ROUTES.includes($page.url.pathname);
+	$: isSettingsRoute = $page.url.pathname.startsWith('/settings');
 
 	onMount(async () => {
+		initThemeSync();
+
 		if (isAuthRoute) return;
 
 		try {
@@ -68,6 +75,10 @@
 		} catch {
 			// Versionsanzeige ist rein informativ — kein Fehler-UI nötig für dieses Detail
 		}
+
+		// Kategorien-Sidebar wird auf /settings durch SettingsNav ersetzt — der Fetch
+		// wäre dort verschwendet.
+		if (isSettingsRoute) return;
 
 		try {
 			const res = await fetch('/api/receipts', { credentials: 'include' });
@@ -93,7 +104,7 @@
 {#if isAuthRoute}
 	<slot />
 {:else}
-<div class="flex min-h-screen flex-col bg-hifi-bg font-ui text-hifi-text" style="color-scheme: light;">
+<div class="flex min-h-screen flex-col bg-hifi-bg font-ui text-hifi-text">
 	<div
 		class="grid h-[72px] flex-none grid-cols-[1fr_auto_1fr] items-center border-b border-hifi-border bg-hifi-surface px-8"
 	>
@@ -157,6 +168,7 @@
 					<path d="M10 20a2 2 0 004 0" />
 				</svg>
 			</button>
+			<ThemeToggle />
 			<div class="mx-1.5 h-[22px] w-px bg-hifi-border"></div>
 			<a
 				href="/settings"
@@ -228,40 +240,44 @@
 
 	<div class="flex min-h-0 flex-1">
 		<aside class="flex w-[232px] flex-none flex-col gap-6 border-r border-hifi-border bg-hifi-surface p-4 py-6">
-			<div class="flex flex-col gap-0.5">
-				<div class="px-3 pb-2 text-[11.5px] font-bold uppercase tracking-[0.04em] text-hifi-text-faint">
-					Kategorien
-				</div>
-				{#if categoriesLoading}
-					<div class="px-3 py-2 text-[13px] text-hifi-text-faint">Wird geladen …</div>
-				{:else if categories.length === 0}
-					<div class="px-3 py-2 text-[12.5px] leading-relaxed text-hifi-text-faint">
-						Noch keine Kategorien — die kommen automatisch, sobald die KI-Auto-Verschlagwortung
-						läuft.
+			{#if isSettingsRoute}
+				<SettingsNav {isAdmin} />
+			{:else}
+				<div class="flex flex-col gap-0.5">
+					<div class="px-3 pb-2 text-[11.5px] font-bold uppercase tracking-[0.04em] text-hifi-text-faint">
+						Kategorien
 					</div>
-				{:else}
-					{#each categories as cat (cat.name)}
-						<button class="flex items-center gap-2.5 rounded-[9px] px-3 py-2 text-left text-[13.5px] font-medium text-hifi-text transition-colors hover:bg-hifi-accent-tint">
-							<span class="h-2 w-2 flex-none rounded-full" style="background: {cat.color}"></span>
-							<span class="flex-1">{cat.name}</span>
-							<span class="font-mono text-xs text-hifi-text-faint">{cat.count}</span>
-						</button>
-					{/each}
-				{/if}
-			</div>
+					{#if categoriesLoading}
+						<div class="px-3 py-2 text-[13px] text-hifi-text-faint">Wird geladen …</div>
+					{:else if categories.length === 0}
+						<div class="px-3 py-2 text-[12.5px] leading-relaxed text-hifi-text-faint">
+							Noch keine Kategorien — die kommen automatisch, sobald die KI-Auto-Verschlagwortung
+							läuft.
+						</div>
+					{:else}
+						{#each categories as cat (cat.name)}
+							<button class="flex items-center gap-2.5 rounded-[9px] px-3 py-2 text-left text-[13.5px] font-medium text-hifi-text transition-colors hover:bg-hifi-accent-tint">
+								<span class="h-2 w-2 flex-none rounded-full" style="background: {cat.color}"></span>
+								<span class="flex-1">{cat.name}</span>
+								<span class="font-mono text-xs text-hifi-text-faint">{cat.count}</span>
+							</button>
+						{/each}
+					{/if}
+				</div>
 
-			<div class="mt-auto flex flex-col gap-1.5 rounded-[14px] bg-hifi-accent-tint p-3.5">
-				<div class="flex items-center gap-1.5 text-[12.5px] font-bold text-hifi-accent-text">
-					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-						<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
-					</svg>
-					KI-Analyse
+				<div class="mt-auto flex flex-col gap-1.5 rounded-[14px] bg-hifi-accent-tint p-3.5">
+					<div class="flex items-center gap-1.5 text-[12.5px] font-bold text-hifi-accent-text">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
+						</svg>
+						KI-Analyse
+					</div>
+					<div class="text-[12.5px] leading-relaxed" style="color: var(--color-accent-text-muted);">
+						{expiringWarrantiesCount}
+						{expiringWarrantiesCount === 1 ? 'Garantie braucht' : 'Garantien brauchen'} Aufmerksamkeit
+					</div>
 				</div>
-				<div class="text-[12.5px] leading-relaxed" style="color: oklch(40% 0.05 290);">
-					{expiringWarrantiesCount}
-					{expiringWarrantiesCount === 1 ? 'Garantie braucht' : 'Garantien brauchen'} Aufmerksamkeit
-				</div>
-			</div>
+			{/if}
 		</aside>
 
 		<main class="min-w-0 flex-1 overflow-y-auto px-10 pb-16 pt-9">

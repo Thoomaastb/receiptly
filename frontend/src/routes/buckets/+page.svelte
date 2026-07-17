@@ -300,7 +300,7 @@
 						<button on:click={() => openBucket(bucket)} class="flex flex-1 items-center gap-3 text-left">
 							<span
 								class="h-2.5 w-2.5 flex-none rounded-full"
-								style="background: {bucket.is_default ? 'var(--color-bucket-household)' : 'var(--color-accent-hifi)'}"
+								style="background: var(--color-accent-hifi)"
 							></span>
 							<span class="flex-1">
 								<span class="block text-[13.5px] font-bold text-hifi-text">{bucket.name}</span>
