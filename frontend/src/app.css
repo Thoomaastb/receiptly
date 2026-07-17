@@ -16,18 +16,9 @@
 /*
   Design-Tokens gemäß Hifi-Handoff (Claude Design, 2026-07-04) für Shell + Home.
   Ersetzt das bisherige informelle UI-Konzept als Quelle der Wahrheit für diese Bereiche.
-  Bestehende Tokens (--color-surface-raised, --color-accent-contrast, --color-bucket-household,
-  --color-warning-bg/border für den KI-Provider-Hinweis) bleiben erhalten, da /receipts,
-  /upload und /settings sie noch aktiv nutzen — werden in einem Folgeschritt mit umgestellt.
-
-  OFFENER PUNKT: Der Handoff spezifiziert nur Light-Werte, kein Dark Mode. Dark-Tokens sind
-  hier bewusst NICHT erfunden — offener Folgeschritt, bis dafür ein Hifi-Design vorliegt.
 */
 
 :root {
-	/* "light dark" hier hieße: native Formularelemente (Scrollbars, Checkboxen, Datepicker)
-	   folgen dem OS-Farbschema, obwohl die App selbst noch keinen Dark Mode hat — bewusst
-	   auf "light" reduziert, bis ein echtes Dark-Mode-Design vorliegt (siehe Kommentar unten). */
 	color-scheme: light;
 	--font-ui: 'Plus Jakarta Sans', system-ui, sans-serif;
 	--font-mono: 'IBM Plex Mono', monospace;
@@ -62,27 +53,68 @@
 	--color-danger-bg: oklch(96% 0.02 25);
 	--color-danger-border: oklch(88% 0.03 25);
 
-	/* Bestehende Tokens — noch von /receipts, /upload, /settings genutzt (Folgeschritt) */
-	--color-surface: #ffffff;
-	--color-surface-raised: #f7f7f8;
-	--color-border: #e2e2e6;
-	--color-text: #1a1a1e;
-	--color-text-muted: #6b6b74;
-	--color-accent: #7c5cff;
-	--color-accent-contrast: #ffffff;
-	--color-bucket-household: #7c5cff;
-	--color-warning-bg: #f3effe;
-	--color-warning-border: #d9caff;
+	/* Aus Markup-Literalen extrahiert (v0.28.0 Dark-Mode-Paket) — Werte unverändert
+	   gegenüber den vorherigen hartkodierten oklch()-Literalen, nur benannt. */
+	--color-selection-bg: oklch(58% 0.19 290 / 0.25);
+	--color-accent-text-muted: oklch(40% 0.05 290);
+	--color-stripe-thumb-a: oklch(58% 0.19 290 / 0.1);
+	--color-stripe-thumb-b: oklch(58% 0.19 290 / 0.04);
+	--color-stripe-doc-a: oklch(58% 0.19 290 / 0.08);
+	--color-stripe-doc-b: oklch(58% 0.19 290 / 0.03);
 }
 
-/* Dark Mode ist bewusst noch NICHT aktiv (offener Backlog-Punkt: "Dark-Mode-Werte für
-   die neue Hifi-Palette"). Ein früherer Dark-Mode-Block hier setzte nur die alten
-   Legacy-Tokens (--color-surface etc.) auf dunkle Werte, ließ die neuen --color-*-hifi-
-   Tokens aber unverändert hell — das Ergebnis war eine inkonsistent halb-dunkle UI
-   (Shell/Home hell, /buckets, /receipts, /settings, /upload dunkel), abhängig vom
-   OS-Farbschema des Betrachters. Bis ein Dark-Mode-Design für beide Token-Sets
-   gemeinsam vorliegt, bleibt die App überall hell — siehe :root { color-scheme: light dark }
-   oben, das ebenfalls auf "light" reduziert werden müsste, sobald hier wieder etwas steht. */
+/* Dark Mode (v0.28.0, siehe concepts/dark-mode.md).
+   POSTMORTEM (früherer Versuch, v0.16.1): ein @media(prefers-color-scheme)-Block färbte
+   damals nur die alten Legacy-Tokens dunkel und ließ die --color-*-hifi-Tokens hell —
+   Ergebnis war eine inkonsistent halb-dunkle UI, abhängig vom OS-Farbschema. Der Block
+   wurde entfernt, App blieb bewusst durchgehend hell, bis ein vollständiges Dark-Design
+   für BEIDE Token-Sets vorliegt.
+   FIX in diesem Paket: ein einziger, attribut-gesteuerter Block ([data-theme="dark"],
+   siehe lib/theme.ts) statt eines @media-Codepfads — es gibt zur Laufzeit nie zwei
+   parallele Quellen der Wahrheit, "system" wird immer sofort zu einem konkreten
+   light/dark aufgelöst. Der Legacy-Token-Block wurde nach Migration seiner letzten drei
+   Call-Sites komplett entfernt (siehe git-history), es gibt also auch kein isoliert
+   umgefärbtes Teil-Set mehr. Vollständigkeit ist Abnahmekriterium: jedes Token aus :root
+   hat hier einen Gegenwert. */
+[data-theme='dark'] {
+	color-scheme: dark;
+
+	--color-bg: oklch(16% 0.006 85);
+	--color-surface-hifi: oklch(20% 0.007 85);
+	--color-border-hifi: oklch(30% 0.008 85);
+	--color-text-hifi: oklch(93% 0.015 280);
+	--color-text-muted-hifi: oklch(70% 0.017 280);
+	--color-text-faint: oklch(58% 0.014 280);
+
+	--color-accent-hifi: oklch(58% 0.19 290);
+	--color-accent-tint: oklch(26% 0.04 290);
+	--color-accent-text: oklch(80% 0.12 290);
+
+	--color-cat-electronics: oklch(72% 0.15 290);
+	--color-cat-groceries: oklch(72% 0.13 150);
+	--color-cat-travel: oklch(70% 0.12 230);
+	--color-cat-furniture: oklch(76% 0.13 80);
+	--color-cat-fashion: oklch(72% 0.15 340);
+	--color-cat-dining: oklch(74% 0.14 45);
+	--color-cat-fuel: oklch(68% 0.16 25);
+
+	--color-success: oklch(72% 0.13 150);
+	--color-success-bg: oklch(25% 0.03 150);
+	--color-success-border: oklch(38% 0.04 150);
+	--color-status-warning: oklch(76% 0.14 70);
+	--color-status-warning-bg: oklch(26% 0.035 70);
+	--color-status-warning-border: oklch(40% 0.05 70);
+	--color-danger: oklch(70% 0.17 25);
+	--color-danger-bg: oklch(26% 0.035 25);
+	--color-danger-border: oklch(40% 0.045 25);
+
+	--color-selection-bg: oklch(70% 0.19 290 / 0.35);
+	--color-accent-text-muted: oklch(72% 0.04 290);
+	--color-stripe-thumb-a: oklch(72% 0.14 290 / 0.14);
+	--color-stripe-thumb-b: oklch(72% 0.14 290 / 0.06);
+	--color-stripe-doc-a: oklch(72% 0.14 290 / 0.11);
+	--color-stripe-doc-b: oklch(72% 0.14 290 / 0.05);
+}
 
 body {
 	margin: 0;
@@ -93,7 +125,7 @@ body {
 }
 
 ::selection {
-	background: oklch(58% 0.19 290 / 0.25);
+	background: var(--color-selection-bg);
 }
 
 @media (prefers-reduced-motion: reduce) {

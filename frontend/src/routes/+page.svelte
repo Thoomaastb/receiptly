@@ -98,7 +98,7 @@
 			<circle cx="12" cy="13.5" r="3.5" />
 		</svg>
 		<div class="text-[17px] font-bold">Scannen</div>
-		<div class="text-[13.5px]" style="color: oklch(94% 0.03 290);">Kamera direkt öffnen (mobil)</div>
+		<div class="text-[13.5px] text-white/75">Kamera direkt öffnen (mobil)</div>
 	</button>
 	<button
 		on:click={() => openUpload('file')}
@@ -157,9 +157,9 @@
 			>
 				<div
 					class="flex items-center justify-center"
-					style="height: {thumbHeights[i % thumbHeights.length]}px; background: repeating-linear-gradient(135deg, oklch(58% 0.19 290 / 0.10), oklch(58% 0.19 290 / 0.10) 8px, oklch(58% 0.19 290 / 0.04) 8px, oklch(58% 0.19 290 / 0.04) 16px);"
+					style="height: {thumbHeights[i % thumbHeights.length]}px; background: repeating-linear-gradient(135deg, var(--color-stripe-thumb-a), var(--color-stripe-thumb-a) 8px, var(--color-stripe-thumb-b) 8px, var(--color-stripe-thumb-b) 16px);"
 				>
-					<span class="rounded-[5px] bg-white/70 px-2 py-1 font-mono text-[11px] font-semibold tracking-wide text-hifi-accent-text">
+					<span class="rounded-[5px] bg-hifi-surface/80 px-2 py-1 font-mono text-[11px] font-semibold tracking-wide text-hifi-accent-text">
 						{fileExt(receipt.status)}
 					</span>
 				</div>

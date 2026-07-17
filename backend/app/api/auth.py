@@ -1,14 +1,21 @@
 import logging
-from datetime import date, timedelta
+import uuid
+from datetime import UTC, date, datetime, timedelta
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user, require_admin
+from app.auth.dependencies import get_current_raw_session_token, get_current_user, require_admin
 from app.auth.password_reset import consume_reset_token, create_reset_token
 from app.auth.security import hash_password, verify_password
-from app.auth.session import create_session, destroy_session
+from app.auth.session import (
+    create_session,
+    destroy_session,
+    invalidate_other_sessions,
+    list_user_sessions,
+    terminate_session,
+)
 from app.config import get_settings
 from app.database import get_db
 from app.models.bucket import Bucket, BucketType, BucketVisibility
@@ -16,11 +23,13 @@ from app.models.household import Household
 from app.models.receipt import Receipt, ReceiptStatus
 from app.models.user import User, UserRole
 from app.schemas.auth import (
+    ChangePasswordRequest,
     InviteRequest,
     LoginRequest,
     PasswordResetConfirm,
     PasswordResetRequest,
     RegisterRequest,
+    SessionInfo,
     UserResponse,
 )
 from app.services.email import send_email
@@ -44,7 +53,7 @@ async def setup_required(db: AsyncSession = Depends(get_db)) -> dict[str, bool]:
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(
-    payload: RegisterRequest, response: Response, db: AsyncSession = Depends(get_db)
+    payload: RegisterRequest, response: Response, request: Request, db: AsyncSession = Depends(get_db)
 ) -> User:
     """
     Legt einen neuen Haushalt mit dem ersten User (Rolle: Admin) an.
@@ -100,13 +109,13 @@ async def register(
 
     # Direkt einloggen, damit der Einrichtungs-Assistent im Frontend ohne separaten
     # Login-Schritt in die App übergeben kann.
-    await create_session(user.id, response)
+    await create_session(user.id, response, request)
     return user
 
 
 @router.post("/login", response_model=UserResponse)
 async def login(
-    payload: LoginRequest, response: Response, db: AsyncSession = Depends(get_db)
+    payload: LoginRequest, response: Response, request: Request, db: AsyncSession = Depends(get_db)
 ) -> User:
     result = await db.execute(select(User).where(User.username == payload.username))
     user = result.scalar_one_or_none()
@@ -117,7 +126,12 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Ungültige Anmeldedaten"
         )
 
-    await create_session(user.id, response)
+    # Nur nach erfolgreicher Passwortprüfung schreiben — ein Write bei fehlgeschlagenem
+    # Login wäre ein Timing-/Enumeration-Seitenkanal (siehe Kommentar oben).
+    user.last_login = datetime.now(UTC)
+    await db.commit()
+
+    await create_session(user.id, response, request)
     return user
 
 
@@ -172,9 +186,11 @@ async def confirm_password_reset(
         )
 
     user.password_hash = hash_password(payload.new_password)
-    # Bewusst NICHT im Scope: bestehende Sessions des Users invalidieren — bräuchte einen
-    # Rückwärts-Index user_id→Sessions in session.py, geplant für v0.23.0 "Sitzungsverwaltung".
     await db.commit()
+
+    # Keine aktive Session im Reset-Confirm-Flow (Link kam per Mail, kein eingeloggter
+    # Browser) — deshalb alle bestehenden Sessions des Users invalidieren, nicht nur andere.
+    await invalidate_other_sessions(user.id, keep_raw_token=None)
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
@@ -188,6 +204,65 @@ async def logout(
 @router.get("/me", response_model=UserResponse)
 async def me(user: User = Depends(get_current_user)) -> User:
     return user
+
+
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+async def change_password(
+    payload: ChangePasswordRequest,
+    user: User = Depends(get_current_user),
+    raw_token: str | None = Depends(get_current_raw_session_token),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """
+    Verlangt das aktuelle Passwort erneut (Argon2id) — eine gekaperte Session allein darf
+    nicht reichen, um das Passwort zu ändern. Bei Erfolg werden alle anderen Sessions des
+    Users invalidiert, die aktuelle (die die Änderung ausgelöst hat) bleibt bestehen.
+    """
+    if not verify_password(payload.current_password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Aktuelles Passwort ist falsch"
+        )
+
+    user.password_hash = hash_password(payload.new_password)
+    await db.commit()
+
+    await invalidate_other_sessions(user.id, keep_raw_token=raw_token)
+
+
+@router.get("/sessions", response_model=list[SessionInfo])
+async def get_sessions(
+    user: User = Depends(get_current_user),
+    raw_token: str | None = Depends(get_current_raw_session_token),
+) -> list[dict]:
+    """Eigene aktive Sessions (Device/Browser, IP, last_seen_at) — nie der rohe Token, nur session_id."""
+    return await list_user_sessions(user.id, raw_token)
+
+
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_session(
+    session_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    raw_token: str | None = Depends(get_current_raw_session_token),
+) -> None:
+    """
+    Beendet eine fremde Session des eigenen Accounts. Die aktuelle Session lässt sich
+    hierüber nicht beenden (dafür ist /auth/logout da) — terminate_session() lehnt das
+    serverseitig ab, hier wird das vorab geprüft, um 400 (aktuelle Session) von 404
+    (nicht gefunden) unterscheiden zu können.
+    """
+    sessions = await list_user_sessions(user.id, raw_token)
+    matching = next((s for s in sessions if s["session_id"] == session_id), None)
+    if matching is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session nicht gefunden")
+    if matching["is_current"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Die aktuelle Session kann nicht hierüber beendet werden — nutze Logout.",
+        )
+
+    terminated = await terminate_session(user.id, session_id, raw_token)
+    if not terminated:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session nicht gefunden")
 
 
 @router.get("/household-members", response_model=list[UserResponse])

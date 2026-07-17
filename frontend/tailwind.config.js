@@ -1,22 +1,14 @@
 /** @type {import('tailwindcss').Config} */
 export default {
 	content: ['./src/**/*.{html,js,svelte,ts}'],
-	darkMode: 'media', // folgt prefers-color-scheme — kein erzwungenes Dark-Only
+	// Attribut-Override statt OS-Einstellung: [data-theme="dark"] gewinnt immer,
+	// dark:-Utilities folgen nie unbeabsichtigt der OS-Einstellung (siehe theme.ts).
+	darkMode: ['selector', '[data-theme="dark"]'],
 	theme: {
 		extend: {
 			colors: {
 				// Alle Farben zeigen auf CSS-Variablen aus app.css — nie hartkodiert,
 				// damit Light/Dark und spätere Bucket-Farben zentral gepflegt werden.
-				surface: 'var(--color-surface)',
-				'surface-raised': 'var(--color-surface-raised)',
-				border: 'var(--color-border)',
-				text: 'var(--color-text)',
-				'text-muted': 'var(--color-text-muted)',
-				accent: 'var(--color-accent)',
-				'accent-contrast': 'var(--color-accent-contrast)',
-				'bucket-household': 'var(--color-bucket-household)',
-				'warning-bg': 'var(--color-warning-bg)',
-				'warning-border': 'var(--color-warning-border)',
 
 				// Hifi-Palette (Shell + Home, Handoff Claude Design 2026-07-04)
 				'hifi-bg': 'var(--color-bg)',

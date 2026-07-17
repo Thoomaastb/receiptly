@@ -38,7 +38,7 @@ export function categoryLabel(value: string | null): string | null {
 }
 
 export function categoryColor(value: string | null): string {
-	return CATEGORIES.find((c) => c.value === value)?.colorVar ?? 'var(--color-text-muted)';
+	return CATEGORIES.find((c) => c.value === value)?.colorVar ?? 'var(--color-text-muted-hifi)';
 }
 
 export function categoryFields(value: string | null): CategoryFieldDef[] {
