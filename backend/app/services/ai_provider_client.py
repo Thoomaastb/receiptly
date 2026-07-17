@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+from typing import NamedTuple
 
 import httpx
 
@@ -28,6 +29,16 @@ _MAX_RESPONSE_BYTES = 1024 * 1024
 
 class AIProviderError(Exception):
     """Normalisierter Fehler für jeden Provider-Call — nie eine rohe httpx-Exception durchreichen."""
+
+
+class StructuredCallResult(NamedTuple):
+    """Rückgabe von call_structured(): das extrahierte JSON plus Token-Verbrauch (für
+    ai_usage_events, siehe ai_extraction.py). Bei einem Retry (Schema-Fallback) sind beide
+    Zähler bereits über beide HTTP-Calls summiert — beide haben real Tokens verbraucht."""
+
+    content: dict
+    prompt_tokens: int
+    completion_tokens: int
 
 
 def _safe_json(resp: httpx.Response) -> dict:
@@ -72,6 +83,13 @@ def _fallback_instruction(json_schema: dict) -> str:
     )
 
 
+def resolve_model_name(provider: AIProviderType, model_name: str | None) -> str:
+    """Modellname, der für einen Call tatsächlich verwendet wird (expliziter Override oder
+    Hardcoded-Default) — auch außerhalb dieses Moduls relevant (ai_usage_events-Logging in
+    ai_extraction.py), daher public statt in call_structured() versteckt."""
+    return model_name or _DEFAULT_MODELS[provider]
+
+
 async def call_structured(
     provider: AIProviderType,
     api_key: str | None,
@@ -81,14 +99,14 @@ async def call_structured(
     user_prompt: str,
     json_schema: dict,
     timeout: float,
-) -> dict:
+) -> StructuredCallResult:
     """
     Ruft den gegebenen KI-Provider mit provider-nativem Structured-Output auf. Liefert bei
     nicht-schema-validem JSON einen Retry über einen Prompt-JSON-Fallback (Schema als
     Textinstruktion). Alle HTTP-/Timeout-/Parse-Fehler werden zu AIProviderError normalisiert
     — niemals eine rohe httpx-Exception nach außen durchreichen.
     """
-    model = model_name or _DEFAULT_MODELS[provider]
+    model = resolve_model_name(provider, model_name)
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             if provider == AIProviderType.OLLAMA:
@@ -112,6 +130,12 @@ async def call_structured(
         ) from exc
 
 
+def _ollama_token_counts(data: dict) -> tuple[int, int]:
+    """Ollama liefert prompt_eval_count/eval_count nicht in jeder Antwort (z.B. bei
+    Streaming-Edgefällen) — fehlende Felder best-effort als 0 behandeln statt zu crashen."""
+    return data.get("prompt_eval_count") or 0, data.get("eval_count") or 0
+
+
 async def _call_ollama(
     client: httpx.AsyncClient,
     endpoint: str,
@@ -119,7 +143,7 @@ async def _call_ollama(
     system_prompt: str,
     user_prompt: str,
     json_schema: dict,
-) -> dict:
+) -> StructuredCallResult:
     url = f"{endpoint.rstrip('/')}/api/chat"
     base_messages = [
         {"role": "system", "content": system_prompt},
@@ -131,10 +155,11 @@ async def _call_ollama(
         json={"model": model, "messages": base_messages, "format": json_schema, "stream": False},
     )
     resp.raise_for_status()
-    content = _safe_json(resp)["message"]["content"]
-    parsed = _try_parse(content)
+    data = _safe_json(resp)
+    prompt_tokens, completion_tokens = _ollama_token_counts(data)
+    parsed = _try_parse(data["message"]["content"])
     if parsed is not None:
-        return parsed
+        return StructuredCallResult(parsed, prompt_tokens, completion_tokens)
 
     logger.warning("Ollama-Antwort nicht schema-valide, Prompt-JSON-Fallback wird versucht")
     fallback_messages = [
@@ -143,11 +168,19 @@ async def _call_ollama(
     ]
     resp = await client.post(url, json={"model": model, "messages": fallback_messages, "stream": False})
     resp.raise_for_status()
-    content = _safe_json(resp)["message"]["content"]
-    parsed = _try_parse(content)
+    data = _safe_json(resp)
+    fallback_prompt_tokens, fallback_completion_tokens = _ollama_token_counts(data)
+    prompt_tokens += fallback_prompt_tokens
+    completion_tokens += fallback_completion_tokens
+    parsed = _try_parse(data["message"]["content"])
     if parsed is not None:
-        return parsed
+        return StructuredCallResult(parsed, prompt_tokens, completion_tokens)
     raise AIProviderError("Ollama-Antwort auch im Prompt-Fallback nicht als JSON parsebar")
+
+
+def _openai_token_counts(data: dict) -> tuple[int, int]:
+    usage = data.get("usage") or {}
+    return usage.get("prompt_tokens") or 0, usage.get("completion_tokens") or 0
 
 
 async def _call_openai(
@@ -157,7 +190,7 @@ async def _call_openai(
     system_prompt: str,
     user_prompt: str,
     json_schema: dict,
-) -> dict:
+) -> StructuredCallResult:
     if not api_key:
         raise AIProviderError("OpenAI-Aufruf ohne api_key")
     url = "https://api.openai.com/v1/chat/completions"
@@ -180,10 +213,11 @@ async def _call_openai(
         },
     )
     resp.raise_for_status()
-    content = _safe_json(resp)["choices"][0]["message"]["content"]
-    parsed = _try_parse(content)
+    data = _safe_json(resp)
+    prompt_tokens, completion_tokens = _openai_token_counts(data)
+    parsed = _try_parse(data["choices"][0]["message"]["content"])
     if parsed is not None:
-        return parsed
+        return StructuredCallResult(parsed, prompt_tokens, completion_tokens)
 
     logger.warning("OpenAI-Antwort nicht schema-valide, Prompt-JSON-Fallback wird versucht")
     fallback_messages = [
@@ -194,11 +228,21 @@ async def _call_openai(
         url, headers=headers, json={"model": model, "messages": fallback_messages}
     )
     resp.raise_for_status()
-    content = _safe_json(resp)["choices"][0]["message"]["content"]
-    parsed = _try_parse(content)
+    data = _safe_json(resp)
+    fallback_prompt_tokens, fallback_completion_tokens = _openai_token_counts(data)
+    prompt_tokens += fallback_prompt_tokens
+    completion_tokens += fallback_completion_tokens
+    parsed = _try_parse(data["choices"][0]["message"]["content"])
     if parsed is not None:
-        return parsed
+        return StructuredCallResult(parsed, prompt_tokens, completion_tokens)
     raise AIProviderError("OpenAI-Antwort auch im Prompt-Fallback nicht als JSON parsebar")
+
+
+def _anthropic_token_counts(data: dict) -> tuple[int, int]:
+    """Anthropic liefert kein total_tokens-Feld — input_tokens/output_tokens sind hier
+    bereits das, was call_structured() als prompt_tokens/completion_tokens durchreicht."""
+    usage = data.get("usage") or {}
+    return usage.get("input_tokens") or 0, usage.get("output_tokens") or 0
 
 
 async def _call_anthropic(
@@ -208,7 +252,7 @@ async def _call_anthropic(
     system_prompt: str,
     user_prompt: str,
     json_schema: dict,
-) -> dict:
+) -> StructuredCallResult:
     if not api_key:
         raise AIProviderError("Anthropic-Aufruf ohne api_key")
     url = "https://api.anthropic.com/v1/messages"
@@ -237,9 +281,10 @@ async def _call_anthropic(
     )
     resp.raise_for_status()
     data = _safe_json(resp)
+    prompt_tokens, completion_tokens = _anthropic_token_counts(data)
     for block in data.get("content", []):
         if block.get("type") == "tool_use":
-            return block["input"]
+            return StructuredCallResult(block["input"], prompt_tokens, completion_tokens)
 
     logger.warning("Anthropic-Antwort ohne tool_use-Block, Prompt-JSON-Fallback wird versucht")
     resp = await client.post(
@@ -256,11 +301,19 @@ async def _call_anthropic(
     )
     resp.raise_for_status()
     data = _safe_json(resp)
+    fallback_prompt_tokens, fallback_completion_tokens = _anthropic_token_counts(data)
+    prompt_tokens += fallback_prompt_tokens
+    completion_tokens += fallback_completion_tokens
     text_blocks = [b["text"] for b in data.get("content", []) if b.get("type") == "text"]
     parsed = _try_parse("".join(text_blocks)) if text_blocks else None
     if parsed is not None:
-        return parsed
+        return StructuredCallResult(parsed, prompt_tokens, completion_tokens)
     raise AIProviderError("Anthropic-Antwort auch im Prompt-Fallback nicht als JSON parsebar")
+
+
+def _google_token_counts(data: dict) -> tuple[int, int]:
+    usage = data.get("usageMetadata") or {}
+    return usage.get("promptTokenCount") or 0, usage.get("candidatesTokenCount") or 0
 
 
 async def _call_google(
@@ -270,7 +323,7 @@ async def _call_google(
     system_prompt: str,
     user_prompt: str,
     json_schema: dict,
-) -> dict:
+) -> StructuredCallResult:
     if not api_key:
         raise AIProviderError("Google-Aufruf ohne api_key")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
@@ -287,10 +340,11 @@ async def _call_google(
         },
     )
     resp.raise_for_status()
-    text = _safe_json(resp)["candidates"][0]["content"]["parts"][0]["text"]
-    parsed = _try_parse(text)
+    data = _safe_json(resp)
+    prompt_tokens, completion_tokens = _google_token_counts(data)
+    parsed = _try_parse(data["candidates"][0]["content"]["parts"][0]["text"])
     if parsed is not None:
-        return parsed
+        return StructuredCallResult(parsed, prompt_tokens, completion_tokens)
 
     logger.warning("Gemini-Antwort nicht schema-valide, Prompt-JSON-Fallback wird versucht")
     resp = await client.post(
@@ -306,8 +360,11 @@ async def _call_google(
         },
     )
     resp.raise_for_status()
-    text = _safe_json(resp)["candidates"][0]["content"]["parts"][0]["text"]
-    parsed = _try_parse(text)
+    data = _safe_json(resp)
+    fallback_prompt_tokens, fallback_completion_tokens = _google_token_counts(data)
+    prompt_tokens += fallback_prompt_tokens
+    completion_tokens += fallback_completion_tokens
+    parsed = _try_parse(data["candidates"][0]["content"]["parts"][0]["text"])
     if parsed is not None:
-        return parsed
+        return StructuredCallResult(parsed, prompt_tokens, completion_tokens)
     raise AIProviderError("Gemini-Antwort auch im Prompt-Fallback nicht als JSON parsebar")

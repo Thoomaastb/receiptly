@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from pydantic import BaseModel, Field
 
 
@@ -26,3 +28,12 @@ class AISettingsUpdate(BaseModel):
     # Bei Ollama: lokales Modell auf dem eigenen Host. Bei Cloud-Providern: optionaler
     # Override des Hardcoded-Defaults (z.B. "gpt-4o-mini").
     model_name: str | None = Field(default=None, max_length=255)
+
+
+class AIUsageResponse(BaseModel):
+    total_tokens: int
+    # None nur, wenn es 0 Events gibt UND 0 Tokens summiert wurden. Bei einer Mischung aus
+    # bepreisten und unbepreisten (custom-model) Events wird trotzdem summiert, was bekannt
+    # ist — has_unpriced_usage signalisiert dem Frontend, dass der Wert eine Untergrenze ist.
+    total_cost_eur: Decimal | None
+    has_unpriced_usage: bool

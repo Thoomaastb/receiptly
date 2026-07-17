@@ -1,17 +1,20 @@
 import asyncio
 import ipaddress
 import socket
+from decimal import Decimal
 from urllib.parse import urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_admin
 from app.database import get_db
 from app.models.ai_settings import AISettings, AIProviderType
+from app.models.ai_usage_event import AIUsageEvent
 from app.models.user import User
-from app.schemas.ai_settings import AISettingsResponse, AISettingsUpdate
+from app.schemas.ai_settings import AISettingsResponse, AISettingsUpdate, AIUsageResponse
+from app.services import ai_pricing
 from app.services.ai_provider_resolution import resolve_effective_provider
 from app.services.crypto import encrypt_secret
 
@@ -149,4 +152,40 @@ async def update_ai_provider(
         endpoint_url=settings.endpoint_url,
         model_name=settings.model_name,
         locked_by_server=False,
+    )
+
+
+@router.get("/ai-usage", response_model=AIUsageResponse)
+async def get_ai_usage(
+    admin: User = Depends(require_admin), db: AsyncSession = Depends(get_db)
+) -> AIUsageResponse:
+    """
+    Admin-only, systemweiter (nicht haushaltsbezogener) kumulierter KI-Token-/Kosten-Zähler
+    für die Sidebar — siehe app/models/ai_usage_event.py. estimated_cost_usd ist pro Event
+    ggf. NULL (unbekanntes/custom Modell ohne Preis-Mapping, siehe ai_pricing.py); die Summe
+    berücksichtigt nur bepreiste Events, has_unpriced_usage macht transparent, dass der
+    €-Wert dann eine Untergrenze ist statt der vollständigen Summe.
+    """
+    result = await db.execute(
+        select(
+            func.sum(AIUsageEvent.total_tokens),
+            func.sum(AIUsageEvent.estimated_cost_usd),
+            func.count().filter(AIUsageEvent.estimated_cost_usd.is_(None)),
+        )
+    )
+    total_tokens, total_cost_usd, unpriced_count = result.one()
+
+    if total_tokens is None:
+        return AIUsageResponse(total_tokens=0, total_cost_eur=Decimal("0"), has_unpriced_usage=False)
+
+    # func.sum() über eine Spalte, in der alle Werte NULL sind, liefert NULL (nicht 0) —
+    # das ist "kein einziges bepreistes Event", nicht "0 Euro Kosten unter Vorbehalt". Wir
+    # summieren trotzdem als Decimal("0") weiter: has_unpriced_usage macht die Lücke explizit.
+    total_cost_eur = (
+        ai_pricing.usd_to_eur(total_cost_usd) if total_cost_usd is not None else Decimal("0")
+    )
+    return AIUsageResponse(
+        total_tokens=total_tokens,
+        total_cost_eur=total_cost_eur,
+        has_unpriced_usage=unpriced_count > 0,
     )
