@@ -1,3 +1,9 @@
+## [0.29.0](https://github.com/Thoomaastb/receiptly/compare/v0.28.0...v0.29.0) (2026-07-20)
+
+### Features
+
+* **db:** Versand/Rabatt/Steuer-Felder auf Receipt, is_demo-Mechanismus entfernt ([a79d551](https://github.com/Thoomaastb/receiptly/commit/a79d5519bcae929b7919331c5387212db4481330))
+
 ## [0.28.0](https://github.com/Thoomaastb/receiptly/compare/v0.27.0...v0.28.0) (2026-07-20)
 
 ### Features
