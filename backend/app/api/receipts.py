@@ -1,3 +1,4 @@
+import asyncio
 import calendar
 import uuid
 from datetime import date
@@ -35,13 +36,25 @@ from app.schemas.receipt import (
     ReceiptUpdate,
     ReceiptUploadResponse,
 )
+
 from app.services.ai_extraction import run_ai_extraction
 from app.services.bucket_access import visible_bucket_ids_query
 from app.services.storage import (
     FileTooLargeError,
     UnsupportedFileTypeError,
+    generate_thumbnail_for_existing_file,
     store_upload,
 )
+
+# Content-Type-Ableitung aus der Dateiendung für Alt-Belege ohne mime_type-Spalte —
+# spiegelt die Endungen, die store_upload() beim Upload vergibt (siehe app/services/
+# storage.py), analog zur Regex im Frontend (ReceiptDetailView.svelte: /\.(jpe?g|png)$/i).
+_CONTENT_TYPE_BY_EXTENSION = {
+    ".pdf": "application/pdf",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+}
 
 router = APIRouter(prefix="/receipts", tags=["receipts"])
 
@@ -288,9 +301,17 @@ async def get_receipt_thumb(
 ) -> FileResponse:
     """
     Liefert das serverseitig generierte Thumbnail aus. 404 sowohl bei fehlender
-    Sichtbarkeit (Existenz nicht leaken) als auch wenn kein Thumbnail vorhanden ist
-    (z.B. Thumbnail-Generierung beim Upload fehlgeschlagen) — das Frontend fällt in dem
-    Fall auf ein generisches Icon zurück.
+    Sichtbarkeit (Existenz nicht leaken) als auch wenn kein Thumbnail vorhanden ist und
+    sich auch nicht nachträglich erzeugen lässt — das Frontend fällt in dem Fall auf ein
+    generisches Icon zurück.
+
+    Alt-Belege (vor Einführung der Thumbnail-Generierung hochgeladen) haben
+    thumb_path=None. Statt eines Backfill-Skripts wird hier lazy nachgeholt: aus der noch
+    vorhandenen Originaldatei wird beim ersten Aufruf ein Thumbnail erzeugt, auf Platte
+    abgelegt und thumb_path in der DB nachgetragen — der Beleg ist danach "geheilt" und
+    alle folgenden Aufrufe treffen den normalen Pfad. Schlägt das fehl (Originaldatei
+    fehlt auch, oder korrupte Altdatei), bleibt thumb_path bewusst None statt einen
+    Fehlerzustand zu cachen — jeder weitere Aufruf versucht es einfach erneut.
     """
     result = await db.execute(
         select(Receipt).where(
@@ -301,11 +322,25 @@ async def get_receipt_thumb(
     if receipt is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Beleg nicht gefunden")
 
-    if receipt.thumb_path is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kein Thumbnail vorhanden")
+    thumb_path = Path(receipt.thumb_path) if receipt.thumb_path else None
 
-    thumb_path = Path(receipt.thumb_path)
-    if not thumb_path.is_file():
+    if thumb_path is None or not thumb_path.is_file():
+        thumb_path = None
+        original_path = Path(receipt.file_path)
+        content_type = _CONTENT_TYPE_BY_EXTENSION.get(original_path.suffix.lower())
+        if content_type is not None and original_path.is_file():
+            generated = await asyncio.to_thread(
+                generate_thumbnail_for_existing_file,
+                original_path,
+                user.household_id,
+                content_type,
+            )
+            if generated is not None:
+                thumb_path = generated
+                receipt.thumb_path = str(generated)
+                await db.commit()
+
+    if thumb_path is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kein Thumbnail vorhanden")
 
     return FileResponse(
