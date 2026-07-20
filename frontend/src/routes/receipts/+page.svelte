@@ -178,6 +178,11 @@
 
 	onMount(async () => {
 		try {
+			// Direktlink von der Sidebar-Kategorienliste -> Filter vor dem ersten Laden setzen,
+			// damit gleich gefiltert geladen wird statt erst ungefiltert und dann nachzufiltern.
+			const categoryParam = $page.url.searchParams.get('category');
+			if (categoryParam) activeCategory = categoryParam;
+
 			const [receiptsRes, bucketsRes] = await Promise.all([
 				fetch(`/api/receipts?${buildParams(0)}`, { credentials: 'include' }),
 				fetch('/api/buckets', { credentials: 'include' })

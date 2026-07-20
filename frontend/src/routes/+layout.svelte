@@ -7,10 +7,9 @@
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import AiUsageBadge from '$lib/components/AiUsageBadge.svelte';
 	import { initThemeSync } from '$lib/theme';
+	import { categoryColor, categoryLabel } from '$lib/categories';
 
-	// Kategorien kommen aus merchant.category — aktuell noch leer, da Auto-Tagging
-	// (KI-Provider-Paket) noch nicht gebaut ist. Ehrlicher Leer-Zustand statt Fake-Daten.
-	let categories: { name: string; color: string; count: number }[] = [];
+	let categories: { value: string; name: string; color: string; count: number }[] = [];
 	let expiringWarrantiesCount = 0;
 	let categoriesLoading = true;
 
@@ -84,15 +83,29 @@
 		try {
 			const res = await fetch('/api/receipts', { credentials: 'include' });
 			if (res.ok) {
-				const receipts = await res.json();
+				const receipts: { warranty_expires_at?: string; category?: string | null }[] = await res.json();
 				// Garantie-Ablauf-Zählung: real berechnet, aber aktuell immer 0,
 				// da warranty_expires_at noch nirgends befüllt wird (Dokumente-&-Garantie-Paket offen)
 				const now = Date.now();
-				expiringWarrantiesCount = receipts.filter((r: { warranty_expires_at?: string }) => {
+				expiringWarrantiesCount = receipts.filter((r) => {
 					if (!r.warranty_expires_at) return false;
 					const days = (new Date(r.warranty_expires_at).getTime() - now) / 86_400_000;
 					return days <= 30;
 				}).length;
+
+				const counts = new Map<string, number>();
+				for (const r of receipts) {
+					if (!r.category) continue;
+					counts.set(r.category, (counts.get(r.category) ?? 0) + 1);
+				}
+				categories = Array.from(counts.entries())
+					.map(([value, count]) => ({
+						value,
+						name: categoryLabel(value) ?? value,
+						color: categoryColor(value),
+						count
+					}))
+					.sort((a, b) => b.count - a.count);
 			}
 		} finally {
 			categoriesLoading = false;
@@ -105,7 +118,7 @@
 {#if isAuthRoute}
 	<slot />
 {:else}
-<div class="flex min-h-screen flex-col bg-hifi-bg font-ui text-hifi-text">
+<div class="flex h-screen flex-col overflow-hidden bg-hifi-bg font-ui text-hifi-text">
 	<div
 		class="grid h-[72px] flex-none grid-cols-[1fr_auto_1fr] items-center border-b border-hifi-border bg-hifi-surface px-8"
 	>
@@ -225,12 +238,12 @@
 	</div>
 
 	<div class="flex min-h-0 flex-1">
-		<aside class="flex w-[232px] flex-none flex-col border-r border-hifi-border bg-hifi-surface p-4 py-6">
-			<div class="flex flex-1 flex-col gap-6">
+		<aside class="flex w-[232px] flex-none flex-col overflow-hidden border-r border-hifi-border bg-hifi-surface p-4 py-6">
+			<div class="flex min-h-0 flex-1 flex-col gap-6">
 			{#if isSettingsRoute}
 				<SettingsNav {isAdmin} />
 			{:else}
-				<div class="flex flex-col gap-0.5">
+				<div class="flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto">
 					<div class="px-3 pb-2 text-[11.5px] font-bold uppercase tracking-[0.04em] text-hifi-text-faint">
 						Kategorien
 					</div>
@@ -238,21 +251,23 @@
 						<div class="px-3 py-2 text-[13px] text-hifi-text-faint">Wird geladen …</div>
 					{:else if categories.length === 0}
 						<div class="px-3 py-2 text-[12.5px] leading-relaxed text-hifi-text-faint">
-							Noch keine Kategorien — die kommen automatisch, sobald die KI-Auto-Verschlagwortung
-							läuft.
+							Noch keine Kategorien — sobald ein Beleg eine Kategorie hat, taucht sie hier auf.
 						</div>
 					{:else}
-						{#each categories as cat (cat.name)}
-							<button class="flex items-center gap-2.5 rounded-[9px] px-3 py-2 text-left text-[13.5px] font-medium text-hifi-text transition-colors hover:bg-hifi-accent-tint">
+						{#each categories as cat (cat.value)}
+							<button
+								on:click={() => goto(`/receipts?category=${encodeURIComponent(cat.value)}`)}
+								class="flex flex-none items-center gap-2.5 rounded-[9px] px-3 py-2 text-left text-[13.5px] font-medium text-hifi-text transition-colors hover:bg-hifi-accent-tint"
+							>
 								<span class="h-2 w-2 flex-none rounded-full" style="background: {cat.color}"></span>
-								<span class="flex-1">{cat.name}</span>
+								<span class="flex-1 truncate">{cat.name}</span>
 								<span class="font-mono text-xs text-hifi-text-faint">{cat.count}</span>
 							</button>
 						{/each}
 					{/if}
 				</div>
 
-				<div class="mt-auto flex flex-col gap-1.5 rounded-[14px] bg-hifi-accent-tint p-3.5">
+				<div class="mt-auto flex flex-none flex-col gap-1.5 rounded-[14px] bg-hifi-accent-tint p-3.5">
 					<div class="flex items-center gap-1.5 text-[12.5px] font-bold text-hifi-accent-text">
 						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 							<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
@@ -268,7 +283,7 @@
 			</div>
 
 			{#if isAdmin}
-				<div class="pt-3">
+				<div class="flex-none pt-3">
 					<AiUsageBadge />
 				</div>
 			{/if}
