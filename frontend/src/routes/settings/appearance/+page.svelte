@@ -23,7 +23,7 @@
 				aria-checked={$mosaicCompact}
 				aria-label="Kompaktes Mosaik"
 				on:click={() => setMosaicCompact(!$mosaicCompact)}
-				class="relative h-6 w-11 flex-none rounded-full transition-colors"
+				class="relative h-6 w-11 flex-none rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-hifi-accent focus-visible:ring-offset-2"
 				class:bg-hifi-accent={$mosaicCompact}
 				class:bg-hifi-border={!$mosaicCompact}
 			>
