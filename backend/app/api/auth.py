@@ -1,6 +1,6 @@
 import logging
 import uuid
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from sqlalchemy import select
@@ -20,7 +20,6 @@ from app.config import get_settings
 from app.database import get_db
 from app.models.bucket import Bucket, BucketType, BucketVisibility
 from app.models.household import Household
-from app.models.receipt import Receipt, ReceiptStatus
 from app.models.user import User, UserRole
 from app.schemas.auth import (
     ChangePasswordRequest,
@@ -59,8 +58,12 @@ async def register(
     Legt einen neuen Haushalt mit dem ersten User (Rolle: Admin) an.
     Der Household-Bucket wird automatisch miterzeugt — is_default=True, immer 'transparent',
     darf laut Produkt-Konzept nie gelöscht oder auf privat gestellt werden.
-    Ein Demo-Beleg (is_demo=True) landet ebenfalls automatisch drin, damit man sofort
-    etwas zum Testen hat — wird beim v1.0.0-Cutover per eigener Migration entfernt.
+
+    Früher wurde hier zusätzlich automatisch ein Demo-Beleg (is_demo=True) angelegt, damit
+    man sofort etwas zum Testen hat. Das ist mit dem v1.0.0-Cutover entfernt worden (siehe
+    Migration 0010) — offene Frage an den Nutzer, ob der First-Setup-Flow dadurch mit einer
+    leeren Startseite ohne jeden Kontext startet und ob das UX-seitig ein Problem ist bzw.
+    ersetzt werden soll (z.B. durch ein Onboarding-Leerzustand-Hinweis im Frontend).
     """
     existing = await db.execute(select(User).where(User.username == payload.username))
     if existing.scalar_one_or_none() is not None:
@@ -90,19 +93,6 @@ async def register(
     )
     db.add(household_bucket)
     await db.flush()
-
-    demo_receipt = Receipt(
-        user_id=user.id,
-        bucket_id=household_bucket.id,
-        file_path="demo/dummy-beleg.jpg",
-        content_hash=f"demo-{household_bucket.id}",
-        status=ReceiptStatus.PROCESSED,
-        currency="EUR",
-        receipt_date=date.today() - timedelta(days=3),
-        total_amount=24.99,
-        is_demo=True,
-    )
-    db.add(demo_receipt)
 
     await db.commit()
     await db.refresh(user)
