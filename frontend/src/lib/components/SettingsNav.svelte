@@ -5,6 +5,7 @@
 
 	const items: { href: string; label: string }[] = [
 		{ href: '/settings/profile', label: 'Profil' },
+		{ href: '/settings/appearance', label: 'Darstellung' },
 		{ href: '/settings/localization', label: 'Lokalisation' },
 		{ href: '/settings/security', label: 'Sicherheit' }
 	];

@@ -3,6 +3,7 @@
 	import { goto } from '$app/navigation';
 	import UploadModal from '$lib/components/UploadModal.svelte';
 	import { categoryLabel } from '$lib/categories';
+	import { mosaicCompact } from '$lib/mosaicDensity';
 
 	interface Receipt {
 		id: string;
@@ -161,12 +162,11 @@
 		<span class="text-sm text-hifi-text-muted">Noch keine Belege — lade den ersten hoch, um loszulegen.</span>
 	</button>
 {:else}
-	<div style="columns: 3; column-gap: 16px;">
+	<div class="gap-4 {$mosaicCompact ? 'columns-3 md:columns-4 xl:columns-6' : 'columns-2 md:columns-3 xl:columns-4'}">
 		{#each recentReceipts as receipt, i (receipt.id)}
 			<button
 				on:click={() => openReceiptDetail(receipt.id)}
-				class="mb-4 block w-full overflow-hidden rounded-2xl border border-hifi-border bg-hifi-surface text-left"
-				style="break-inside: avoid;"
+				class="mb-4 block w-full break-inside-avoid overflow-hidden rounded-2xl border border-hifi-border bg-hifi-surface text-left"
 			>
 				{#if !thumbFailedIds.has(receipt.id)}
 					<img
