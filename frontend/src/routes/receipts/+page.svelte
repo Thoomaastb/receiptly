@@ -77,6 +77,9 @@
 	let groupByBucket = false;
 	let openReceipt: ReceiptDetail | null = null;
 	let expandedBuckets: Record<string, boolean> = {};
+	// true nur, wenn der aktuell offene Beleg über den Deep-Link von der Startseite
+	// ("Zuletzt hinzugefügt", ?open=<id>) geöffnet wurde -> steuert, wohin "Zurück" führt.
+	let openedViaHomeDeeplink = false;
 
 	let searchQuery = '';
 	let activeType: string | null = null;
@@ -196,9 +199,17 @@
 			for (const bucket of buckets) expandedBuckets[bucket.id] = true;
 
 			// Direktlink von der Startseite ("Zuletzt hinzugefügt") -> Detail sofort öffnen,
-			// statt erst die Liste zu zeigen und einen zweiten Klick zu verlangen.
+			// statt erst die Liste zu zeigen und einen zweiten Klick zu verlangen. "Zurück" muss
+			// in diesem Fall zur Startseite statt zur Liste führen (siehe backToList), und der
+			// ?open-Param wird danach aus der URL entfernt, damit ein Reload nicht erneut
+			// denselben Beleg deep-linkt und das Flag bei einem späteren manuellen Öffnen nicht
+			// fälschlich hängen bleibt.
 			const openId = $page.url.searchParams.get('open');
-			if (openId) await openDetail(openId);
+			if (openId) {
+				openedViaHomeDeeplink = true;
+				await openDetail(openId);
+				goto('/receipts', { replaceState: true, keepFocus: true, noScroll: true });
+			}
 		} catch (err) {
 			errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler.';
 		} finally {
@@ -269,9 +280,21 @@
 		schedulePendingPoll();
 	}
 
+	// Für manuelle Klicks aus der Liste (im Gegensatz zum Deep-Link-Effect in onMount) -
+	// stellt sicher, dass "Zurück" wieder zur Liste statt zur Startseite führt, falls zuvor
+	// ein Beleg per Deep-Link geöffnet wurde.
+	function openDetailManual(id: string) {
+		openedViaHomeDeeplink = false;
+		openDetail(id);
+	}
+
 	function backToList() {
 		clearTimeout(pollHandle);
 		openReceipt = null;
+		if (openedViaHomeDeeplink) {
+			openedViaHomeDeeplink = false;
+			goto('/');
+		}
 	}
 
 	onDestroy(() => clearTimeout(pollHandle));
@@ -441,8 +464,8 @@
 							bucketName={section.bucket.name}
 							bucketIsDefault={section.bucket.is_default}
 							showBucketPill={false}
-							thumbUrl={receipt.thumb_path ? `/api/receipts/${receipt.id}/thumb` : null}
-							onOpen={openDetail}
+							thumbUrl={`/api/receipts/${receipt.id}/thumb`}
+							onOpen={openDetailManual}
 						/>
 					{/each}
 				</div>
@@ -462,8 +485,8 @@
 					itemCount={receipt.item_count}
 					bucketName={bucket?.name ?? '…'}
 					bucketIsDefault={bucket?.is_default ?? false}
-					thumbUrl={receipt.thumb_path ? `/api/receipts/${receipt.id}/thumb` : null}
-					onOpen={openDetail}
+					thumbUrl={`/api/receipts/${receipt.id}/thumb`}
+					onOpen={openDetailManual}
 				/>
 			{/each}
 		</div>
