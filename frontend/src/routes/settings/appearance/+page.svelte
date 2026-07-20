@@ -23,14 +23,14 @@
 				aria-checked={$mosaicCompact}
 				aria-label="Kompaktes Mosaik"
 				on:click={() => setMosaicCompact(!$mosaicCompact)}
-				class="relative h-6 w-11 flex-none rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-hifi-accent focus-visible:ring-offset-2"
-				class:bg-hifi-accent={$mosaicCompact}
-				class:bg-hifi-border={!$mosaicCompact}
+				class="relative h-6 w-11 flex-none rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-hifi-accent focus-visible:ring-offset-2 {$mosaicCompact
+					? 'bg-hifi-accent'
+					: 'bg-hifi-border'}"
 			>
 				<span
-					class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform"
-					class:translate-x-[22px]={$mosaicCompact}
-					class:translate-x-0.5={!$mosaicCompact}
+					class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform {$mosaicCompact
+						? 'translate-x-[22px]'
+						: 'translate-x-0.5'}"
 				></span>
 			</button>
 		</div>
