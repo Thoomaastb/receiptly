@@ -1,3 +1,9 @@
+## [0.25.1](https://github.com/Thoomaastb/receiptly/compare/v0.25.0...v0.25.1) (2026-07-20)
+
+### Bug Fixes
+
+* **ui:** Kategorie/Händler sichtbar machen, Sidebar-Scroll-Bug behoben ([a03fbea](https://github.com/Thoomaastb/receiptly/commit/a03fbeab572b01aea2f7033377eba488f4f1d14f))
+
 ## [0.25.0](https://github.com/Thoomaastb/receiptly/compare/v0.24.0...v0.25.0) (2026-07-17)
 
 ### Features
