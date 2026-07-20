@@ -1,3 +1,9 @@
+## [0.27.0](https://github.com/Thoomaastb/receiptly/compare/v0.26.0...v0.27.0) (2026-07-20)
+
+### Features
+
+* **ui:** responsives Mosaik-Grid + konfigurierbarer Kompakt-Modus auf der Home-Übersicht ([3403a9c](https://github.com/Thoomaastb/receiptly/commit/3403a9c5fb9d7e37a01bdc7136cdc029944863c9))
+
 ## [0.26.0](https://github.com/Thoomaastb/receiptly/compare/v0.25.1...v0.26.0) (2026-07-20)
 
 ### Features
