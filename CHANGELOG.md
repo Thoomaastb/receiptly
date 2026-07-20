@@ -1,3 +1,15 @@
+## [0.26.0](https://github.com/Thoomaastb/receiptly/compare/v0.25.1...v0.26.0) (2026-07-20)
+
+### Features
+
+* **receipts:** Lazy-Thumbnail-Backfill für Alt-Belege ohne thumb_path ([a262050](https://github.com/Thoomaastb/receiptly/commit/a262050f4ce2889ee687c7346f93971bc3427f91))
+* **receipts:** serverseitige Thumbnail-Generierung für Belegliste ([2e30176](https://github.com/Thoomaastb/receiptly/commit/2e30176480ee3ed61ef64591630ccb8125704bcd))
+* **receipts:** Thumbnail-Anzeige auf der Home-Übersicht ([f8c03fa](https://github.com/Thoomaastb/receiptly/commit/f8c03faba86531de116e8dc83100516c5725cdc4))
+
+### Bug Fixes
+
+* **ui:** Zurück-Navigation respektiert Herkunft (Home vs. Liste), Thumbnail-Anfrage nicht mehr an vorhandenen thumb_path gekoppelt ([d6d374e](https://github.com/Thoomaastb/receiptly/commit/d6d374e1d6425c764ddf90719ecacd4835c68d39))
+
 ## [0.25.1](https://github.com/Thoomaastb/receiptly/compare/v0.25.0...v0.25.1) (2026-07-20)
 
 ### Bug Fixes
