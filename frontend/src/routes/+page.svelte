@@ -15,10 +15,20 @@
 		warranty_expires_at?: string | null;
 		merchant_name?: string | null;
 		category?: string | null;
+		thumb_path: string | null;
 	}
 
 	let allReceipts: Receipt[] = [];
 	let loading = true;
+
+	// GET /thumb liefert 404, wenn kein serverseitiges Thumbnail existiert (alte Belege,
+	// fehlgeschlagene Generierung) — der Browser feuert dann on:error auf dem <img>, und wir
+	// fallen dauerhaft auf das gestreifte Platzhalter-Muster zurück statt ein kaputtes Bild
+	// zu zeigen. Pro Karte gemerkt, da mehrere Belege gleichzeitig im {#each} gerendert werden.
+	let thumbFailedIds = new Set<string>();
+	function markThumbFailed(id: string) {
+		thumbFailedIds = new Set(thumbFailedIds).add(id);
+	}
 
 	let uploadOpen = false;
 	let uploadCaptureMode: 'camera' | 'file' = 'file';
@@ -61,8 +71,8 @@
 		year: 'numeric'
 	});
 
+	// Fallback-Label fürs gestreifte Platzhalter-Muster, solange kein Thumbnail geladen werden kann.
 	function fileExt(status: string): string {
-		// Platzhalter, solange file_path nicht Teil der Listen-Antwort ist
 		return status === 'pending' ? '…' : 'DOC';
 	}
 
@@ -158,14 +168,25 @@
 				class="mb-4 block w-full overflow-hidden rounded-2xl border border-hifi-border bg-hifi-surface text-left"
 				style="break-inside: avoid;"
 			>
-				<div
-					class="flex items-center justify-center"
-					style="height: {thumbHeights[i % thumbHeights.length]}px; background: repeating-linear-gradient(135deg, var(--color-stripe-thumb-a), var(--color-stripe-thumb-a) 8px, var(--color-stripe-thumb-b) 8px, var(--color-stripe-thumb-b) 16px);"
-				>
-					<span class="rounded-[5px] bg-hifi-surface/80 px-2 py-1 font-mono text-[11px] font-semibold tracking-wide text-hifi-accent-text">
-						{fileExt(receipt.status)}
-					</span>
-				</div>
+				{#if !thumbFailedIds.has(receipt.id)}
+					<img
+						src={`/api/receipts/${receipt.id}/thumb`}
+						alt={receipt.merchant_name ? `Beleg-Vorschau: ${receipt.merchant_name}` : 'Beleg-Vorschau'}
+						loading="lazy"
+						style="height: {thumbHeights[i % thumbHeights.length]}px;"
+						class="w-full object-cover"
+						on:error={() => markThumbFailed(receipt.id)}
+					/>
+				{:else}
+					<div
+						class="flex items-center justify-center"
+						style="height: {thumbHeights[i % thumbHeights.length]}px; background: repeating-linear-gradient(135deg, var(--color-stripe-thumb-a), var(--color-stripe-thumb-a) 8px, var(--color-stripe-thumb-b) 8px, var(--color-stripe-thumb-b) 16px);"
+					>
+						<span class="rounded-[5px] bg-hifi-surface/80 px-2 py-1 font-mono text-[11px] font-semibold tracking-wide text-hifi-accent-text">
+							{fileExt(receipt.status)}
+						</span>
+					</div>
+				{/if}
 				<div class="px-4 py-3.5">
 					<div class="mb-2 flex items-center justify-between gap-2">
 						<span class="text-xs text-hifi-text-faint">{receipt.receipt_date ?? 'Datum folgt'}</span>
