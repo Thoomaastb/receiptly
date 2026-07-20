@@ -280,6 +280,42 @@ async def get_receipt_file(
     return FileResponse(file_path, filename=file_path.name, content_disposition_type="inline")
 
 
+@router.get("/{receipt_id}/thumb")
+async def get_receipt_thumb(
+    receipt_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> FileResponse:
+    """
+    Liefert das serverseitig generierte Thumbnail aus. 404 sowohl bei fehlender
+    Sichtbarkeit (Existenz nicht leaken) als auch wenn kein Thumbnail vorhanden ist
+    (z.B. Thumbnail-Generierung beim Upload fehlgeschlagen) — das Frontend fällt in dem
+    Fall auf ein generisches Icon zurück.
+    """
+    result = await db.execute(
+        select(Receipt).where(
+            Receipt.id == receipt_id, Receipt.bucket_id.in_(visible_bucket_ids_query(user))
+        )
+    )
+    receipt = result.scalar_one_or_none()
+    if receipt is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Beleg nicht gefunden")
+
+    if receipt.thumb_path is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kein Thumbnail vorhanden")
+
+    thumb_path = Path(receipt.thumb_path)
+    if not thumb_path.is_file():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kein Thumbnail vorhanden")
+
+    return FileResponse(
+        thumb_path,
+        filename=thumb_path.name,
+        content_disposition_type="inline",
+        media_type="image/jpeg",
+    )
+
+
 async def _get_writable_receipt(db: AsyncSession, receipt_id: uuid.UUID, user: User) -> Receipt:
     """Wie get_receipt, aber prüft zusätzlich Schreibzugriff auf den Bucket des Belegs."""
     result = await db.execute(
