@@ -67,6 +67,35 @@ def _generate_thumbnail(file_path: Path, thumb_path: Path, content_type: str) ->
     image.save(thumb_path, format="JPEG", quality=_THUMB_JPEG_QUALITY)
 
 
+def _thumb_destination(file_path: Path, household_id: uuid.UUID | str) -> Path:
+    # Gleicher Dateistamm wie das Original: deterministischer Zielpfad, damit parallele
+    # Lazy-Generierungen (siehe generate_thumbnail_for_existing_file) dieselbe Datei
+    # treffen statt Kollisions-Handling zu brauchen.
+    return THUMBS_DIR / str(household_id) / f"{file_path.stem}.jpg"
+
+
+def generate_thumbnail_for_existing_file(
+    file_path: Path, household_id: uuid.UUID, content_type: str
+) -> Path | None:
+    """
+    Erzeugt nachträglich ein Thumbnail für eine bereits auf Platte liegende Original-
+    datei — für Alt-Belege ohne thumb_path (Lazy-Healing, siehe GET /receipts/{id}/thumb).
+    Synchron & CPU-lastig — vom Aufrufer per asyncio.to_thread() ausführen.
+    Gibt bei Erfolg den Thumbnail-Pfad zurück, sonst None (z.B. korrupte Altdatei) — der
+    Aufrufer entscheidet dann, mit 404 zu antworten; kein Fehlerzustand wird zwischen-
+    gespeichert, jeder weitere Aufruf versucht es einfach erneut.
+    """
+    thumb_destination = _thumb_destination(file_path, household_id)
+    try:
+        _generate_thumbnail(file_path, thumb_destination, content_type)
+    except Exception:
+        logger.warning(
+            "Nachträgliche Thumbnail-Generierung fehlgeschlagen für %s", file_path, exc_info=True
+        )
+        return None
+    return thumb_destination
+
+
 async def store_upload(file: UploadFile, household_id: uuid.UUID) -> tuple[str, str | None, str]:
     """
     Speichert die Originaldatei unter storage/originals/<household_id>/<uuid>.<ext> und
@@ -100,14 +129,9 @@ async def store_upload(file: UploadFile, household_id: uuid.UUID) -> tuple[str, 
             hasher.update(chunk)
             out_file.write(chunk)
 
-    thumb_destination = THUMBS_DIR / str(household_id) / f"{file_id}.jpg"
-    thumb_path: str | None = None
-    try:
-        await asyncio.to_thread(
-            _generate_thumbnail, destination, thumb_destination, file.content_type
-        )
-        thumb_path = str(thumb_destination)
-    except Exception:
-        logger.warning("Thumbnail-Generierung fehlgeschlagen für %s", destination, exc_info=True)
+    generated_thumb = await asyncio.to_thread(
+        generate_thumbnail_for_existing_file, destination, household_id, file.content_type
+    )
+    thumb_path = str(generated_thumb) if generated_thumb is not None else None
 
     return str(destination), thumb_path, hasher.hexdigest()
