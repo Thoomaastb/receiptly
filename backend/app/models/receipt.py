@@ -51,6 +51,16 @@ class Receipt(Base, UpdatableTimestampMixin):
     total_amount: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="EUR")
 
+    # Anpassungszeilen, die die KI-Struktur-Extraktion nicht als items[] abbilden kann
+    # (Item.total_price verlangt >= 0, siehe app/schemas/receipt.py) — bewusst dedizierte
+    # Spalten statt Pseudo-Artikel. Alle drei nullable: NULL = "nicht erfasst", nicht "0".
+    # tax_amount ist nur die *separat ausgewiesene* Steuer, sofern nicht bereits in
+    # total_amount enthalten (siehe Migration 0011). Befüllung/Abgleichslogik folgt
+    # separat, ist bewusst nicht Teil dieser Spalten-Definition.
+    shipping_cost: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    discount_amount: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    tax_amount: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+
     ocr_raw_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     ocr_confidence: Mapped[float | None] = mapped_column(Numeric(4, 3), nullable=True)
 
@@ -71,10 +81,6 @@ class Receipt(Base, UpdatableTimestampMixin):
         nullable=False,
         default=ReceiptStatus.PENDING,
     )
-
-    # Markiert Test-/Demo-Daten (siehe Migration 0004) — wird beim v1.0.0-Cutover per
-    # eigener Migration gelöscht (DELETE WHERE is_demo=true), danach Spalte entfernt.
-    is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     # Kategorie-spezifische Zusatzfelder (z.B. Kilometerstand bei "Tanken"), Struktur pro
     # Kategorie in frontend/src/lib/categories.ts definiert. Bewusst JSONB statt eigener
