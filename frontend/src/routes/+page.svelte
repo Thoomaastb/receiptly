@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import UploadModal from '$lib/components/UploadModal.svelte';
+	import { categoryLabel } from '$lib/categories';
 
 	interface Receipt {
 		id: string;
@@ -12,6 +13,8 @@
 		currency: string;
 		created_at: string;
 		warranty_expires_at?: string | null;
+		merchant_name?: string | null;
+		category?: string | null;
 	}
 
 	let allReceipts: Receipt[] = [];
@@ -164,12 +167,18 @@
 					</span>
 				</div>
 				<div class="px-4 py-3.5">
-					<div class="mb-2 flex items-center justify-between">
+					<div class="mb-2 flex items-center justify-between gap-2">
 						<span class="text-xs text-hifi-text-faint">{receipt.receipt_date ?? 'Datum folgt'}</span>
+						{#if receipt.category}
+							<span class="truncate text-[11px] font-semibold text-hifi-text-muted">{categoryLabel(receipt.category)}</span>
+						{/if}
 					</div>
 					<div class="font-mono text-[13.5px] font-bold text-hifi-text">
 						{receipt.total_amount !== null ? `${receipt.total_amount.toFixed(2)} ${receipt.currency}` : 'Betrag folgt'}
 					</div>
+					{#if receipt.merchant_name}
+						<div class="mt-1 truncate text-[12.5px] text-hifi-text-muted">{receipt.merchant_name}</div>
+					{/if}
 				</div>
 			</button>
 		{/each}
