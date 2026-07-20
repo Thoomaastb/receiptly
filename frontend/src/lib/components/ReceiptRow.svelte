@@ -11,7 +11,14 @@
 	export let bucketName: string;
 	export let bucketIsDefault: boolean;
 	export let showBucketPill = true;
+	export let thumbUrl: string | null = null;
 	export let onOpen: (id: string) => void;
+
+	// GET /thumb liefert 404, wenn kein serverseitiges Thumbnail existiert (alte Belege,
+	// fehlgeschlagene Generierung) — der Browser feuert dann on:error auf dem <img>, und wir
+	// fallen dauerhaft auf das SVG-Platzhalter-Icon zurück statt ein kaputtes Bild zu zeigen.
+	let thumbFailed = false;
+	$: showThumb = !!thumbUrl && !thumbFailed;
 
 	function statusLabel(s: string): string {
 		switch (s) {
@@ -39,12 +46,22 @@
 	on:click={open}
 	on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), open())}
 >
-	<span class="flex h-9 w-9 flex-none items-center justify-center rounded-[10px] bg-hifi-accent-tint text-hifi-accent-text">
-		<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-			<path d="M6 3h9l3 3v15H6z" />
-			<path d="M9 9h6M9 13h6M9 17h3" />
-		</svg>
-	</span>
+	{#if showThumb}
+		<img
+			src={thumbUrl}
+			alt={merchantName ? `Beleg-Vorschau: ${merchantName}` : 'Beleg-Vorschau'}
+			loading="lazy"
+			class="h-9 w-9 flex-none rounded-[10px] border border-hifi-border object-cover"
+			on:error={() => (thumbFailed = true)}
+		/>
+	{:else}
+		<span class="flex h-9 w-9 flex-none items-center justify-center rounded-[10px] bg-hifi-accent-tint text-hifi-accent-text">
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<path d="M6 3h9l3 3v15H6z" />
+				<path d="M9 9h6M9 13h6M9 17h3" />
+			</svg>
+		</span>
+	{/if}
 
 	<div class="min-w-0 flex-1">
 		<div class="truncate text-[13.5px] font-bold text-hifi-text">{merchantName ?? 'Händler folgt'}</div>

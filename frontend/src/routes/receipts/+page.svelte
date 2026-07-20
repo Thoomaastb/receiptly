@@ -441,6 +441,7 @@
 							bucketName={section.bucket.name}
 							bucketIsDefault={section.bucket.is_default}
 							showBucketPill={false}
+							thumbUrl={receipt.thumb_path ? `/api/receipts/${receipt.id}/thumb` : null}
 							onOpen={openDetail}
 						/>
 					{/each}
@@ -461,6 +462,7 @@
 					itemCount={receipt.item_count}
 					bucketName={bucket?.name ?? '…'}
 					bucketIsDefault={bucket?.is_default ?? false}
+					thumbUrl={receipt.thumb_path ? `/api/receipts/${receipt.id}/thumb` : null}
 					onOpen={openDetail}
 				/>
 			{/each}
