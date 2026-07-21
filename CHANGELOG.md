@@ -1,3 +1,12 @@
+## [0.30.0](https://github.com/Thoomaastb/receiptly/compare/v0.29.0...v0.30.0) (2026-07-21)
+
+### Features
+
+* **auth:** TOTP-Login-Flow, Anmeldung mit Benutzername oder E-Mail ([75dab2a](https://github.com/Thoomaastb/receiptly/commit/75dab2a9ece7de9e0411c2fb0e19ee7af832e0ed))
+* **docker:** consolidate backend and frontend into a single deployable image ([22e5bc3](https://github.com/Thoomaastb/receiptly/commit/22e5bc3538ff146270423defb10abb490ddb07f5))
+* **security:** Rate-Limiting + Audit-Log-Fundament (Security Hardening Phase 1) ([70b60e1](https://github.com/Thoomaastb/receiptly/commit/70b60e109c8e3284f6604ada031ac67c46e7bf5d))
+* **security:** TOTP/2FA und Haushalt-Sicherheitsrichtlinien ([fee139f](https://github.com/Thoomaastb/receiptly/commit/fee139f32cd8cbbb90a249781a10410982160ec8))
+
 ## [0.29.0](https://github.com/Thoomaastb/receiptly/compare/v0.28.0...v0.29.0) (2026-07-20)
 
 ### Features
