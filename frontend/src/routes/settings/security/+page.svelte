@@ -1,6 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { parseUserAgent } from '$lib/userAgent';
+	import { m } from '$lib/i18n';
+	import TotpEnrollment from '$lib/components/TotpEnrollment.svelte';
+	import RecoveryCodesReveal from '$lib/components/RecoveryCodesReveal.svelte';
+	import ReauthDialog from '$lib/components/ReauthDialog.svelte';
 
 	interface SessionInfo {
 		session_id: string;
@@ -82,6 +86,79 @@
 	let auditLoadingMore = false;
 	let auditError = '';
 	let auditHasMore = true;
+
+	// Zwei-Faktor-Authentifizierung (TOTP)
+	let totpLoading = true;
+	let totpEnabled = false;
+	let isAdmin = false;
+	let reauthDialog: 'disable' | 'regenerate' | null = null;
+	let revealedRecoveryCodes: string[] | null = null;
+
+	async function loadTotpStatus() {
+		totpLoading = true;
+		try {
+			const res = await fetch('/api/auth/me', { credentials: 'include' });
+			if (res.ok) {
+				const user: { role: string; totp_enabled: boolean } = await res.json();
+				totpEnabled = user.totp_enabled;
+				isAdmin = user.role === 'admin';
+			}
+		} finally {
+			totpLoading = false;
+		}
+	}
+
+	function handleTotpEnrolled() {
+		totpEnabled = true;
+	}
+
+	function openDisableDialog() {
+		reauthDialog = 'disable';
+	}
+
+	function openRegenerateDialog() {
+		reauthDialog = 'regenerate';
+	}
+
+	function closeReauthDialog() {
+		reauthDialog = null;
+	}
+
+	async function submitDisableTotp(payload: { current_password: string } | { code: string }) {
+		const res = await fetch('/api/auth/totp/disable', {
+			method: 'POST',
+			credentials: 'include',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(payload)
+		});
+		if (res.status === 204) return { ok: true as const };
+		const body = await res.json().catch(() => null);
+		return { ok: false as const, error: body?.detail ?? m.totpManage.disableError };
+	}
+
+	function handleTotpDisabled() {
+		totpEnabled = false;
+		revealedRecoveryCodes = null;
+	}
+
+	async function submitRegenerateRecoveryCodes(payload: { current_password: string } | { code: string }) {
+		const res = await fetch('/api/auth/totp/recovery-codes/regenerate', {
+			method: 'POST',
+			credentials: 'include',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(payload)
+		});
+		if (!res.ok) {
+			const body = await res.json().catch(() => null);
+			return { ok: false as const, error: body?.detail ?? m.totpManage.regenerateError };
+		}
+		const data = await res.json();
+		return { ok: true as const, data };
+	}
+
+	function handleRecoveryCodesRegenerated(data: unknown) {
+		revealedRecoveryCodes = (data as { recovery_codes: string[] }).recovery_codes;
+	}
 
 	function validate(): boolean {
 		if (newPassword.length < 8) {
@@ -196,6 +273,7 @@
 	onMount(() => {
 		loadSessions();
 		loadAuditEvents();
+		loadTotpStatus();
 	});
 </script>
 
@@ -254,6 +332,87 @@
 			</button>
 		</form>
 	</div>
+
+	<div class="rounded-[14px] border border-hifi-border bg-hifi-surface p-6">
+		<div class="mb-1 flex items-center justify-between gap-4">
+			<h2 class="text-[13.5px] font-bold text-hifi-text">{m.totpManage.sectionTitle}</h2>
+			{#if !totpLoading}
+				<span
+					class="inline-flex flex-none items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11.5px] font-medium"
+					class:bg-success-bg={totpEnabled}
+					class:text-success={totpEnabled}
+					class:bg-hifi-accent-tint={!totpEnabled}
+					class:text-hifi-text-muted={!totpEnabled}
+				>
+					<span
+						aria-hidden="true"
+						class="h-1.5 w-1.5 rounded-full"
+						class:bg-success={totpEnabled}
+						class:bg-hifi-text-faint={!totpEnabled}
+					></span>
+					{totpEnabled ? m.totpManage.statusActiveLabel : m.totpManage.statusInactiveLabel}
+				</span>
+			{/if}
+		</div>
+		<p class="mb-4 text-sm text-hifi-text-muted">{m.totpManage.sectionDescription}</p>
+
+		{#if totpLoading}
+			<p class="text-sm text-hifi-text-muted">Wird geladen …</p>
+		{:else if !totpEnabled}
+			<TotpEnrollment description={m.totpSetup.settingsIntroDescription} onComplete={handleTotpEnrolled} />
+		{:else if revealedRecoveryCodes}
+			<RecoveryCodesReveal codes={revealedRecoveryCodes} />
+			<button
+				type="button"
+				on:click={() => (revealedRecoveryCodes = null)}
+				class="mt-4 rounded-[10px] bg-hifi-accent px-4 py-2.5 text-sm font-semibold text-white"
+			>
+				{m.totpSetup.recoveryDoneButton}
+			</button>
+		{:else}
+			<div class="flex flex-wrap gap-2">
+				<button
+					type="button"
+					on:click={openRegenerateDialog}
+					class="rounded-[10px] border border-hifi-border px-3.5 py-2 text-[13px] font-medium text-hifi-text transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text"
+				>
+					{m.totpManage.regenerateButton}
+				</button>
+				{#if !isAdmin}
+					<button
+						type="button"
+						on:click={openDisableDialog}
+						class="rounded-[10px] border border-hifi-border px-3.5 py-2 text-[13px] font-medium text-hifi-text transition-colors hover:bg-danger-bg hover:text-danger"
+					>
+						{m.totpManage.disableButton}
+					</button>
+				{/if}
+			</div>
+			{#if isAdmin}
+				<p class="mt-2 text-sm text-hifi-text-muted">{m.totpManage.adminLockedNote}</p>
+			{/if}
+		{/if}
+	</div>
+
+	{#if reauthDialog === 'disable'}
+		<ReauthDialog
+			title={m.totpManage.disableDialogTitle}
+			description={m.totpManage.disableDialogDescription}
+			submitLabel={m.totpManage.disableDialogSubmit}
+			onSubmit={submitDisableTotp}
+			onClose={closeReauthDialog}
+			onSuccess={handleTotpDisabled}
+		/>
+	{:else if reauthDialog === 'regenerate'}
+		<ReauthDialog
+			title={m.totpManage.regenerateDialogTitle}
+			description={m.totpManage.regenerateDialogDescription}
+			submitLabel={m.totpManage.regenerateDialogSubmit}
+			onSubmit={submitRegenerateRecoveryCodes}
+			onClose={closeReauthDialog}
+			onSuccess={handleRecoveryCodesRegenerated}
+		/>
+	{/if}
 
 	<div class="rounded-[14px] border border-hifi-border bg-hifi-surface p-6">
 		<h2 class="mb-1 text-[13.5px] font-bold text-hifi-text">Aktive Sitzungen</h2>

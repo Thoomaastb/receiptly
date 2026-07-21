@@ -11,7 +11,8 @@
 	];
 
 	const adminItems: { href: string; label: string }[] = [
-		{ href: '/settings/ai-provider', label: 'KI-Provider' }
+		{ href: '/settings/ai-provider', label: 'KI-Provider' },
+		{ href: '/settings/security-policy', label: 'Sicherheitsrichtlinien' }
 	];
 
 	$: pathname = $page.url.pathname;

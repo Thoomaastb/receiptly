@@ -16,6 +16,19 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class RequiresTotpResponse(BaseModel):
+    """Antwort von POST /auth/login, wenn der erste Faktor stimmt, aber TOTP noch aussteht."""
+
+    requires_totp: bool = True
+
+
+class LoginTotpRequest(BaseModel):
+    # Nimmt sowohl den 6-stelligen TOTP-Code als auch einen Recovery-Code entgegen
+    # (Format "XXXXX-XXXXX", siehe app/services/totp.py) — Unterscheidung erfolgt serverseitig
+    # rein anhand des Formats, daher hier bewusst kein einschränkendes Pattern.
+    code: str = Field(min_length=6, max_length=32)
+
+
 class InviteRequest(BaseModel):
     username: str = Field(min_length=3, max_length=64)
     email: EmailStr
@@ -37,6 +50,10 @@ class UserResponse(BaseModel):
     email: EmailStr
     role: str
     household_id: uuid.UUID
+    # Frontend braucht das u.a. für das Zwangs-Enrollment-Gate bei Admins ohne
+    # abgeschlossene TOTP-Einrichtung (siehe bekannte Lücke: /auth/register loggt einen
+    # frischen Admin sofort ein, TOTP ist aber erst nach /auth/totp/confirm aktiv).
+    totp_enabled: bool
 
     model_config = {"from_attributes": True}
 

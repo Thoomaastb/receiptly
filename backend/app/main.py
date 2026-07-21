@@ -5,7 +5,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api import audit_log, auth, buckets, health, receipts, settings as settings_router
+from app.api import (
+    audit_log,
+    auth,
+    buckets,
+    health,
+    receipts,
+    security_settings,
+    settings as settings_router,
+    totp,
+)
 from app.config import get_settings
 
 settings = get_settings()
@@ -42,9 +51,11 @@ async def security_headers(request, call_next):
 # (Single-Container-Image) laufen und sich sonst mit den SvelteKit-Routen überschneiden.
 app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
+app.include_router(totp.router, prefix="/api")
 app.include_router(receipts.router, prefix="/api")
 app.include_router(buckets.router, prefix="/api")
 app.include_router(settings_router.router, prefix="/api")
+app.include_router(security_settings.router, prefix="/api")
 app.include_router(audit_log.router, prefix="/api")
 
 

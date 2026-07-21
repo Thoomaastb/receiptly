@@ -37,7 +37,8 @@ class User(Base, TimestampMixin):
 
     # v0.3.0 Security Hardening (Spalten bereits angelegt, Logik folgt später)
     totp_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    totp_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # String(255): Fernet-Ciphertext ist länger als das Klartext-Base32-Secret von pyotp
+    totp_secret: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
