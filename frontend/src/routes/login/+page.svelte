@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { m } from '$lib/i18n';
 
-	let mode: 'checking' | 'login' | 'setup' = 'checking';
+	let mode: 'checking' | 'login' | 'setup' | 'totp' = 'checking';
 
 	let username = '';
 	let password = '';
@@ -14,6 +15,12 @@
 
 	let errorMessage = '';
 	let submitting = false;
+
+	// Zweiter Login-Schritt (Phase 2: TOTP/2FA) — das Pre-Auth-Cookie hält den Zustand
+	// serverseitig, hier wird nur der Code abgefragt.
+	let totpCode = '';
+	let totpError = '';
+	let totpSubmitting = false;
 
 	onMount(async () => {
 		try {
@@ -46,7 +53,14 @@
 				body: JSON.stringify({ username, password })
 			});
 			if (res.ok) {
-				goto('/');
+				const body = await res.json().catch(() => null);
+				if (body?.requires_totp) {
+					totpCode = '';
+					totpError = '';
+					mode = 'totp';
+				} else {
+					goto('/');
+				}
 			} else {
 				const body = await res.json().catch(() => null);
 				errorMessage = body?.detail ?? 'Anmeldung fehlgeschlagen.';
@@ -54,6 +68,44 @@
 		} finally {
 			submitting = false;
 		}
+	}
+
+	async function handleTotpSubmit() {
+		totpError = '';
+		totpSubmitting = true;
+		try {
+			const res = await fetch('/api/auth/login/totp', {
+				method: 'POST',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ code: totpCode.trim() })
+			});
+			if (res.ok) {
+				goto('/');
+				return;
+			}
+			const body = await res.json().catch(() => null);
+			if (res.status === 401) {
+				// Pending-2FA-Zustand verworfen (zu viele Fehlversuche oder abgelaufen) —
+				// zurück zu Schritt 1, Passwort muss erneut eingegeben werden.
+				mode = 'login';
+				password = '';
+				totpCode = '';
+				errorMessage = body?.detail ?? m.auth.totpStep.errorExpired;
+			} else {
+				totpError = body?.detail ?? m.auth.totpStep.errorInvalidCode;
+			}
+		} catch {
+			totpError = m.auth.totpStep.genericError;
+		} finally {
+			totpSubmitting = false;
+		}
+	}
+
+	function cancelTotp() {
+		mode = 'login';
+		totpCode = '';
+		totpError = '';
 	}
 
 	async function handleSetup() {
@@ -149,6 +201,45 @@
 					{submitting ? 'Wird eingerichtet …' : 'Haushalt anlegen'}
 				</button>
 			</form>
+		{:else if mode === 'totp'}
+			<div class="mb-5">
+				<div class="text-lg font-bold text-hifi-text">{m.auth.totpStep.title}</div>
+				<p class="mt-1 text-sm leading-relaxed text-hifi-text-muted">{m.auth.totpStep.description}</p>
+			</div>
+			<form class="flex flex-col gap-3" on:submit|preventDefault={handleTotpSubmit}>
+				<label class="block text-sm">
+					<span class="mb-1 block text-hifi-text-muted">{m.auth.totpStep.codeLabel}</span>
+					<input
+						type="text"
+						bind:value={totpCode}
+						autocomplete="one-time-code"
+						autocapitalize="characters"
+						spellcheck="false"
+						placeholder={m.auth.totpStep.codePlaceholder}
+						class="w-full rounded-[10px] border border-hifi-border bg-hifi-bg p-2.5 text-center font-mono text-lg tracking-widest"
+					/>
+					<span class="mt-1 block text-[12.5px] text-hifi-text-faint">{m.auth.totpStep.codeHint}</span>
+				</label>
+
+				{#if totpError}
+					<p class="text-sm text-danger">{totpError}</p>
+				{/if}
+
+				<button
+					type="submit"
+					disabled={totpSubmitting || !totpCode.trim()}
+					class="mt-1 rounded-[10px] bg-hifi-accent px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+				>
+					{totpSubmitting ? m.auth.totpStep.submitting : m.auth.totpStep.submit}
+				</button>
+				<button
+					type="button"
+					on:click={cancelTotp}
+					class="self-center text-sm text-hifi-text-muted transition-colors hover:text-hifi-text"
+				>
+					{m.auth.totpStep.backToPassword}
+				</button>
+			</form>
 		{:else}
 			<div class="mb-5">
 				<div class="text-lg font-bold text-hifi-text">Anmelden</div>
@@ -157,7 +248,7 @@
 				<input
 					type="text"
 					bind:value={username}
-					placeholder="Benutzername"
+					placeholder="Benutzername oder E-Mail"
 					class="rounded-[10px] border border-hifi-border bg-hifi-bg p-2.5 text-sm"
 				/>
 				<input

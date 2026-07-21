@@ -6,8 +6,20 @@ from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_raw_session_token, get_current_user, require_admin
+from app.auth.dependencies import (
+    get_current_raw_session_token,
+    get_current_user,
+    require_admin,
+    require_totp_enrolled,
+)
 from app.auth.password_reset import consume_reset_token, create_reset_token
+from app.auth.pending_2fa import (
+    PENDING_2FA_COOKIE_NAME,
+    create_pending_2fa,
+    destroy_pending_2fa,
+    get_pending_user_id,
+    register_failed_attempt,
+)
 from app.auth.rate_limit import check_rate_limit, rate_limit
 from app.auth.request_meta import get_client_ip
 from app.auth.security import hash_password, verify_password
@@ -24,19 +36,25 @@ from app.config import get_settings
 from app.database import get_db
 from app.models.bucket import Bucket, BucketType, BucketVisibility
 from app.models.household import Household
+from app.models.totp_recovery_code import TotpRecoveryCode
 from app.models.user import User, UserRole
 from app.schemas.auth import (
     ChangePasswordRequest,
     InviteRequest,
     LoginRequest,
+    LoginTotpRequest,
     PasswordResetConfirm,
     PasswordResetRequest,
     RegisterRequest,
+    RequiresTotpResponse,
     SessionInfo,
     UserResponse,
 )
+from app.services import totp
 from app.services.audit import record_event
+from app.services.crypto import decrypt_secret
 from app.services.email import send_email
+from app.services.household_security import get_or_create_security_settings
 
 logger = logging.getLogger(__name__)
 
@@ -110,12 +128,12 @@ async def register(
 
 @router.post(
     "/login",
-    response_model=UserResponse,
+    response_model=UserResponse | RequiresTotpResponse,
     dependencies=[Depends(rate_limit("login_ip", limit=20, window_seconds=900))],
 )
 async def login(
     payload: LoginRequest, response: Response, request: Request, db: AsyncSession = Depends(get_db)
-) -> User:
+) -> User | RequiresTotpResponse:
     """
     Zwei Rate-Limits gleichzeitig: das IP-only-Limit (20/15min, Schutz gegen Username-
     Enumeration-Sweeps über viele Accounts von einer IP) läuft als `Depends()` vor, weil es
@@ -124,9 +142,29 @@ async def login(
     aufgelöst hat, also erst *innerhalb* der Funktion, nicht mehr über eine vorgeschaltete
     `Depends()`. Deshalb hier der direkte `check_rate_limit()`-Aufruf statt einer zweiten
     Dependency.
+
+    Zweistufiger Login (Security-Hardening Phase 2): ist TOTP für diesen User bereits
+    eingerichtet (totp_enabled) oder haushaltsweit erzwungen, wird noch KEINE volle Session
+    angelegt — stattdessen ein Pre-Auth-Cookie (app/auth/pending_2fa.py) und
+    `{"requires_totp": true}`. Die echte Session entsteht erst nach /auth/login/totp.
+
+    Bewusst NICHT allein anhand der Admin-Rolle ausgelöst, obwohl TOTP für Admins laut
+    Konzept verpflichtend ist: ein Admin ohne abgeschlossene Einrichtung (kein Secret, keine
+    Recovery-Codes) könnte den zweiten Faktor sonst nie erfüllen — /auth/login/totp würde
+    strukturell immer scheitern, mit keinem Weg zur Einrichtung (die eine echte Session
+    voraussetzt). Das widerspräche dem Konzept-Prinzip "verhindert Aussperren durch
+    Fehlkonfiguration" (Abschnitt 4.2). Die Admin-TOTP-Pflicht wird stattdessen als
+    blockierendes Frontend-Gate nach dem Login durchgesetzt (kein App-Zugriff ohne
+    abgeschlossene Einrichtung) — erst NACH erfolgreicher Einrichtung (totp_enabled=true)
+    greift hier auch der Zwei-Faktor-Login-Zwang.
     """
     ip = get_client_ip(request)
-    result = await db.execute(select(User).where(User.username == payload.username))
+    # Login akzeptiert Benutzername ODER E-Mail im selben Feld — beide sind laut
+    # Registrierungs-/Einladungs-Flow bereits eindeutig (unique constraint), daher keine
+    # Kollisionsgefahr zwischen den beiden Lookup-Varianten.
+    result = await db.execute(
+        select(User).where((User.username == payload.username) | (User.email == payload.username))
+    )
     user = result.scalar_one_or_none()
 
     try:
@@ -171,6 +209,18 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Ungültige Anmeldedaten"
         )
 
+    security_settings = await get_or_create_security_settings(db, user.household_id)
+    totp_required = user.totp_enabled or security_settings.totp_required_for_household
+
+    if totp_required:
+        # Kein login_success-Event an dieser Stelle — der Login ist erst nach dem zweiten
+        # Faktor abgeschlossen (siehe login_with_totp() unten, das entweder
+        # "totp_login_success" oder "recovery_code_used" schreibt). last_login wird aus
+        # demselben Grund ebenfalls erst dort gesetzt.
+        await create_pending_2fa(user.id, response, request)
+        await db.commit()  # persistiert eine ggf. lazy erstellte household_security_settings-Zeile
+        return RequiresTotpResponse()
+
     # last_login-Update und der login_success-Audit-Eintrag teilen sich denselben Commit
     # (record_event(commit=True) übernimmt ihn) — kein separates db.commit() nötig.
     user.last_login = datetime.now(UTC)
@@ -179,6 +229,122 @@ async def login(
         household_id=user.household_id,
         user_id=user.id,
         event_type="login_success",
+        request=request,
+    )
+
+    await create_session(user.id, response, request)
+    return user
+
+
+@router.post(
+    "/login/totp",
+    response_model=UserResponse,
+    dependencies=[Depends(rate_limit("login_totp_ip", limit=10, window_seconds=900))],
+)
+async def login_with_totp(
+    payload: LoginTotpRequest,
+    response: Response,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    pending_cookie: str | None = Cookie(default=None, alias=PENDING_2FA_COOKIE_NAME),
+) -> User:
+    """
+    Zweiter Schritt des zweistufigen Logins (siehe login() oben). Der primäre Fehlversuchs-
+    Zähler ist strikt an den Pending-Token selbst gebunden (app/auth/pending_2fa.py) — nach
+    5 Fehlversuchen wird der Pre-Auth-State komplett verworfen; ein neuer Versuch muss
+    wieder bei /auth/login beginnen (samt dessen eigenen IP-/Username-Rate-Limits).
+
+    Zusätzlich (Security-Hardening-Nachbesserung) ein unabhängiges, zeitfensterbasiertes
+    IP-Limit über `rate_limit()` (10 Versuche/15min) — nicht an den Pending-Token gebunden,
+    sondern rein an die Client-IP. Deckt den Fall ab, dass der Pending-Token-Zähler selbst
+    umgangen würde (z.B. wiederholt frische Pending-Tokens über /auth/login erzeugen und
+    den 5er-Zähler so jedes Mal auf 0 zurücksetzen) — Brute-Force des 6-stelligen Codes
+    bliebe dann trotzdem durch dieses Limit gedeckelt. Bewusst kein IP+Pending-Token-
+    kombinierter Key: der Pending-Token wechselt ohnehin bei jedem /auth/login, ein
+    kombinierter Key wäre pro Login-Versuch immer wieder bei 0 und liefe damit faktisch
+    leer.
+
+    `payload.code` nimmt sowohl den 6-stelligen TOTP-Code als auch einen Recovery-Code
+    entgegen — die Unterscheidung erfolgt rein anhand des Formats (6 Ziffern vs. alles
+    andere), kein separates Feld nötig.
+    """
+    user_id = await get_pending_user_id(pending_cookie)
+    if user_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Anmeldung abgelaufen oder ungültig — bitte erneut einloggen.",
+        )
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        await destroy_pending_2fa(pending_cookie, response)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Anmeldung abgelaufen oder ungültig — bitte erneut einloggen.",
+        )
+
+    normalized_code = payload.code.strip()
+    verified = False
+    event_type = "totp_login_success"
+    used_recovery_code: TotpRecoveryCode | None = None
+
+    if normalized_code.isdigit() and len(normalized_code) == 6 and user.totp_secret:
+        try:
+            secret = decrypt_secret(user.totp_secret)
+            verified = totp.verify_code(secret, normalized_code)
+        except ValueError:
+            # ENCRYPTION_KEY wurde rotiert oder das Secret ist anderweitig nicht mehr
+            # entschlüsselbar — wie ein falscher Code behandeln, nicht als 500 durchschlagen
+            # lassen (analog zu _resolve_effective_provider_safe() in app/api/settings.py).
+            verified = False
+    else:
+        recovery_codes = await db.execute(
+            select(TotpRecoveryCode).where(
+                TotpRecoveryCode.user_id == user.id, TotpRecoveryCode.used_at.is_(None)
+            )
+        )
+        for recovery_code in recovery_codes.scalars().all():
+            if totp.verify_recovery_code(payload.code, recovery_code.code_hash):
+                used_recovery_code = recovery_code
+                verified = True
+                event_type = "recovery_code_used"
+                break
+
+    if not verified:
+        # Bewusste Ergänzung über den Auftrags-Wortlaut hinaus (dort nur "Fehlversuch
+        # zählen" gefordert): ein Audit-Event pro Fehlversuch, weil genau das laut
+        # concepts/security-hardening.md Abschnitt 4.6 als sicherheitsrelevantes
+        # "2FA-Event" gilt und household_id/user_id hier ohnehin schon geladen sind.
+        discarded = await register_failed_attempt(pending_cookie)
+        await record_event(
+            db,
+            household_id=user.household_id,
+            user_id=user.id,
+            event_type="totp_login_failed",
+            request=request,
+            metadata={"pending_state_discarded": discarded},
+        )
+        if discarded:
+            await destroy_pending_2fa(pending_cookie, response)
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Zu viele Fehlversuche — bitte erneut einloggen.",
+            )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Ungültiger Code")
+
+    if used_recovery_code is not None:
+        # Echtes UPDATE, kein INSERT — totp_recovery_codes hat KEINEN Immutability-Trigger
+        # wie audit_log (siehe Auftragskontext).
+        used_recovery_code.used_at = datetime.now(UTC)
+
+    await destroy_pending_2fa(pending_cookie, response)
+    user.last_login = datetime.now(UTC)
+    await record_event(
+        db,
+        household_id=user.household_id,
+        user_id=user.id,
+        event_type=event_type,
         request=request,
     )
 
@@ -314,7 +480,7 @@ async def me(user: User = Depends(get_current_user)) -> User:
 async def change_password(
     payload: ChangePasswordRequest,
     request: Request,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_totp_enrolled),
     raw_token: str | None = Depends(get_current_raw_session_token),
     db: AsyncSession = Depends(get_db),
 ) -> None:
@@ -364,7 +530,7 @@ async def change_password(
 
 @router.get("/sessions", response_model=list[SessionInfo])
 async def get_sessions(
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_totp_enrolled),
     raw_token: str | None = Depends(get_current_raw_session_token),
 ) -> list[dict]:
     """Eigene aktive Sessions (Device/Browser, IP, last_seen_at) — nie der rohe Token, nur session_id."""
@@ -375,7 +541,7 @@ async def get_sessions(
 async def delete_session(
     session_id: uuid.UUID,
     request: Request,
-    user: User = Depends(get_current_user),
+    user: User = Depends(require_totp_enrolled),
     raw_token: str | None = Depends(get_current_raw_session_token),
     db: AsyncSession = Depends(get_db),
 ) -> None:
@@ -411,7 +577,7 @@ async def delete_session(
 
 @router.get("/household-members", response_model=list[UserResponse])
 async def list_household_members(
-    user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+    user: User = Depends(require_totp_enrolled), db: AsyncSession = Depends(get_db)
 ) -> list[User]:
     """Alle User im selben Haushalt — Grundlage für die Bucket-Freigabe-Auswahl."""
     result = await db.execute(select(User).where(User.household_id == user.household_id))
