@@ -23,10 +23,13 @@ services:
     networks:
       - internal
 
-  backend:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-thoomaastb}/receiptly-backend:${RECEIPTLY_VERSION:-latest}
+  # Backend + statisch ausgeliefertes Frontend im selben Prozess (adapter-static-Build,
+  # siehe Root-Dockerfile + backend/app/main.py SPA-Fallback). Bewusst wieder ein
+  # kombiniertes Image statt getrennter backend/frontend-Services — siehe CHANGELOG.
+  app:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-thoomaastb}/receiptly:${RECEIPTLY_VERSION:-latest}
     build:
-      context: ./backend
+      context: .
     pull_policy: missing
     restart: unless-stopped
     env_file: .env
@@ -40,20 +43,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    networks:
-      - internal
-#      - remote
-
-  frontend:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-thoomaastb}/receiptly-frontend:${RECEIPTLY_VERSION:-latest}
-    build:
-      context: ./frontend
-    pull_policy: missing
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
     networks:
       - internal
 #      - remote

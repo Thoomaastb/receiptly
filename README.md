@@ -28,13 +28,12 @@ docker compose pull
 docker compose up -d
 
 # Migrationen ausführen
-docker compose exec backend alembic upgrade head
+docker compose exec app alembic upgrade head
 ```
 
 Zugriff läuft ausschließlich über Pangolin/Newt via `remote` — Host-Ports sind daher
 standardmäßig auskommentiert (nicht entfernt) in `docker-compose.yml`. Für lokales
-Testen ohne Pangolin einfach die `#` vor den `ports:`-Zeilen bei `backend`/`frontend`
-entfernen.
+Testen ohne Pangolin einfach die `#` vor der `ports:`-Zeile bei `app` entfernen.
 
 App (Frontend + API im selben Container): http://localhost:8000 · API-Health: http://localhost:8000/api/health
 
@@ -49,7 +48,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
 # Frontend separat mit Vite-HMR (nicht in Docker, sonst nur langsamer)
 cd frontend
 npm install
-npm run dev   # Vite-Proxy leitet /api an den Backend-Container weiter
+npm run dev   # Vite-Proxy leitet /api an den App-Container weiter
 
 alembic upgrade head   # einmalig, falls Schema noch nicht migriert
 ```
