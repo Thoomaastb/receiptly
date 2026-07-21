@@ -1,24 +1,30 @@
 name: Docker
 
+# Trigger bewusst NICHT "push: tags:" — semantic-release erzeugt jeden Release-Tag über
+# den "chore(release): X.Y.Z [skip ci]"-Commit (siehe .releaserc.json @semantic-release/git).
+# GitHub unterdrückt Push-Event-Workflow-Runs (inkl. Tag-Push) für Commits mit [skip ci]
+# im Message — betrifft ausschließlich push/pull_request-Events, NICHT das "release"-Event.
+# "release: published" wird von @semantic-release/github über die REST-API ausgelöst und ist
+# davon unabhängig, daher zuverlässiger Trigger. github.ref bleibt bei diesem Event-Typ
+# ebenfalls auf refs/tags/<version> gesetzt, docker/metadata-action funktioniert unverändert.
 on:
-  push:
-    tags:
-      - "v*.*.*"
+  release:
+    types: [published]
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
 
 jobs:
+  # Ein kombiniertes Image (Backend + statisch ausgeliefertes Frontend im selben Prozess,
+  # siehe Root-Dockerfile) statt einer backend/frontend-Matrix — bewusste Architekturwahl,
+  # siehe CHANGELOG. Kein separater Matrix-Job mehr nötig.
   build-and-push:
-    name: Build & Push (${{ matrix.service }})
+    name: Build & Push
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-    strategy:
-      matrix:
-        service: [backend, frontend]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,7 +46,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.service }}
+          images: ${{ env.REGISTRY }}/${{ github.repository }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -50,12 +56,79 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: ./${{ matrix.service }}
+          context: .
+          file: ./Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             APP_VERSION=${{ steps.meta.outputs.version }}
-          cache-from: type=gha,scope=${{ matrix.service }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # Härtung: ein erfolgreich gepushtes, aber tatsächlich kaputtes Image (z.B. Prozess
+  # startet nicht, SPA-Fallback/API-Routing kaputt, korrupter Layer) soll den Workflow
+  # sichtbar rot machen statt unbemerkt in der Registry zu landen.
+  verify:
+    name: Verify pushed image
+    needs: build-and-push
+    # Nur bei echten Releases: workflow_dispatch kann auch gegen einen Branch (kein
+    # Versions-Tag) laufen, dort gibt es kein sinnvolles Versions-Tag zum Nachpullen —
+    # der Build selbst läuft in diesem Fall unverändert über build-and-push.
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Determine pushed version
+        id: version
+        run: |
+          TAG_NAME="${{ github.event.release.tag_name }}"
+          echo "version=${TAG_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull and smoke-test image
+        run: |
+          set -euo pipefail
+          IMAGE="${{ env.REGISTRY }}/${{ github.repository }}:${{ steps.version.outputs.version }}"
+          echo "Pulling $IMAGE"
+          docker pull "$IMAGE"
+
+          # /api/health greift laut app/api/health.py nicht auf DB/Redis zu, daher reichen
+          # Dummy-Werte für die drei Pflichtfelder in app/config.py (Settings) zum Hochfahren.
+          docker run -d --name verify-app \
+            -p 18000:8000 \
+            -e DATABASE_URL=postgresql+asyncpg://verify:verify@localhost/verify \
+            -e SESSION_SECRET=verify-only-not-used-at-runtime \
+            -e ENCRYPTION_KEY=verify-only-not-used-at-runtime \
+            "$IMAGE"
+
+          # Vorhandene Dockerfile-HEALTHCHECK-Instruktion abfragen statt neu definieren,
+          # spiegelt exakt das Prod-Verhalten. 30x3s = 90s Budget: deckt worst-case
+          # start-period(10s)+interval(30s)+timeout(5s) bis zum ersten Health-Ergebnis
+          # komfortabel ab, auch auf einem langsameren Runner.
+          for i in $(seq 1 30); do
+            status=$(docker inspect --format='{{.State.Health.Status}}' verify-app 2>/dev/null || echo "starting")
+            echo "attempt $i/30: $status"
+            if [ "$status" = "healthy" ]; then
+              exit 0
+            fi
+            if [ "$status" = "unhealthy" ]; then
+              echo "::error::image reported unhealthy"
+              docker logs verify-app
+              exit 1
+            fi
+            sleep 3
+          done
+
+          echo "::error::image did not become healthy within timeout"
+          docker logs verify-app
+          exit 1

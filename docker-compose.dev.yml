@@ -1,5 +1,5 @@
 services:
-  backend:
+  app:
     environment:
       APP_ENV: development
     volumes:
@@ -9,6 +9,8 @@ services:
       - storage-thumbs:/app/storage/thumbs
     command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
-# Frontend bewusst nicht hier drin: fuer Hot-Reload laeuft "npm run dev" im
-# frontend/-Ordner direkt (siehe README), der Vite-Dev-Proxy leitet /api an
-# den Backend-Container weiter. Ein Container-Rebuild pro Aenderung waere langsamer.
+# Frontend-Code ist statisch in "app" eingebaut (adapter-static, siehe Root-Dockerfile) —
+# Aenderungen daran erfordern einen Rebuild ("docker compose up -d --build"), kein
+# Live-Mount hier. Fuer schnelle Frontend-Iteration weiterhin optional "npm run dev" im
+# frontend/-Ordner (siehe README) mit Vite-Dev-Proxy auf den Backend-Container; das ist
+# ein separater, eigenstaendiger Pfad ausserhalb dieses Compose-Overlays.
