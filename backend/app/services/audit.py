@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.request_meta import get_client_ip, get_user_agent
 from app.models.audit_log import AuditLog
+from app.services.household_security import get_or_create_security_settings
 
 
 async def record_event(
@@ -30,7 +31,19 @@ async def record_event(
     sicherheitsrelevantesten Fall (fehlgeschlagener Login) beim Request-Ende per Rollback
     stillschweigend verloren. `commit=False` ist nur für Aufrufer gedacht, die den Eintrag
     bewusst in eine bereits laufende Transaktion einbetten und selbst committen wollen.
+
+    `attempted_username` wird vor dem Speichern gegen die haushaltsweite
+    `household_security_settings.log_attempted_username`-Einstellung geprüft (Default true
+    für Haushalte ohne eigene Zeile, lazy erstellt bei erstem Zugriff) — steht sie auf
+    false, wird das Feld hier stillschweigend auf None gesetzt. Der Lookup läuft nur, wenn
+    tatsächlich ein `attempted_username` übergeben wurde, um die deutlich häufigeren
+    Events ohne dieses Feld nicht mit einem zusätzlichen Query zu belasten.
     """
+    if attempted_username is not None:
+        security_settings = await get_or_create_security_settings(db, household_id)
+        if not security_settings.log_attempted_username:
+            attempted_username = None
+
     entry = AuditLog(
         household_id=household_id,
         event_type=event_type,

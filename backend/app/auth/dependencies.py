@@ -51,8 +51,38 @@ async def get_current_raw_session_token(
     return await unsign_session_token(session_cookie)
 
 
-async def require_admin(user: User = Depends(get_current_user)) -> User:
-    """RBAC-Gate: nur Admins. Unabhängig von Bucket-Sichtbarkeit (zwei getrennte Achsen)."""
+async def require_totp_enrolled(user: User = Depends(get_current_user)) -> User:
+    """
+    Zusätzliches Gate NACH get_current_user: erzwingt serverseitig, dass ein Admin mit
+    `totp_enabled=false` außer den Grundfunktionen (/auth/me, /auth/logout) und der
+    TOTP-Einrichtung selbst (app/api/totp.py) NICHTS nutzen kann. login() in app/api/auth.py
+    erzwingt den zweiten Faktor bewusst NICHT allein anhand der Admin-Rolle (siehe Kommentar
+    dort — würde einen Admin ohne abgeschlossene Einrichtung strukturell aussperren), das
+    Frontend-Gate in +layout.svelte blockiert bislang nur die SPA-UI, nicht direkte API-
+    Calls. Diese Dependency schließt genau diese Lücke serverseitig.
+
+    Bewusst NICHT auf app/api/totp.py angewendet — dort muss ein Admin ohne totp_enabled
+    weiterhin /enroll und /confirm erreichen können, sonst gäbe es keinen Weg zur
+    Einrichtung mehr (derselbe Lockout, den login() vermeidet). Ebenso nicht auf /auth/me
+    und /auth/logout (app/api/auth.py) — die müssen für jeden authentifizierten User immer
+    erreichbar bleiben.
+    """
+    if user.role == UserRole.ADMIN and not user.totp_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="TOTP-Einrichtung muss zuerst abgeschlossen werden.",
+        )
+    return user
+
+
+async def require_admin(user: User = Depends(require_totp_enrolled)) -> User:
+    """
+    RBAC-Gate: nur Admins. Unabhängig von Bucket-Sichtbarkeit (zwei getrennte Achsen).
+    Hängt bewusst an require_totp_enrolled statt direkt an get_current_user: jeder
+    Admin-only-Endpoint (require_admin) soll automatisch auch das TOTP-Enrollment-Gate
+    mitbekommen, ohne es an jeder Stelle separat verdrahten zu müssen. Für Nicht-Admins
+    ändert sich nichts — require_totp_enrolled greift nur bei role == ADMIN.
+    """
     if user.role != UserRole.ADMIN:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin-Rechte erforderlich")
     return user

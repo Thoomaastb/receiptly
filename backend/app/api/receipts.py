@@ -20,7 +20,7 @@ from sqlalchemy import exists, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, require_totp_enrolled
 from app.database import get_db
 from app.models.bucket import Bucket, BucketAccess, BucketVisibility
 from app.models.item import Item
@@ -56,7 +56,16 @@ _CONTENT_TYPE_BY_EXTENSION = {
     ".png": "image/png",
 }
 
-router = APIRouter(prefix="/receipts", tags=["receipts"])
+router = APIRouter(
+    prefix="/receipts",
+    tags=["receipts"],
+    # Router-weites Gate: Admin ohne abgeschlossene TOTP-Einrichtung kommt hier nicht
+    # rein (siehe require_totp_enrolled in app/auth/dependencies.py). Läuft neben den
+    # bestehenden `Depends(get_current_user)`-Parametern der einzelnen Endpoints — FastAPI
+    # dedupliziert identische Dependency-Callables pro Request, get_current_user wird also
+    # trotzdem nur einmal ausgeführt.
+    dependencies=[Depends(require_totp_enrolled)],
+)
 
 _RECEIPT_DETAIL_OPTIONS = (selectinload(Receipt.merchant), selectinload(Receipt.items))
 

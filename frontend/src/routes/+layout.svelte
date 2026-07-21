@@ -2,20 +2,38 @@
 	import { onMount } from 'svelte';
 	import '../app.css';
 	import { page } from '$app/stores';
-	import { goto } from '$app/navigation';
+	import { goto, afterNavigate } from '$app/navigation';
 	import SettingsNav from '$lib/components/SettingsNav.svelte';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import AiUsageBadge from '$lib/components/AiUsageBadge.svelte';
+	import TotpEnrollment from '$lib/components/TotpEnrollment.svelte';
 	import { initThemeSync } from '$lib/theme';
 	import { categoryColor, categoryLabel } from '$lib/categories';
+	import { m } from '$lib/i18n';
 
 	let categories: { value: string; name: string; color: string; count: number }[] = [];
 	let expiringWarrantiesCount = 0;
 	let categoriesLoading = true;
 
-	let currentUser: { username: string; email: string; role: string } | null = null;
+	interface CurrentUser {
+		username: string;
+		email: string;
+		role: string;
+		totp_enabled: boolean;
+	}
+
+	let currentUser: CurrentUser | null = null;
 	$: userInitial = (currentUser?.username?.[0] ?? '?').toUpperCase();
 	$: isAdmin = currentUser?.role === 'admin';
+
+	// KRITISCH (Security-Hardening Phase 2): Admins ohne abgeschlossene TOTP-Einrichtung
+	// bekommen serverseitig bewusst trotzdem eine volle Session (kein Lockout-Risiko beim
+	// initialen Login) — das Frontend ist hier die einzige Durchsetzung der Admin-Pflicht,
+	// bis Phase 3/4 (Passkeys) das serverseitig nachschärfen. Muss auf jedem
+	// authentifizierten Seitenaufruf greifen, nicht nur direkt nach der Registrierung.
+	$: totpSetupRequired = currentUser?.role === 'admin' && currentUser?.totp_enabled === false;
+
+	let authChecked = false;
 
 	let appVersion = '';
 
@@ -49,22 +67,41 @@
 	$: isAuthRoute = AUTH_ROUTES.includes($page.url.pathname);
 	$: isSettingsRoute = $page.url.pathname.startsWith('/settings');
 
-	onMount(async () => {
-		initThemeSync();
-
-		if (isAuthRoute) return;
-
+	async function refreshCurrentUser() {
 		try {
 			const meRes = await fetch('/api/auth/me', { credentials: 'include' });
 			if (meRes.ok) {
 				currentUser = await meRes.json();
 			} else if (meRes.status === 401) {
+				currentUser = null;
 				goto('/login');
-				return;
 			}
 		} catch {
-			// Avatar bleibt leer, wenn nicht eingeloggt — kein Fehler-UI nötig für dieses Detail
+			// currentUser/Gate-Status bleibt beim letzten bekannten Stand, wenn das Backend
+			// kurz nicht erreichbar ist — kein Fehler-UI nötig für dieses Detail
+		} finally {
+			authChecked = true;
 		}
+	}
+
+	// Läuft nach JEDER Navigation, nicht nur beim allerersten Laden: das Root-Layout bleibt
+	// über client-seitige goto()-Navigationen hinweg gemountet (z.B. Login -> "/"), onMount
+	// würde den TOTP-Gate-Check sonst nur beim initialen Seitenaufruf ausführen und ihn nach
+	// einem frischen Login im selben Tab verpassen — genau der in Punkt 3 beschriebene
+	// kritische Fall.
+	afterNavigate(() => {
+		if (AUTH_ROUTES.includes($page.url.pathname)) {
+			currentUser = null;
+			authChecked = false;
+			return;
+		}
+		refreshCurrentUser();
+	});
+
+	onMount(async () => {
+		initThemeSync();
+
+		if (isAuthRoute) return;
 
 		try {
 			const healthRes = await fetch('/api/health');
@@ -117,6 +154,41 @@
 
 {#if isAuthRoute}
 	<slot />
+{:else if !authChecked}
+	<!-- Verhindert einen kurzen Flash der App-Shell, bevor der TOTP-Gate-Check (unten)
+	     abgeschlossen ist — animate-spin respektiert prefers-reduced-motion global über
+	     die Regel in app.css. -->
+	<div class="flex min-h-screen items-center justify-center bg-hifi-bg">
+		<div
+			class="h-8 w-8 animate-spin rounded-full border-2 border-hifi-border border-t-hifi-accent"
+			role="status"
+			aria-label={m.common.checking}
+		></div>
+	</div>
+{:else if totpSetupRequired}
+	<!-- KRITISCH: ersetzt die App-Shell vollständig (keine Navigation, keine Slot-Kinder) —
+	     Admins ohne totp_enabled kommen an dieser Stelle nicht weiter, bis /auth/totp/confirm
+	     erfolgreich war und refreshCurrentUser() das bestätigt. Gleiches Karten-Layout wie
+	     /login und /reset-password, damit der Screen als receiptly-eigen erkennbar bleibt
+	     und nicht wie eine Fehlerseite wirkt. -->
+	<div class="flex min-h-screen items-center justify-center bg-hifi-bg px-4 py-10">
+		<div class="w-full max-w-md rounded-2xl border border-hifi-border bg-hifi-surface p-8">
+			<div class="mb-6 flex items-center gap-3">
+				<span class="flex h-9 w-9 flex-none items-center justify-center rounded-[10px] bg-hifi-accent">
+					<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M6 3h9l3 3v15H6z" />
+						<path d="M9 9h6M9 13h6M9 17h3" />
+					</svg>
+				</span>
+				<span class="text-[19px] font-extrabold tracking-tight text-hifi-text">receiptly</span>
+			</div>
+			<div class="mb-5">
+				<div class="text-lg font-bold text-hifi-text">{m.gate.heading}</div>
+				<p class="mt-2 text-sm leading-relaxed text-hifi-text-muted">{m.gate.description}</p>
+			</div>
+			<TotpEnrollment description={m.totpSetup.gateIntroDescription} onComplete={refreshCurrentUser} />
+		</div>
+	</div>
 {:else}
 <div class="flex h-screen flex-col overflow-hidden bg-hifi-bg font-ui text-hifi-text">
 	<div

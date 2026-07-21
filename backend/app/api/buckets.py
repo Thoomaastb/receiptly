@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import get_current_user
+from app.auth.dependencies import get_current_user, require_totp_enrolled
 from app.database import get_db
 from app.models.bucket import Bucket, BucketAccess, BucketAccessLevel, BucketType, BucketVisibility
 from app.models.receipt import Receipt
@@ -19,7 +19,12 @@ from app.schemas.bucket import (
 )
 from app.services.bucket_access import visible_bucket_ids_query
 
-router = APIRouter(prefix="/buckets", tags=["buckets"])
+router = APIRouter(
+    prefix="/buckets",
+    tags=["buckets"],
+    # Siehe app/api/receipts.py — dasselbe Router-weite TOTP-Enrollment-Gate.
+    dependencies=[Depends(require_totp_enrolled)],
+)
 
 
 async def _get_owned_bucket(db: AsyncSession, bucket_id: uuid.UUID, user: User) -> Bucket:
