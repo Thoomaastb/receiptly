@@ -1,3 +1,13 @@
+## [0.33.0](https://github.com/Thoomaastb/receiptly/compare/v0.32.0...v0.33.0) (2026-07-22)
+
+### Features
+
+* **security:** Passkey-Exklusiv-Login + Race-Condition-Fixes (Security Hardening Phase 4) ([f40c198](https://github.com/Thoomaastb/receiptly/commit/f40c19889fe4f800557d2a13252679a21e4d7e96))
+
+### Bug Fixes
+
+* **ui:** Belegdatum lokalisiert (de-DE) statt roher ISO-Ausgabe ([6fe42c1](https://github.com/Thoomaastb/receiptly/commit/6fe42c15c1440c7ca0bf333490fbe029b8da2004))
+
 ## [0.32.0](https://github.com/Thoomaastb/receiptly/compare/v0.31.1...v0.32.0) (2026-07-22)
 
 ### Features
