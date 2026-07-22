@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from urllib.parse import urlparse
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -62,9 +63,23 @@ class Settings(BaseSettings):
     smtp_encryption: str = "starttls"
     public_app_url: str = "http://localhost:5173"
 
+    # Security-Hardening Phase 3 (Passkeys/WebAuthn, siehe concepts/security-hardening.md
+    # Abschnitt 4.3). WebAuthn verlangt eine reine Domain als RP-ID (kein Schema/Port) —
+    # ohne expliziten Override wird sie aus public_app_url abgeleitet (Ein-Domain-
+    # Deployment braucht i.d.R. keinen separat zu pflegenden zweiten Wert). Wechselt die
+    # Domain, werden bestehende Passkeys ungültig (Deployment-Fallstrick, siehe Konzept).
+    webauthn_rp_id: str | None = None
+    webauthn_rp_name: str = "receiptly"
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+
+    @property
+    def webauthn_rp_id_resolved(self) -> str:
+        if self.webauthn_rp_id:
+            return self.webauthn_rp_id
+        return urlparse(self.public_app_url).hostname or "localhost"
 
 
 @lru_cache

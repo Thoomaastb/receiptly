@@ -15,6 +15,7 @@ from app.api import (
     settings as settings_router,
     smtp_settings,
     totp,
+    webauthn,
 )
 from app.config import get_settings
 
@@ -53,6 +54,7 @@ async def security_headers(request, call_next):
 app.include_router(health.router, prefix="/api")
 app.include_router(auth.router, prefix="/api")
 app.include_router(totp.router, prefix="/api")
+app.include_router(webauthn.router, prefix="/api")
 app.include_router(receipts.router, prefix="/api")
 app.include_router(buckets.router, prefix="/api")
 app.include_router(settings_router.router, prefix="/api")

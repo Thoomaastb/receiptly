@@ -19,6 +19,7 @@
     "@capacitor/core": "^8.4.1",
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/plus-jakarta-sans": "^5.2.8",
+    "@simplewebauthn/browser": "^13.3.0",
     "@sveltejs/adapter-static": "^3.0.10",
     "@tesseract.js-data/deu": "^1.0.0",
     "tesseract.js": "^5.1.0"

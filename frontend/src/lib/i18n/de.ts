@@ -93,6 +93,65 @@ export const de = {
 		description: 'Als Administrator ist die Einrichtung der Zwei-Faktor-Authentifizierung verpflichtend, bevor du fortfahren kannst.'
 	},
 
+	// Passkey-Registrierungs-Flow (Ceremony → Gerätename) — wiederverwendet in den
+	// Sicherheitseinstellungen (optional, mehrfach) und im Zwangs-Gate (Baustein 3, einmalig)
+	passkeySetup: {
+		settingsIntroDescription: 'Registriere ein Gerät (Touch ID, Windows Hello, Security-Key o. ä.) für die passwortlose Anmeldung.',
+		gateIntroDescription: 'Die Einrichtung eines Passkeys ist verpflichtend. Folge den Anweisungen deines Geräts (z. B. Touch ID, Windows Hello oder ein Security-Key).',
+		addButton: 'Passkey hinzufügen',
+		addButtonLoading: 'Warte auf Bestätigung …',
+		unsupportedMessage: 'Passkeys werden von diesem Browser oder in diesem Kontext (z. B. ohne HTTPS) nicht unterstützt.',
+		cancelledMessage: 'Registrierung abgebrochen.',
+		startError: 'Passkey-Registrierung konnte nicht gestartet werden — bitte erneut versuchen.',
+		labelHeading: 'Passkey erkannt',
+		labelDescription: 'Gib einen Namen für dieses Gerät ein, damit du es in der Liste wiedererkennst.',
+		labelFieldLabel: 'Gerätename',
+		labelPlaceholder: 'z. B. MacBook Touch ID',
+		backupHint: 'Tipp: Richte zusätzlich einen zweiten Passkey ein (z. B. ein weiteres Gerät oder einen Security-Key) — als Backup, falls dieses Gerät einmal nicht verfügbar ist.',
+		submitButton: 'Passkey speichern',
+		submitButtonLoading: 'Wird gespeichert …',
+		submitError: 'Passkey konnte nicht gespeichert werden — bitte erneut versuchen.',
+		conflictError: 'Dieser Passkey ist bereits einem anderen Konto zugeordnet.',
+		cancelButton: 'Abbrechen'
+	},
+
+	// Passkey-Verwaltung in den Sicherheitseinstellungen (Liste, Umbenennen, Löschen)
+	passkeyManage: {
+		sectionTitle: 'Passkeys',
+		sectionDescription: 'Passwortlose Anmeldung über Touch ID, Windows Hello, Security-Keys o. ä.',
+		loadError: 'Passkeys konnten nicht geladen werden.',
+		emptyState: 'Noch keine Passkeys registriert.',
+		createdLabel: 'Erstellt',
+		lastUsedLabel: 'zuletzt genutzt',
+		neverUsedLabel: 'noch nicht genutzt',
+		renameButton: 'Umbenennen',
+		renameFieldLabel: 'Gerätename',
+		renameSaveButton: 'Speichern',
+		renameCancelButton: 'Abbrechen',
+		renameError: 'Umbenennen fehlgeschlagen.',
+		deleteButton: 'Löschen',
+		deleteButtonLoading: 'Wird entfernt …',
+		deleteConfirm: 'Diesen Passkey wirklich entfernen? Die Anmeldung mit diesem Gerät ist danach nicht mehr möglich.',
+		deleteError: 'Löschen fehlgeschlagen.'
+	},
+
+	// Passkey als Alternative zum Passwort-Login
+	passkeyLogin: {
+		divider: 'oder',
+		button: 'Mit Passkey anmelden',
+		buttonLoading: 'Warte auf Bestätigung …',
+		usernameRequired: 'Bitte zuerst Benutzername oder E-Mail eingeben.',
+		unsupportedMessage: 'Passkeys werden von diesem Browser nicht unterstützt.',
+		cancelledMessage: 'Anmeldung mit Passkey abgebrochen.',
+		genericError: 'Anmeldung mit Passkey fehlgeschlagen.'
+	},
+
+	// Globales Zwangs-Gate für neue User ohne registrierten Passkey (Baustein 3)
+	passkeyGate: {
+		heading: 'Passkey einrichten',
+		description: 'Bitte richte einen Passkey ein, bevor du fortfährst — als zusätzliche Absicherung deines Kontos.'
+	},
+
 	// Admin-Seite Sicherheitsrichtlinien
 	securityPolicy: {
 		policyCardTitle: 'Sicherheitsrichtlinien',

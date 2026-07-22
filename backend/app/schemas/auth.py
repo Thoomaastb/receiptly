@@ -54,6 +54,12 @@ class UserResponse(BaseModel):
     # abgeschlossene TOTP-Einrichtung (siehe bekannte Lücke: /auth/register loggt einen
     # frischen Admin sofort ein, TOTP ist aber erst nach /auth/totp/confirm aktiv).
     totp_enabled: bool
+    # Security-Hardening Phase 3 (Konzept 4.1/4.3): True nur für normale User (nicht
+    # Admin) ohne mindestens einen registrierten Passkey — Frontend interpretiert das als
+    # blockierendes Ersteinrichtungs-Gate. Braucht einen zusätzlichen DB-Lookup, den
+    # FastAPIs automatische from_attributes-Konvertierung aus einem rohen User-Objekt
+    # nicht leisten kann — siehe app/api/auth.py::_build_user_response().
+    passkey_setup_required: bool
 
     model_config = {"from_attributes": True}
 

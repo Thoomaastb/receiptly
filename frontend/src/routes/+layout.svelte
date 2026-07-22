@@ -7,6 +7,7 @@
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import AiUsageBadge from '$lib/components/AiUsageBadge.svelte';
 	import TotpEnrollment from '$lib/components/TotpEnrollment.svelte';
+	import PasskeyEnrollment from '$lib/components/PasskeyEnrollment.svelte';
 	import { initThemeSync } from '$lib/theme';
 	import { categoryColor, categoryLabel } from '$lib/categories';
 	import { m } from '$lib/i18n';
@@ -20,6 +21,7 @@
 		email: string;
 		role: string;
 		totp_enabled: boolean;
+		passkey_setup_required: boolean;
 	}
 
 	let currentUser: CurrentUser | null = null;
@@ -32,6 +34,14 @@
 	// bis Phase 3/4 (Passkeys) das serverseitig nachschärfen. Muss auf jedem
 	// authentifizierten Seitenaufruf greifen, nicht nur direkt nach der Registrierung.
 	$: totpSetupRequired = currentUser?.role === 'admin' && currentUser?.totp_enabled === false;
+
+	// KRITISCH (Security-Hardening Phase 3, Baustein 3): analog zum TOTP-Gate oben, aber
+	// für normale (Nicht-Admin-)User ohne registrierten Passkey — betrifft auch bestehende
+	// Accounts nach diesem Deploy, nicht nur frische Registrierungen. Serverseitig liefert
+	// /auth/me passkey_setup_required bereits ausschließlich für diese Zielgruppe (nie für
+	// Admins), die Bedingung hier prüft es trotzdem nicht exklusiv gegen totpSetupRequired,
+	// da beide Gates unterschiedliche Rollen betreffen und sich so nie überschneiden.
+	$: passkeySetupRequired = currentUser?.passkey_setup_required === true;
 
 	let authChecked = false;
 
@@ -187,6 +197,29 @@
 				<p class="mt-2 text-sm leading-relaxed text-hifi-text-muted">{m.gate.description}</p>
 			</div>
 			<TotpEnrollment description={m.totpSetup.gateIntroDescription} onComplete={refreshCurrentUser} />
+		</div>
+	</div>
+{:else if passkeySetupRequired}
+	<!-- KRITISCH: gleiches Muster wie das TOTP-Gate oben — App-Shell vollständig ersetzt,
+	     keine Navigation möglich. User ohne registrierten Passkey kommen hier nicht weiter,
+	     bis /webauthn/register/verify erfolgreich war und refreshCurrentUser() bestätigt,
+	     dass passkey_setup_required auf false gewechselt ist. -->
+	<div class="flex min-h-screen items-center justify-center bg-hifi-bg px-4 py-10">
+		<div class="w-full max-w-md rounded-2xl border border-hifi-border bg-hifi-surface p-8">
+			<div class="mb-6 flex items-center gap-3">
+				<span class="flex h-9 w-9 flex-none items-center justify-center rounded-[10px] bg-hifi-accent">
+					<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M6 3h9l3 3v15H6z" />
+						<path d="M9 9h6M9 13h6M9 17h3" />
+					</svg>
+				</span>
+				<span class="text-[19px] font-extrabold tracking-tight text-hifi-text">receiptly</span>
+			</div>
+			<div class="mb-5">
+				<div class="text-lg font-bold text-hifi-text">{m.passkeyGate.heading}</div>
+				<p class="mt-2 text-sm leading-relaxed text-hifi-text-muted">{m.passkeyGate.description}</p>
+			</div>
+			<PasskeyEnrollment description={m.passkeySetup.gateIntroDescription} onComplete={refreshCurrentUser} />
 		</div>
 	</div>
 {:else}
