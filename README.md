@@ -1,9 +1,58 @@
 # receiptly
 
-Selbst gehostetes, privacy-first DMS für Kassenbons, Rechnungen und Garantiebelege.
-Das Originalbild verlässt das Gerät nie — nur der extrahierte Text geht an den Server.
+**Selbst gehostetes, privacy-first DMS für Kassenbons, Rechnungen und Garantiebelege.**
 
-Vollständiges Konzept, Architektur, Datenmodell und Backlog: siehe Notion (Page "receiptly").
+[![Version](https://img.shields.io/badge/version-0.32.0-blue)](CHANGELOG.md)
+[![Docker Build](https://github.com/Thoomaastb/receiptly/actions/workflows/docker.yml/badge.svg)](https://github.com/Thoomaastb/receiptly/actions/workflows/docker.yml)
+[![Release](https://github.com/Thoomaastb/receiptly/actions/workflows/release.yml/badge.svg)](https://github.com/Thoomaastb/receiptly/actions/workflows/release.yml)
+
+Das Originalbild eines Belegs verlässt das Gerät nie — nur der extrahierte Text geht an
+den Server. Für den optionalen KI-Schritt (Struktur-Extraktion aus dem OCR-Text) gilt
+dasselbe Prinzip eine Ebene tiefer: der Rohtext wird vor jedem Versand von
+IBAN-/Kartennummern-artigen Mustern bereinigt, unabhängig davon ob der gewählte Provider
+lokal (Ollama) oder extern (OpenAI/Anthropic/Google) läuft.
+
+## Warum receiptly?
+
+receiptly ist bewusst kein allgemeines Dokumentenmanagement-System wie paperless-ngx,
+sondern ein eng fokussiertes Haushalts-Tool für genau eine Aufgabe: Kassenbons, Rechnungen
+und Garantiebelege erfassen, durchsuchbar machen und Familien/WGs gemeinsam verwalten
+lassen — mit einem Sicherheitsniveau, das für öffentlich erreichbare Finanzdaten gedacht
+ist, nicht nachträglich angeflanscht.
+
+## Features
+
+**Erfassung**
+- Foto- oder PDF-Upload, serverseitige OCR (Tesseract) — läuft immer, unabhängig von KI
+- Optionale KI-Struktur-Extraktion (Ollama, OpenAI, Anthropic oder Google) mit PII-Redaction
+  vor jedem Versand und SSRF-Schutz für selbst gehostete Ollama-Hosts
+- Kategorie-spezifische Zusatzfelder (z.B. Kilometerstand bei "Tanken"), erweiterbar ohne
+  neue Migration
+- Mengen-Tracking für Artikel (z.B. 6×1,5l = 9l), fließt in die Gesamtsumme ein
+
+**Organisation**
+- Buckets zur freien Strukturierung, Kategorien mit Händler-Historie als Vorschlag
+- Volltextsuche mit Typ-/Kategorie-Filtern, Sortierung nach Datum/Betrag
+- Responsives Mosaik-Grid mit Thumbnails auf der Home-Übersicht, konfigurierbarer
+  Kompakt-Modus
+
+**Sicherheit**
+- Passwort + optional TOTP/2FA und Passkeys/WebAuthn (auch als alleiniger Login-Faktor
+  erzwingbar)
+- Rate-Limiting gegen Brute-Force auf Login/Reset/2FA-Verifizierung
+- Audit-Log für sicherheitsrelevante Ereignisse (Logins, Passwortänderungen,
+  Session-Beendigungen)
+- Konfigurierbare Sicherheitsrichtlinien pro Haushalt, Sitzungsverwaltung mit
+  Fern-Abmeldung
+- Self-Service-Passwort-Reset per E-Mail (SMTP im Admin-Bereich konfigurierbar)
+
+**Betrieb**
+- Mehrbenutzer-Haushalte statt Einzelaccounts
+- Dark Mode
+- Ein einziges Docker-Image (Backend + statisch ausgeliefertes Frontend), rootless,
+  mehrarch (`ghcr.io`)
+- Mobile Wrapper (iOS/Android) über Capacitor auf Basis desselben Web-Builds — keine
+  zweite Codebasis
 
 ## Stack
 
@@ -14,8 +63,9 @@ Vollständiges Konzept, Architektur, Datenmodell und Backlog: siehe Notion (Page
 | Datenbank | PostgreSQL 16 |
 | Cache/Queue | Redis |
 | Infrastruktur | Docker (rootless) + Nginx + Pangolin/Newt |
+| Mobile | Capacitor (iOS/Android) auf demselben SvelteKit-Build |
 
-## Lokales Setup
+## Schnellstart
 
 **Als vorgebautes Package (kein Checkout nötig)** — nur `docker-compose.yml` + `.env` besorgen:
 
@@ -31,9 +81,9 @@ docker compose up -d
 docker compose exec app alembic upgrade head
 ```
 
-Zugriff läuft ausschließlich über Pangolin/Newt via `remote` — Host-Ports sind daher
-standardmäßig auskommentiert (nicht entfernt) in `docker-compose.yml`. Für lokales
-Testen ohne Pangolin einfach die `#` vor der `ports:`-Zeile bei `app` entfernen.
+Zugriff läuft standardmäßig ausschließlich über Pangolin/Newt via `remote` — Host-Ports
+sind daher in `docker-compose.yml` auskommentiert (nicht entfernt). Für lokales Testen
+ohne Pangolin einfach die `#` vor der `ports:`-Zeile bei `app` entfernen.
 
 App (Frontend + API im selben Container): http://localhost:8000 · API-Health: http://localhost:8000/api/health
 
@@ -68,9 +118,21 @@ npm install
 npm run dev
 ```
 
-## Versionierung — Semantic Release (verbindlich)
+### Konfiguration
 
-Schema: `v.MAJOR.MINOR.PATCH`
+Alle Umgebungsvariablen inkl. Erklärung stehen in `.env.example`. Die wichtigsten
+optionalen Bausteine:
+
+- **KI-Struktur-Extraktion** — ohne `OLLAMA_HOST`/`AI_HOST` bleibt es bei reiner OCR ohne
+  KI-Aufruf; ist einer der beiden gesetzt, wird der Provider server-weit erzwungen
+  (Haushalts-Settings-UI wird read-only), sonst frei pro Haushalt konfigurierbar.
+- **E-Mail (Passwort-Reset)** — ohne `SMTP_HOST` bleibt der Versand aus (Antwort bleibt
+  bewusst immer erfolgreich, verhindert User-Enumeration).
+
+## Versionierung & Contributing
+
+Conventional Commits, durchgesetzt via `commitlint.config.js`, gesteuert über
+`.releaserc.json` (`semantic-release`). Schema: `v.MAJOR.MINOR.PATCH`.
 
 ```
 feat(scope): description   → MINOR
@@ -79,20 +141,18 @@ feat!: description         → MAJOR — reserviert für das stabile v1.0.0-Rele
 chore/docs/ci/test         → kein Release
 ```
 
-Gültige Scopes: `auth · receipts · buckets · pricing · documents · audit · monitoring · logs · services · dashboard · api · db · ui · docker · ci · deps · release · readme · license · security`
+Gültige Scopes stehen in `commitlint.config.js` — vor dem Commit prüfen statt raten, die
+Liste wächst mit dem Projekt.
 
-Commitlint (`commitlint.config.js`) erzwingt Typ und Scope. `.releaserc.json` steuert
-`semantic-release`. Vor `v1.0.0` ist nichts stabil released — Reihenfolge der Minor-Versionen
-kann sich noch ändern (siehe Backlog in Notion).
+## Status
 
-## Auslieferung im Dev-Chat
+`v0.32.0` — Security Hardening (2FA, Passkeys/WebAuthn, Rate-Limiting, Audit-Log)
+abgeschlossen. Siehe [CHANGELOG.md](CHANGELOG.md) für die vollständige Versionshistorie.
+Vor `v1.0.0` ist nichts stabil — Architektur und Reihenfolge der Minor-Versionen können
+sich noch ändern.
 
-Pro Version wird ein ZIP-Archiv mit **nur den neuen/geänderten Dateien** geliefert, nicht der
-komplette Baum. Ausnahme: die allererste Version (dieses Skeleton), da hier alles neu ist.
-Kleine, punktuelle Änderungen (einzelne Zeilen, Konfig-Werte) werden stattdessen als
-Suchen/Ersetzen-Anweisung im Chat geliefert — ohne neues Archiv.
+Vollständiges Konzept, Architektur, Datenmodell und Backlog: siehe Notion (Page "receiptly").
 
-## Aktueller Stand
+## Lizenz
 
-`v0.1.0-alpha.1` — Fundament: Projekt-Skeleton, Docker-Setup, Auth-Grundgerüst, Basis-Datenschema,
-CSS-Tokens. Siehe `CHANGELOG.md` für Details, Notion-Backlog für die weiteren Etappen bis `v1.0.0`.
+Noch nicht final festgelegt (Pre-`v1.0.0`).
