@@ -1,3 +1,9 @@
+## [0.31.0](https://github.com/Thoomaastb/receiptly/compare/v0.30.0...v0.31.0) (2026-07-22)
+
+### Features
+
+* **services:** SMTP-Konfiguration im Admin-Bereich + HTML-Design für Transaktionsmails ([2984814](https://github.com/Thoomaastb/receiptly/commit/2984814d519c2a2ffdc530c0f1fde9232159d87a))
+
 ## [0.30.0](https://github.com/Thoomaastb/receiptly/compare/v0.29.0...v0.30.0) (2026-07-21)
 
 ### Features
