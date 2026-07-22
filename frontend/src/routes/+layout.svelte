@@ -13,7 +13,6 @@
 	import { m } from '$lib/i18n';
 
 	let categories: { value: string; name: string; color: string; count: number }[] = [];
-	let expiringWarrantiesCount = 0;
 	let categoriesLoading = true;
 
 	interface CurrentUser {
@@ -130,16 +129,7 @@
 		try {
 			const res = await fetch('/api/receipts', { credentials: 'include' });
 			if (res.ok) {
-				const receipts: { warranty_expires_at?: string; category?: string | null }[] = await res.json();
-				// Garantie-Ablauf-Zählung: real berechnet, aber aktuell immer 0,
-				// da warranty_expires_at noch nirgends befüllt wird (Dokumente-&-Garantie-Paket offen)
-				const now = Date.now();
-				expiringWarrantiesCount = receipts.filter((r) => {
-					if (!r.warranty_expires_at) return false;
-					const days = (new Date(r.warranty_expires_at).getTime() - now) / 86_400_000;
-					return days <= 30;
-				}).length;
-
+				const receipts: { category?: string | null }[] = await res.json();
 				const counts = new Map<string, number>();
 				for (const r of receipts) {
 					if (!r.category) continue;
@@ -372,18 +362,6 @@
 					{/if}
 				</div>
 
-				<div class="mt-auto flex flex-none flex-col gap-1.5 rounded-[14px] bg-hifi-accent-tint p-3.5">
-					<div class="flex items-center gap-1.5 text-[12.5px] font-bold text-hifi-accent-text">
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-							<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
-						</svg>
-						KI-Analyse
-					</div>
-					<div class="text-[12.5px] leading-relaxed" style="color: var(--color-accent-text-muted);">
-						{expiringWarrantiesCount}
-						{expiringWarrantiesCount === 1 ? 'Garantie braucht' : 'Garantien brauchen'} Aufmerksamkeit
-					</div>
-				</div>
 			{/if}
 			</div>
 
