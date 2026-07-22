@@ -1,3 +1,9 @@
+## [0.33.1](https://github.com/Thoomaastb/receiptly/compare/v0.33.0...v0.33.1) (2026-07-22)
+
+### Bug Fixes
+
+* **ui:** nutzlose KI-Analyse-Box aus der Sidebar entfernt (zeigte nur tote Garantie-Zählung) ([65b3d6f](https://github.com/Thoomaastb/receiptly/commit/65b3d6f39ffe641751d3dfb45445fefef3a7f1e6))
+
 ## [0.33.0](https://github.com/Thoomaastb/receiptly/compare/v0.32.0...v0.33.0) (2026-07-22)
 
 ### Features
