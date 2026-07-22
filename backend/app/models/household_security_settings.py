@@ -12,9 +12,8 @@ class HouseholdSecuritySettings(Base, UpdatableTimestampMixin):
     Haushaltsweite Sicherheitsrichtlinien (Phase 2 des Security-Hardening-Plans):
     TOTP-Pflicht für alle Haushaltsmitglieder, Audit-Log-Retention und ob fehlgeschlagene
     Logins mit unbekanntem Username den versuchten Usernamen mitloggen (Datenschutz-
-    Schalter). Bewusst OHNE `passkey_exclusive_login` — kommt erst in Phase 4, wenn
-    dahinter tatsächlich Logik steht (Lehre aus `users.totp_secret`, das jahrelang
-    ungenutzt existierte, bevor jetzt in Phase 2 endlich Logik dazukam).
+    Schalter). `passkey_exclusive_login` kam erst in Phase 4 dazu (Begründung siehe
+    Migration 0017 — Lehre aus `users.totp_secret`, s.o.).
     """
 
     __tablename__ = "household_security_settings"
@@ -33,3 +32,4 @@ class HouseholdSecuritySettings(Base, UpdatableTimestampMixin):
     )
     audit_retention_days: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=90)
     log_attempted_username: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    passkey_exclusive_login: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
