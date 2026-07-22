@@ -16,7 +16,7 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -45,6 +45,7 @@ from app.schemas.webauthn import (
 )
 from app.services import webauthn as webauthn_service
 from app.services.audit import record_event
+from app.services.household_security import get_or_create_security_settings, lock_household_security
 
 router = APIRouter(prefix="/webauthn", tags=["webauthn"])
 
@@ -188,13 +189,49 @@ async def delete_credential(
     db: AsyncSession = Depends(get_db),
 ) -> None:
     """
-    Kein Schutz vor "letzter Passkey wird gelöscht" an dieser Stelle — das
-    Precondition-Gate für den Passkey-Exklusiv-Login gehört laut Plan erst zu Phase 4
-    (dann muss dieser Endpoint zusätzlich prüfen, ob der Schalter aktiv ist). Für einen
-    User ohne aktiven Exklusiv-Login bleibt Passwort (+ ggf. TOTP) weiterhin ein
-    vollwertiger Login-Weg, auch ganz ohne Passkey.
+    Schutz vor "letzter Passkey wird gelöscht" (Security-Hardening Phase 4, Konzept 4.1):
+    solange der haushaltsweite Passkey-Exklusiv-Login aktiv ist, lehnt das Löschen der
+    letzten verbleibenden Credential des Users mit 409 ab — sonst würde sich der User
+    selbst aussperren, ohne dass das Precondition-Gate beim Aktivieren des Schalters das
+    hätte verhindern können (das prüft nur den Zustand zum Aktivierungszeitpunkt, nicht
+    danach). Ohne aktiven Schalter bleibt das Löschen des letzten Passkeys weiterhin
+    uneingeschränkt möglich — Passwort (+ ggf. TOTP) bleibt dann ein vollwertiger Rückweg.
+
+    lock_household_security() muss vor der Zählung stehen (Security-Review Phase 4, M1):
+    sonst lesen zwei parallele Löschungen der letzten zwei Passkeys beide noch "2 Stück"
+    unter READ COMMITTED, bevor die jeweils andere committet, und beide löschen durch.
     """
+    await lock_household_security(db, user.household_id)
     credential = await _get_own_credential(db, credential_id, user)
+
+    security_settings = await get_or_create_security_settings(db, user.household_id)
+    if security_settings.passkey_exclusive_login:
+        remaining_result = await db.execute(
+            select(func.count())
+            .select_from(WebauthnCredential)
+            .where(WebauthnCredential.user_id == user.id)
+        )
+        if remaining_result.scalar_one() <= 1:
+            # Bewusste Ergänzung über den Auftrags-Wortlaut hinaus (dort nur "409
+            # ablehnen" gefordert): ein Audit-Event, weil ein abgelehnter Löschversuch des
+            # letzten Passkeys bei aktivem Exklusiv-Modus dasselbe sicherheitsrelevante
+            # Gewicht hat wie die anderen bereits auditierten Passkey-Events in dieser Datei.
+            await record_event(
+                db,
+                household_id=user.household_id,
+                user_id=user.id,
+                event_type="passkey_delete_blocked",
+                request=request,
+                metadata={"credential_id": str(credential_id), "reason": "passkey_exclusive_login"},
+            )
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=(
+                    "Letzter Passkey kann nicht gelöscht werden, solange der exklusive "
+                    "Passkey-Login aktiv ist."
+                ),
+            )
+
     await db.delete(credential)
     await record_event(
         db,

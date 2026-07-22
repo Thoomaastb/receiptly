@@ -56,7 +56,7 @@ from app.services.audit import record_event
 from app.services.crypto import decrypt_secret
 from app.services.email import send_email
 from app.services.email_templates import render_password_reset_email
-from app.services.household_security import get_or_create_security_settings
+from app.services.household_security import get_or_create_security_settings, lock_household_security
 
 logger = logging.getLogger(__name__)
 
@@ -264,6 +264,39 @@ async def login(
                 metadata={"endpoint": "/auth/login", "bucket": "login_ip_username"},
             )
         raise
+
+    if user is not None:
+        # Passkey-Exklusiv-Login (Security-Hardening Phase 4, Konzept 4.1): sperrt den
+        # Passwort-Login haushaltsweit. Bewusst VOR verify_password geprüft (gleicher
+        # Grund wie beim Rate-Limit oben — spart Argon2id-Rechenzeit für einen ohnehin
+        # zum Scheitern verurteilten Login) und nur, wenn ein echter User aufgelöst wurde
+        # (sonst gäbe es keinen Haushalt für den Settings-Lookup, analog zu den anderen
+        # audit_log.household_id-NOT-NULL-Stellen in dieser Funktion).
+        #
+        # Bewusste Abweichung vom Enumeration-Schutz-Muster dieser Funktion: anders als
+        # bei unbekanntem User/falschem Passwort (identische 401-Meldung) liefert dieser
+        # Zweig einen eigenen 403 mit klartextlicher Begründung, wie vom Konzept
+        # gefordert ("Passwort-Login ist für diesen Haushalt deaktiviert"). Das ist ein
+        # bewusster Trade-off: für Haushalte mit aktivem Exklusiv-Schalter lässt sich
+        # dadurch per Statuscode unterscheiden "Username existiert und Haushalt ist im
+        # Exklusiv-Modus" von "falsches Passwort"/"unbekannter Username" (beide weiterhin
+        # 401). Für das Zielsetting (2-Personen-Haushalt, nicht-öffentlich beworbene
+        # Domain) wird das als akzeptabel bewertet — explizit im Bericht der Hauptinstanz
+        # benannt, damit ein Security-Review das bei Bedarf gegenprüfen kann.
+        security_settings = await get_or_create_security_settings(db, user.household_id)
+        if security_settings.passkey_exclusive_login:
+            await record_event(
+                db,
+                household_id=user.household_id,
+                user_id=user.id,
+                event_type="password_login_blocked",
+                request=request,
+                metadata={"reason": "passkey_exclusive_login"},
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Passwort-Login ist für diesen Haushalt deaktiviert — bitte mit Passkey anmelden.",
+            )
 
     if user is None or not verify_password(payload.password, user.password_hash):
         # Bewusst identische Fehlermeldung für unbekannten User und falsches Passwort
@@ -664,10 +697,45 @@ async def invite_household_member(
     """
     Legt einen weiteren User im selben Haushalt an (kein neuer Household wie bei /register).
     Admin-only, da damit potenziell Zugriff auf den transparenten Household-Bucket entsteht.
+
+    Bewusste Ergänzung über den ursprünglichen Phase-4-Auftrag hinaus (Precondition-Gate/
+    Login-Ablehnung/Löschschutz): ist der Passkey-Exklusiv-Login bereits aktiv, wird die
+    Einladung selbst mit 409 abgelehnt. Grund: das neue Mitglied hätte weder Passwort-
+    Login (durch den Exklusiv-Schalter gesperrt) noch einen Passkey (kann erst NACH einer
+    ersten Session unter /webauthn/register/* registriert werden) — ein struktureller
+    Lockout für genau dieses eine neue Mitglied, den das Konzept mit dem
+    Precondition-Gate eigentlich ausschließen wollte ("Da neue User ohnehin beim ersten
+    Login zur Passkey-Einrichtung gezwungen werden, bleibt die Invariante 'alle User haben
+    einen Passkey' automatisch erhalten"). Diese Annahme stimmt nur, solange Einladungen
+    bei aktivem Schalter verhindert werden — sonst würde ein danach eingeladenes Mitglied
+    die Invariante durchbrechen, ohne dass die Aktivierung selbst das je hätte verhindern
+    können. Rettungsweg: Admin deaktiviert den Exklusiv-Schalter temporär, lädt ein,
+    lässt das neue Mitglied per Passwort einloggen + einen Passkey einrichten, aktiviert
+    danach wieder (Precondition-Gate greift dann erneut ganz normal).
+
+    lock_household_security() muss vor dem Gate-Check unten stehen (Security-Review
+    Phase 4, M2): sonst kann dieser Guard den Schalter noch als "aus" lesen, während
+    parallel ein Aktivierungs-PUT (app/api/security_settings.py) kurz vor dem Commit
+    steht — das neue Mitglied würde dann ohne Passkey angelegt, kurz bevor der Exklusiv-
+    Modus scharf geschaltet wird.
     """
+    await lock_household_security(db, admin.household_id)
     existing = await db.execute(select(User).where(User.username == payload.username))
     if existing.scalar_one_or_none() is not None:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Username bereits vergeben")
+
+    security_settings = await get_or_create_security_settings(db, admin.household_id)
+    if security_settings.passkey_exclusive_login:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Neue Mitglieder können nicht eingeladen werden, solange der Passkey-"
+                "Exklusiv-Login aktiv ist — das neue Mitglied hätte sonst weder Passwort- "
+                "noch Passkey-Login. Bitte den Exklusiv-Modus vorübergehend deaktivieren, "
+                "einladen und dort einen Passkey einrichten lassen, danach kann der "
+                "Exklusiv-Modus wieder aktiviert werden."
+            ),
+        )
 
     member = User(
         username=payload.username,

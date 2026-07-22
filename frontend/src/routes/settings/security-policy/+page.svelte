@@ -10,6 +10,19 @@
 		totp_required_for_household: boolean;
 		audit_retention_days: RetentionDays;
 		log_attempted_username: boolean;
+		passkey_exclusive_login: boolean;
+	}
+
+	// Live-Precondition-Status für den Passkey-Exklusiv-Schalter (Phase 4) — eigener
+	// GET-Endpoint, unabhängig von einem Aktivierungsversuch abrufbar (siehe
+	// backend/app/schemas/security_settings.py::PasskeyExclusiveGateStatus). Das PUT liefert
+	// bei Ablehnung dasselbe Shape im detail-Objekt (plus `message`), daher hier
+	// wiederverwendet statt einer eigenen zweiten Interface-Definition.
+	interface PasskeyExclusiveGateStatus {
+		eligible: boolean;
+		total_members: number;
+		missing_count: number;
+		missing_usernames: string[];
 	}
 
 	// Eigene, kleine Kopie der Event-Label/Ton-Logik aus settings/security/+page.svelte
@@ -104,9 +117,25 @@
 	let totpRequiredForHousehold = false;
 	let retentionValue = '90';
 	let logAttemptedUsername = true;
+	let passkeyExclusiveLogin = false;
 	let saving = false;
 	let saveMessage = '';
 	let saveError = '';
+
+	// Eigener Ladezustand statt Teil von policyLoading — die Gate-Auskunft kommt aus einem
+	// zweiten, unabhängigen Endpoint (parallel zu GET .../security-policy geladen) und darf
+	// dessen Fehler-/Ladeanzeige nicht verkoppeln.
+	let gateLoading = true;
+	let gateError = '';
+	let gateEligible = false;
+	let gateTotalMembers = 0;
+	let gateMissingCount = 0;
+	let gateMissingUsernames: string[] = [];
+
+	// Aktivieren ist gesperrt, solange die Precondition nicht (bestätigt) erfüllt ist —
+	// Deaktivieren bleibt in jedem Fall möglich (Rettungsweg bei Passkey-Verlust, Konzept Q18).
+	$: passkeyToggleDisabled =
+		!passkeyExclusiveLogin && (gateLoading || gateError !== '' || !gateEligible);
 
 	async function loadAccess(): Promise<boolean> {
 		try {
@@ -129,11 +158,58 @@
 			totpRequiredForHousehold = policy.totp_required_for_household;
 			retentionValue = String(policy.audit_retention_days);
 			logAttemptedUsername = policy.log_attempted_username;
+			passkeyExclusiveLogin = policy.passkey_exclusive_login;
 		} catch {
 			policyLoadError = m.securityPolicy.loadError;
 		} finally {
 			policyLoading = false;
 		}
+	}
+
+	async function loadPasskeyExclusiveGate() {
+		gateLoading = true;
+		gateError = '';
+		try {
+			const res = await fetch('/api/settings/security-policy/passkey-exclusive-gate', {
+				credentials: 'include'
+			});
+			if (!res.ok) throw new Error(`${res.status}`);
+			const gate: PasskeyExclusiveGateStatus = await res.json();
+			gateEligible = gate.eligible;
+			gateTotalMembers = gate.total_members;
+			gateMissingCount = gate.missing_count;
+			gateMissingUsernames = gate.missing_usernames;
+		} catch {
+			gateError = m.securityPolicy.exclusiveGateLoadError;
+		} finally {
+			gateLoading = false;
+		}
+	}
+
+	// Kein Templating-Mechanismus im schlanken i18n-Katalog (lib/i18n/de.ts ist reine
+	// Key->String-Zuordnung, siehe restliche Datei) — einfache {missing}/{total}-Platzhalter
+	// statt dafür eine neue Interpolations-Bibliothek einzuführen.
+	function formatGateBlockedMessage(missing: number, total: number): string {
+		return m.securityPolicy.exclusiveGateBlocked
+			.replace('{missing}', String(missing))
+			.replace('{total}', String(total));
+	}
+
+	// PUT liefert bei Precondition-Verstoß (Race Condition zwischen Laden und Speichern, z.B.
+	// ein Mitglied hat seinen einzigen Passkey zwischenzeitlich gelöscht) ein strukturiertes
+	// detail-Objekt statt eines reinen Strings — dessen Gate-Zahlen direkt übernehmen, damit
+	// die Live-Anzeige ohne zusätzlichen Request aktuell bleibt.
+	function extractSaveErrorMessage(detail: unknown): string {
+		if (typeof detail === 'string') return detail;
+		if (detail && typeof detail === 'object' && 'message' in detail && 'eligible' in detail) {
+			const gateDetail = detail as PasskeyExclusiveGateStatus & { message: string };
+			gateEligible = gateDetail.eligible;
+			gateTotalMembers = gateDetail.total_members;
+			gateMissingCount = gateDetail.missing_count;
+			gateMissingUsernames = gateDetail.missing_usernames;
+			return gateDetail.message;
+		}
+		return m.securityPolicy.saveError;
 	}
 
 	async function handleSave() {
@@ -148,12 +224,13 @@
 				body: JSON.stringify({
 					totp_required_for_household: totpRequiredForHousehold,
 					audit_retention_days: Number(retentionValue),
-					log_attempted_username: logAttemptedUsername
+					log_attempted_username: logAttemptedUsername,
+					passkey_exclusive_login: passkeyExclusiveLogin
 				})
 			});
 			if (!res.ok) {
 				const body = await res.json().catch(() => null);
-				throw new Error(body?.detail ?? m.securityPolicy.saveError);
+				throw new Error(extractSaveErrorMessage(body?.detail));
 			}
 			saveMessage = m.securityPolicy.saveSuccess;
 		} catch (err) {
@@ -199,6 +276,7 @@
 		checkingAccess = false;
 		if (!isAdmin) return;
 		loadPolicy();
+		loadPasskeyExclusiveGate();
 		loadHouseholdAuditEvents();
 	});
 </script>
@@ -279,6 +357,57 @@
 									: 'translate-x-0.5'}"
 							></span>
 						</button>
+					</div>
+
+					<div class="rounded-[14px] border border-status-warning-border p-4">
+						<h3 class="mb-1 text-[11.5px] font-bold uppercase tracking-[0.04em] text-status-warning">
+							{m.securityPolicy.exclusiveSectionTitle}
+						</h3>
+						<p class="mb-3 text-[12.5px] leading-relaxed text-hifi-text-muted">
+							{m.securityPolicy.exclusiveWarning}
+						</p>
+
+						{#if gateError}
+							<p class="mb-3 text-sm text-danger">{gateError}</p>
+						{:else if !gateLoading && !gateEligible}
+							<div class="mb-3 rounded-[10px] border border-status-warning-border bg-status-warning-bg p-3 text-[12.5px] leading-relaxed">
+								<p>{formatGateBlockedMessage(gateMissingCount, gateTotalMembers)}</p>
+								{#if gateMissingUsernames.length > 0}
+									<p class="mt-1.5 font-semibold">{m.securityPolicy.exclusiveGateMissingUsernamesLabel}</p>
+									<ul class="mt-0.5 list-disc pl-4">
+										{#each gateMissingUsernames as username (username)}
+											<li>{username}</li>
+										{/each}
+									</ul>
+								{/if}
+							</div>
+						{/if}
+
+						<div class="flex items-center justify-between gap-4">
+							<div class="min-w-0">
+								<div class="text-sm font-semibold text-hifi-text">{m.securityPolicy.exclusiveLabel}</div>
+								<div class="mt-0.5 text-[12.5px] leading-relaxed text-hifi-text-muted">
+									{m.securityPolicy.exclusiveDescription}
+								</div>
+							</div>
+							<button
+								type="button"
+								role="switch"
+								aria-checked={passkeyExclusiveLogin}
+								aria-label={m.securityPolicy.exclusiveLabel}
+								disabled={passkeyToggleDisabled}
+								on:click={() => (passkeyExclusiveLogin = !passkeyExclusiveLogin)}
+								class="relative h-6 w-11 flex-none rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-hifi-accent focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 {passkeyExclusiveLogin
+									? 'bg-hifi-accent'
+									: 'bg-hifi-border'}"
+							>
+								<span
+									class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform {passkeyExclusiveLogin
+										? 'translate-x-[22px]'
+										: 'translate-x-0.5'}"
+								></span>
+							</button>
+						</div>
 					</div>
 
 					{#if saveMessage}
