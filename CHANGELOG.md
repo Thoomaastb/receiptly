@@ -1,3 +1,9 @@
+## [0.34.0](https://github.com/Thoomaastb/receiptly/compare/v0.33.1...v0.34.0) (2026-07-22)
+
+### Features
+
+* **notifications:** Benachrichtigungssystem (Garantie-Ablauf, Sicherheitshinweise, E-Mail-Opt-in) ([cfe0b6d](https://github.com/Thoomaastb/receiptly/commit/cfe0b6d371cb96b9b7521ac883f4d3f165657ccb))
+
 ## [0.33.1](https://github.com/Thoomaastb/receiptly/compare/v0.33.0...v0.33.1) (2026-07-22)
 
 ### Bug Fixes
