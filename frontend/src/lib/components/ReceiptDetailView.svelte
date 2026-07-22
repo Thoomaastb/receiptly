@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { CATEGORIES, categoryLabel, categoryColor, categoryFields } from '$lib/categories';
+	import { formatDate } from '$lib/formatDate';
 
 	interface ItemRow {
 		id: string;
@@ -566,7 +567,7 @@
 					<div class="text-[13.5px] font-bold text-hifi-text">{merchantName}</div>
 				{/if}
 				<div>
-					<div class="mb-1 text-[12px] text-hifi-text-muted">{receiptDate ?? 'Datum folgt (OCR/KI)'}</div>
+					<div class="mb-1 text-[12px] text-hifi-text-muted">{receiptDate ? formatDate(receiptDate) : 'Datum folgt (OCR/KI)'}</div>
 					<div class="text-2xl font-bold">
 						{totalAmount !== null ? `${totalAmount.toFixed(2)} ${currency}` : 'Betrag folgt (OCR/KI)'}
 					</div>

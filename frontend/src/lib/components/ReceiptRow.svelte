@@ -1,5 +1,6 @@
 <script lang="ts">
 	import BucketPill from './BucketPill.svelte';
+	import { formatDate } from '$lib/formatDate';
 
 	export let id: string;
 	export let receiptDate: string | null;
@@ -66,7 +67,7 @@
 	<div class="min-w-0 flex-1">
 		<div class="truncate text-[13.5px] font-bold text-hifi-text">{merchantName ?? 'Händler folgt'}</div>
 		<div class="mt-0.5 flex items-center gap-2 text-xs text-hifi-text-muted">
-			<span>{receiptDate ?? 'Datum folgt'}</span>
+			<span>{receiptDate ? formatDate(receiptDate) : 'Datum folgt'}</span>
 			{#if itemCount > 0}
 				<span>· {itemCount} Artikel</span>
 			{/if}

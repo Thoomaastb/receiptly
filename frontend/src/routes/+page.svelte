@@ -4,6 +4,7 @@
 	import UploadModal from '$lib/components/UploadModal.svelte';
 	import { categoryLabel } from '$lib/categories';
 	import { mosaicCompact } from '$lib/mosaicDensity';
+	import { formatDate } from '$lib/formatDate';
 
 	interface Receipt {
 		id: string;
@@ -189,7 +190,7 @@
 				{/if}
 				<div class="px-4 py-3.5">
 					<div class="mb-2 flex items-center justify-between gap-2">
-						<span class="text-xs text-hifi-text-faint">{receipt.receipt_date ?? 'Datum folgt'}</span>
+						<span class="text-xs text-hifi-text-faint">{receipt.receipt_date ? formatDate(receipt.receipt_date) : 'Datum folgt'}</span>
 						{#if receipt.category}
 							<span class="truncate text-[11px] font-semibold text-hifi-text-muted">{categoryLabel(receipt.category)}</span>
 						{/if}
