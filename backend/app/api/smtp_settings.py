@@ -58,11 +58,19 @@ async def get_smtp_settings(
     await db.commit()
 
     locked = effective is not None and effective.locked_by_server
+    # password_set spiegelt den WIRKSAMEN Zustand wider, nicht nur die DB-Zeile — sonst
+    # zeigt das (geblurrte) Passwort-Feld im Frontend "nicht gesetzt", obwohl über .env
+    # längst ein echtes Passwort aktiv ist (locked_by_server-Fall).
+    password_set = (
+        effective.password is not None
+        if effective is not None
+        else settings.encrypted_password is not None
+    )
     return SmtpSettingsResponse(
         host=settings.host,
         port=settings.port,
         username=settings.username,
-        password_set=settings.encrypted_password is not None,
+        password_set=password_set,
         from_email=settings.from_email,
         encryption=settings.encryption,
         locked_by_server=locked,

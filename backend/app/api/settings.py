@@ -85,9 +85,17 @@ async def get_ai_provider(
     await db.commit()
 
     locked = effective is not None and effective.locked_by_server
+    # has_api_key spiegelt den WIRKSAMEN Zustand wider, nicht nur die Haushalts-Zeile —
+    # sonst zeigt das (geblurrte) Key-Feld im Frontend "nicht gesetzt", obwohl über .env
+    # (OLLAMA_HOST/AI_HOST+AI_KEY) längst ein echter Key/Provider aktiv ist. Ollama braucht
+    # ohnehin keinen Key (api_key bleibt dann None) — has_api_key ist in dem Fall korrekt
+    # False, das Frontend zeigt für Ollama kein Secret-Feld an.
+    has_api_key = (
+        effective.api_key is not None if locked else settings.encrypted_api_key is not None
+    )
     return AISettingsResponse(
         provider=settings.provider.value if settings.provider else None,
-        has_api_key=settings.encrypted_api_key is not None,
+        has_api_key=has_api_key,
         endpoint_url=settings.endpoint_url,
         model_name=settings.model_name,
         locked_by_server=locked,
