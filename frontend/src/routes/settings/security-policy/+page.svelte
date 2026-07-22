@@ -43,7 +43,12 @@
 		totp_login_failed: 'Fehlgeschlagene TOTP-Bestätigung',
 		totp_enabled: 'Zwei-Faktor-Authentifizierung aktiviert',
 		totp_disabled: 'Zwei-Faktor-Authentifizierung deaktiviert',
-		recovery_codes_regenerated: 'Recovery-Codes neu generiert'
+		recovery_codes_regenerated: 'Recovery-Codes neu generiert',
+		// Neu in Phase 3 (Passkeys) — gegen backend/app/api/webauthn.py verifiziert.
+		passkey_registered: 'Passkey registriert',
+		passkey_removed: 'Passkey entfernt',
+		passkey_login_success: 'Anmeldung mit Passkey',
+		passkey_login_failed: 'Fehlgeschlagene Anmeldung mit Passkey'
 	};
 
 	const EVENT_TONE: Record<string, 'success' | 'danger' | 'warning' | 'muted'> = {
@@ -59,7 +64,11 @@
 		totp_login_failed: 'danger',
 		totp_enabled: 'success',
 		totp_disabled: 'warning',
-		recovery_codes_regenerated: 'success'
+		recovery_codes_regenerated: 'success',
+		passkey_registered: 'success',
+		passkey_removed: 'muted',
+		passkey_login_success: 'success',
+		passkey_login_failed: 'danger'
 	};
 
 	function eventTypeLabel(eventType: string): string {

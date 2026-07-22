@@ -5,6 +5,8 @@
 	import TotpEnrollment from '$lib/components/TotpEnrollment.svelte';
 	import RecoveryCodesReveal from '$lib/components/RecoveryCodesReveal.svelte';
 	import ReauthDialog from '$lib/components/ReauthDialog.svelte';
+	import PasskeyEnrollment from '$lib/components/PasskeyEnrollment.svelte';
+	import type { PasskeyCredentialSummary } from '$lib/webauthn';
 
 	interface SessionInfo {
 		session_id: string;
@@ -35,7 +37,11 @@
 		password_changed: 'Passwort geändert',
 		password_reset_confirmed: 'Passwort per Reset-Link geändert',
 		session_terminated: 'Sitzung beendet',
-		rate_limit_triggered: 'Rate-Limit ausgelöst'
+		rate_limit_triggered: 'Rate-Limit ausgelöst',
+		passkey_registered: 'Passkey registriert',
+		passkey_removed: 'Passkey entfernt',
+		passkey_login_success: 'Anmeldung mit Passkey',
+		passkey_login_failed: 'Fehlgeschlagene Anmeldung mit Passkey'
 	};
 
 	// Sicherheitsrelevante Events optisch hervorheben (dezenter Punkt vor dem Label),
@@ -47,7 +53,11 @@
 		password_changed: 'success',
 		password_reset_confirmed: 'success',
 		session_terminated: 'muted',
-		rate_limit_triggered: 'warning'
+		rate_limit_triggered: 'warning',
+		passkey_registered: 'success',
+		passkey_removed: 'muted',
+		passkey_login_success: 'success',
+		passkey_login_failed: 'danger'
 	};
 
 	function eventTypeLabel(eventType: string): string {
@@ -158,6 +168,96 @@
 
 	function handleRecoveryCodesRegenerated(data: unknown) {
 		revealedRecoveryCodes = (data as { recovery_codes: string[] }).recovery_codes;
+	}
+
+	// Passkeys (WebAuthn)
+	let passkeys: PasskeyCredentialSummary[] = [];
+	let passkeysLoading = true;
+	let passkeysError = '';
+	let renamingId: string | null = null;
+	let renameValue = '';
+	let renameSubmitting = false;
+	let renameError = '';
+	let deletingId: string | null = null;
+	let deleteError = '';
+
+	async function loadPasskeys() {
+		passkeysLoading = true;
+		passkeysError = '';
+		try {
+			const res = await fetch('/api/webauthn/credentials', { credentials: 'include' });
+			if (!res.ok) throw new Error(m.passkeyManage.loadError);
+			passkeys = await res.json();
+		} catch (err) {
+			passkeysError = err instanceof Error ? err.message : m.passkeyManage.loadError;
+		} finally {
+			passkeysLoading = false;
+		}
+	}
+
+	function handlePasskeyAdded(credential: PasskeyCredentialSummary) {
+		passkeys = [...passkeys, credential];
+	}
+
+	function startRename(passkey: PasskeyCredentialSummary) {
+		renamingId = passkey.id;
+		renameValue = passkey.device_label;
+		renameError = '';
+	}
+
+	function cancelRename() {
+		renamingId = null;
+		renameValue = '';
+		renameError = '';
+	}
+
+	async function submitRename(id: string) {
+		if (!renameValue.trim()) return;
+		renameError = '';
+		renameSubmitting = true;
+		try {
+			const res = await fetch(`/api/webauthn/credentials/${id}`, {
+				method: 'PATCH',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ device_label: renameValue.trim() })
+			});
+			if (!res.ok) {
+				const body = await res.json().catch(() => null);
+				throw new Error(body?.detail ?? m.passkeyManage.renameError);
+			}
+			const updated: PasskeyCredentialSummary = await res.json();
+			passkeys = passkeys.map((p) => (p.id === id ? updated : p));
+			renamingId = null;
+		} catch (err) {
+			renameError = err instanceof Error ? err.message : m.passkeyManage.renameError;
+		} finally {
+			renameSubmitting = false;
+		}
+	}
+
+	// Kein "letzter Passkey"-Schutz in dieser Phase (siehe API-Vertrag) — nur der übliche
+	// UX-Bestätigungsdialog vorm Löschen, kein Sicherheits-Gate. Gleiches Muster wie
+	// ReceiptDetailView.svelte (natives confirm()).
+	async function deletePasskey(id: string) {
+		if (!confirm(m.passkeyManage.deleteConfirm)) return;
+		deleteError = '';
+		deletingId = id;
+		try {
+			const res = await fetch(`/api/webauthn/credentials/${id}`, {
+				method: 'DELETE',
+				credentials: 'include'
+			});
+			if (!res.ok && res.status !== 204) {
+				const body = await res.json().catch(() => null);
+				throw new Error(body?.detail ?? m.passkeyManage.deleteError);
+			}
+			passkeys = passkeys.filter((p) => p.id !== id);
+		} catch (err) {
+			deleteError = err instanceof Error ? err.message : m.passkeyManage.deleteError;
+		} finally {
+			deletingId = null;
+		}
 	}
 
 	function validate(): boolean {
@@ -274,6 +374,7 @@
 		loadSessions();
 		loadAuditEvents();
 		loadTotpStatus();
+		loadPasskeys();
 	});
 </script>
 
@@ -413,6 +514,100 @@
 			onSuccess={handleRecoveryCodesRegenerated}
 		/>
 	{/if}
+
+	<div class="rounded-[14px] border border-hifi-border bg-hifi-surface p-6">
+		<h2 class="mb-1 text-[13.5px] font-bold text-hifi-text">{m.passkeyManage.sectionTitle}</h2>
+		<p class="mb-4 text-sm text-hifi-text-muted">{m.passkeyManage.sectionDescription}</p>
+
+		{#if passkeysError}
+			<p class="mb-3 text-sm text-danger">{passkeysError}</p>
+		{/if}
+
+		{#if passkeysLoading}
+			<p class="text-sm text-hifi-text-muted">Wird geladen …</p>
+		{:else}
+			{#if passkeys.length > 0}
+				<ul class="mb-4 flex flex-col">
+					{#each passkeys as passkey (passkey.id)}
+						<li class="flex items-center justify-between gap-4 border-b border-hifi-border py-3 last:border-0">
+							{#if renamingId === passkey.id}
+								<form
+									class="flex flex-1 items-center gap-2"
+									on:submit|preventDefault={() => submitRename(passkey.id)}
+								>
+									<label class="flex-1 text-sm">
+										<span class="sr-only">{m.passkeyManage.renameFieldLabel}</span>
+										<input
+											type="text"
+											bind:value={renameValue}
+											autocomplete="off"
+											class="w-full rounded-[10px] border border-hifi-border bg-hifi-bg p-2 text-sm"
+										/>
+									</label>
+									<button
+										type="submit"
+										disabled={renameSubmitting || !renameValue.trim()}
+										class="flex-none rounded-[10px] bg-hifi-accent px-3 py-1.5 text-[13px] font-semibold text-white disabled:opacity-50"
+									>
+										{m.passkeyManage.renameSaveButton}
+									</button>
+									<button
+										type="button"
+										on:click={cancelRename}
+										class="flex-none rounded-[10px] px-2.5 py-1.5 text-[13px] font-medium text-hifi-text-muted transition-colors hover:text-hifi-text"
+									>
+										{m.passkeyManage.renameCancelButton}
+									</button>
+								</form>
+							{:else}
+								<div class="min-w-0">
+									<div class="truncate text-sm font-semibold text-hifi-text">{passkey.device_label}</div>
+									<div class="mt-0.5 text-[12.5px] text-hifi-text-faint">
+										{m.passkeyManage.createdLabel} {formatLastSeen(passkey.created_at)} ·
+										{passkey.last_used_at
+											? `${m.passkeyManage.lastUsedLabel} ${formatLastSeen(passkey.last_used_at)}`
+											: m.passkeyManage.neverUsedLabel}
+									</div>
+								</div>
+								<div class="flex flex-none items-center gap-2">
+									<button
+										type="button"
+										on:click={() => startRename(passkey)}
+										class="rounded-[10px] border border-hifi-border px-3 py-1.5 text-[13px] font-medium text-hifi-text transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text"
+									>
+										{m.passkeyManage.renameButton}
+									</button>
+									<button
+										type="button"
+										on:click={() => deletePasskey(passkey.id)}
+										disabled={deletingId === passkey.id}
+										class="rounded-[10px] border border-hifi-border px-3 py-1.5 text-[13px] font-medium text-hifi-text transition-colors hover:bg-danger-bg hover:text-danger disabled:opacity-50"
+									>
+										{deletingId === passkey.id ? m.passkeyManage.deleteButtonLoading : m.passkeyManage.deleteButton}
+									</button>
+								</div>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			{:else}
+				<p class="mb-4 text-sm text-hifi-text-muted">{m.passkeyManage.emptyState}</p>
+			{/if}
+
+			{#if renameError}
+				<p class="mb-3 text-sm text-danger">{renameError}</p>
+			{/if}
+			{#if deleteError}
+				<p class="mb-3 text-sm text-danger">{deleteError}</p>
+			{/if}
+
+			<PasskeyEnrollment
+				description={m.passkeySetup.settingsIntroDescription}
+				onComplete={handlePasskeyAdded}
+				onCancel={() => {}}
+			/>
+		{/if}
+	</div>
 
 	<div class="rounded-[14px] border border-hifi-border bg-hifi-surface p-6">
 		<h2 class="mb-1 text-[13.5px] font-bold text-hifi-text">Aktive Sitzungen</h2>

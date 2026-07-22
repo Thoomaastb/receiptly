@@ -2,6 +2,11 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { m } from '$lib/i18n';
+	import {
+		startAuthentication,
+		browserSupportsWebAuthn,
+		type PublicKeyCredentialRequestOptionsJSON
+	} from '@simplewebauthn/browser';
 
 	let mode: 'checking' | 'login' | 'setup' | 'totp' = 'checking';
 
@@ -15,6 +20,12 @@
 
 	let errorMessage = '';
 	let submitting = false;
+
+	// Passkey-Login (Baustein 2, Phase 3) — Alternative zum Passwort, nutzt dasselbe
+	// Username/E-Mail-Feld. Capability-Check einmalig, keine Laufzeitänderung möglich.
+	const passkeySupported = browserSupportsWebAuthn();
+	let passkeyError = '';
+	let passkeySubmitting = false;
 
 	// Zweiter Login-Schritt (Phase 2: TOTP/2FA) — das Pre-Auth-Cookie hält den Zustand
 	// serverseitig, hier wird nur der Code abgefragt.
@@ -42,6 +53,19 @@
 		}
 	});
 
+	// Gemeinsame Auswertung für Passwort- UND Passkey-Login — beide Endpunkte liefern laut
+	// API-Vertrag exakt dieselbe Antwortform (volle UserResponse oder {requires_totp: true}),
+	// der bestehende TOTP-Zweitschritt wird für beide Wege unverändert wiederverwendet.
+	function handleAuthSuccessBody(body: { requires_totp?: boolean } | null) {
+		if (body?.requires_totp) {
+			totpCode = '';
+			totpError = '';
+			mode = 'totp';
+		} else {
+			goto('/');
+		}
+	}
+
 	async function handleLogin() {
 		errorMessage = '';
 		submitting = true;
@@ -53,20 +77,55 @@
 				body: JSON.stringify({ username, password })
 			});
 			if (res.ok) {
-				const body = await res.json().catch(() => null);
-				if (body?.requires_totp) {
-					totpCode = '';
-					totpError = '';
-					mode = 'totp';
-				} else {
-					goto('/');
-				}
+				handleAuthSuccessBody(await res.json().catch(() => null));
 			} else {
 				const body = await res.json().catch(() => null);
 				errorMessage = body?.detail ?? 'Anmeldung fehlgeschlagen.';
 			}
 		} finally {
 			submitting = false;
+		}
+	}
+
+	async function handlePasskeyLogin() {
+		errorMessage = '';
+		passkeyError = '';
+		if (!username.trim()) {
+			passkeyError = m.passkeyLogin.usernameRequired;
+			return;
+		}
+		passkeySubmitting = true;
+		try {
+			const optionsRes = await fetch('/api/webauthn/authenticate/options', {
+				method: 'POST',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ username: username.trim() })
+			});
+			// Bewusst generische Fehlermeldung bei jedem Fehlschlag ab hier (kein
+			// body?.detail-Auslesen) — laut API-Vertrag darf ein unbekannter Username nicht
+			// von einem falschen/abgelaufenen Passkey unterscheidbar sein.
+			if (!optionsRes.ok) throw new Error(m.passkeyLogin.genericError);
+			const { options, options_id } = await optionsRes.json();
+			const optionsJSON: PublicKeyCredentialRequestOptionsJSON = JSON.parse(options);
+			const credential = await startAuthentication({ optionsJSON });
+
+			const verifyRes = await fetch('/api/webauthn/authenticate/verify', {
+				method: 'POST',
+				credentials: 'include',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ options_id, credential: JSON.stringify(credential) })
+			});
+			if (!verifyRes.ok) throw new Error(m.passkeyLogin.genericError);
+			handleAuthSuccessBody(await verifyRes.json().catch(() => null));
+		} catch (err) {
+			if (err instanceof Error && err.name === 'NotAllowedError') {
+				passkeyError = m.passkeyLogin.cancelledMessage;
+			} else {
+				passkeyError = err instanceof Error && err.message ? err.message : m.passkeyLogin.genericError;
+			}
+		} finally {
+			passkeySubmitting = false;
 		}
 	}
 
@@ -271,6 +330,29 @@
 					{submitting ? 'Wird angemeldet …' : 'Anmelden'}
 				</button>
 			</form>
+
+			{#if passkeySupported}
+				<div class="my-4 flex items-center gap-3">
+					<div class="h-px flex-1 bg-hifi-border"></div>
+					<span class="text-[11.5px] font-semibold uppercase tracking-[0.04em] text-hifi-text-faint">
+						{m.passkeyLogin.divider}
+					</span>
+					<div class="h-px flex-1 bg-hifi-border"></div>
+				</div>
+
+				{#if passkeyError}
+					<p class="mb-3 text-sm text-danger">{passkeyError}</p>
+				{/if}
+
+				<button
+					type="button"
+					on:click={handlePasskeyLogin}
+					disabled={passkeySubmitting}
+					class="w-full rounded-[10px] border border-hifi-border px-4 py-2.5 text-sm font-semibold text-hifi-text transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text disabled:opacity-50"
+				>
+					{passkeySubmitting ? m.passkeyLogin.buttonLoading : m.passkeyLogin.button}
+				</button>
+			{/if}
 		{/if}
 	</div>
 </div>

@@ -3,7 +3,7 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import (
@@ -38,6 +38,7 @@ from app.models.bucket import Bucket, BucketType, BucketVisibility
 from app.models.household import Household
 from app.models.totp_recovery_code import TotpRecoveryCode
 from app.models.user import User, UserRole
+from app.models.webauthn_credential import WebauthnCredential
 from app.schemas.auth import (
     ChangePasswordRequest,
     InviteRequest,
@@ -63,6 +64,85 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 settings = get_settings()
 
 
+async def _passkey_setup_required(db: AsyncSession, user: User) -> bool:
+    """
+    True nur für normale User (Konzept 4.1/4.3 — Passkey-Pflicht gilt nicht für Admins,
+    dort ist der Passkey rein optionaler Passwort-Ersatz, TOTP bleibt Pflicht) ohne
+    mindestens einen registrierten Passkey.
+    """
+    if user.role != UserRole.USER:
+        return False
+
+    result = await db.execute(
+        select(func.count())
+        .select_from(WebauthnCredential)
+        .where(WebauthnCredential.user_id == user.id)
+    )
+    return result.scalar_one() == 0
+
+
+async def _build_user_response(db: AsyncSession, user: User) -> UserResponse:
+    """
+    Baut UserResponse explizit statt über response_model=UserResponse automatisch aus dem
+    User-ORM-Objekt (from_attributes) — passkey_setup_required ist kein direktes
+    User-Attribut, sondern braucht einen eigenen Count-Query (_passkey_setup_required
+    oben), den die automatische Konvertierung nicht leisten kann. Zentral hier statt an
+    jeder UserResponse-Rückgabestelle dupliziert.
+    """
+    return UserResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        role=user.role,
+        household_id=user.household_id,
+        totp_enabled=user.totp_enabled,
+        passkey_setup_required=await _passkey_setup_required(db, user),
+    )
+
+
+async def _finalize_first_factor(
+    db: AsyncSession,
+    user: User,
+    response: Response,
+    request: Request,
+    *,
+    success_event_type: str = "login_success",
+) -> UserResponse | RequiresTotpResponse:
+    """
+    Gemeinsame Verzweigung NACH erfolgreichem ersten Faktor (Passwort ODER Passkey) —
+    extrahiert aus login(), damit login() und der neue Passkey-Verify-Endpoint
+    (app/api/webauthn.py) exakt dieselbe Admin/totp_enabled/Haushalt-Pflicht-Logik
+    durchlaufen (DRY statt Duplikation). Ist TOTP für diesen User bereits eingerichtet
+    oder haushaltsweit erzwungen, entsteht noch KEINE volle Session, sondern der
+    Pre-Auth-Zustand aus app/auth/pending_2fa.py — die echte Session entsteht dann erst
+    nach /auth/login/totp.
+
+    `success_event_type` unterscheidet das Login-Audit-Event zwischen Passwort-
+    ("login_success") und Passkey-Pfad ("passkey_login_success") — bei aktiver
+    TOTP-Pflicht entsteht ohnehin kein Erfolgs-Event hier, das übernimmt erst
+    /auth/login/totp nach dem zweiten Faktor.
+    """
+    security_settings = await get_or_create_security_settings(db, user.household_id)
+    totp_required = user.totp_enabled or security_settings.totp_required_for_household
+
+    if totp_required:
+        await create_pending_2fa(user.id, response, request)
+        await db.commit()  # persistiert eine ggf. lazy erstellte household_security_settings-Zeile
+        return RequiresTotpResponse()
+
+    user.last_login = datetime.now(UTC)
+    await record_event(
+        db,
+        household_id=user.household_id,
+        user_id=user.id,
+        event_type=success_event_type,
+        request=request,
+    )
+
+    await create_session(user.id, response, request)
+    return await _build_user_response(db, user)
+
+
 @router.get("/setup-required")
 async def setup_required(db: AsyncSession = Depends(get_db)) -> dict[str, bool]:
     """
@@ -77,7 +157,7 @@ async def setup_required(db: AsyncSession = Depends(get_db)) -> dict[str, bool]:
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def register(
     payload: RegisterRequest, response: Response, request: Request, db: AsyncSession = Depends(get_db)
-) -> User:
+) -> UserResponse:
     """
     Legt einen neuen Haushalt mit dem ersten User (Rolle: Admin) an.
     Der Household-Bucket wird automatisch miterzeugt — is_default=True, immer 'transparent',
@@ -124,7 +204,7 @@ async def register(
     # Direkt einloggen, damit der Einrichtungs-Assistent im Frontend ohne separaten
     # Login-Schritt in die App übergeben kann.
     await create_session(user.id, response, request)
-    return user
+    return await _build_user_response(db, user)
 
 
 @router.post(
@@ -134,7 +214,7 @@ async def register(
 )
 async def login(
     payload: LoginRequest, response: Response, request: Request, db: AsyncSession = Depends(get_db)
-) -> User | RequiresTotpResponse:
+) -> UserResponse | RequiresTotpResponse:
     """
     Zwei Rate-Limits gleichzeitig: das IP-only-Limit (20/15min, Schutz gegen Username-
     Enumeration-Sweeps über viele Accounts von einer IP) läuft als `Depends()` vor, weil es
@@ -210,31 +290,11 @@ async def login(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Ungültige Anmeldedaten"
         )
 
-    security_settings = await get_or_create_security_settings(db, user.household_id)
-    totp_required = user.totp_enabled or security_settings.totp_required_for_household
-
-    if totp_required:
-        # Kein login_success-Event an dieser Stelle — der Login ist erst nach dem zweiten
-        # Faktor abgeschlossen (siehe login_with_totp() unten, das entweder
-        # "totp_login_success" oder "recovery_code_used" schreibt). last_login wird aus
-        # demselben Grund ebenfalls erst dort gesetzt.
-        await create_pending_2fa(user.id, response, request)
-        await db.commit()  # persistiert eine ggf. lazy erstellte household_security_settings-Zeile
-        return RequiresTotpResponse()
-
-    # last_login-Update und der login_success-Audit-Eintrag teilen sich denselben Commit
-    # (record_event(commit=True) übernimmt ihn) — kein separates db.commit() nötig.
-    user.last_login = datetime.now(UTC)
-    await record_event(
-        db,
-        household_id=user.household_id,
-        user_id=user.id,
-        event_type="login_success",
-        request=request,
-    )
-
-    await create_session(user.id, response, request)
-    return user
+    # Verzweigung (Admin/totp_enabled/Haushalt-Pflicht → Pre-Auth-TOTP-Zustand statt
+    # direkter Session) ist in _finalize_first_factor() extrahiert — dieselbe Funktion
+    # durchläuft auch der Passkey-Login (app/api/webauthn.py) nach erfolgreicher
+    # Assertion-Verifikation.
+    return await _finalize_first_factor(db, user, response, request)
 
 
 @router.post(
@@ -248,7 +308,7 @@ async def login_with_totp(
     request: Request,
     db: AsyncSession = Depends(get_db),
     pending_cookie: str | None = Cookie(default=None, alias=PENDING_2FA_COOKIE_NAME),
-) -> User:
+) -> UserResponse:
     """
     Zweiter Schritt des zweistufigen Logins (siehe login() oben). Der primäre Fehlversuchs-
     Zähler ist strikt an den Pending-Token selbst gebunden (app/auth/pending_2fa.py) — nach
@@ -350,7 +410,7 @@ async def login_with_totp(
     )
 
     await create_session(user.id, response, request)
-    return user
+    return await _build_user_response(db, user)
 
 
 @router.post("/password-reset/request", status_code=status.HTTP_204_NO_CONTENT)
@@ -477,8 +537,10 @@ async def logout(
 
 
 @router.get("/me", response_model=UserResponse)
-async def me(user: User = Depends(get_current_user)) -> User:
-    return user
+async def me(
+    user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)
+) -> UserResponse:
+    return await _build_user_response(db, user)
 
 
 @router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
@@ -583,10 +645,14 @@ async def delete_session(
 @router.get("/household-members", response_model=list[UserResponse])
 async def list_household_members(
     user: User = Depends(require_totp_enrolled), db: AsyncSession = Depends(get_db)
-) -> list[User]:
+) -> list[UserResponse]:
     """Alle User im selben Haushalt — Grundlage für die Bucket-Freigabe-Auswahl."""
     result = await db.execute(select(User).where(User.household_id == user.household_id))
-    return list(result.scalars().all())
+    members = list(result.scalars().all())
+    # Ein Count-Query pro Mitglied (_build_user_response) statt eines Batch-Querys — für
+    # die Zielgruppe (Konzept: 2-Personen-Haushalt) ist das N+1 hier vernachlässigbar,
+    # ein Batch-Join wäre unnötige Komplexität für diese Größenordnung.
+    return [await _build_user_response(db, member) for member in members]
 
 
 @router.post("/invite", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -594,7 +660,7 @@ async def invite_household_member(
     payload: InviteRequest,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
-) -> User:
+) -> UserResponse:
     """
     Legt einen weiteren User im selben Haushalt an (kein neuer Household wie bei /register).
     Admin-only, da damit potenziell Zugriff auf den transparenten Household-Bucket entsteht.
@@ -613,4 +679,4 @@ async def invite_household_member(
     db.add(member)
     await db.commit()
     await db.refresh(member)
-    return member
+    return await _build_user_response(db, member)

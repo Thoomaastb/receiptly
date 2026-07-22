@@ -27,6 +27,7 @@ dependencies = [
     "pillow>=10.0",
     "pyotp>=2.9",
     "qrcode>=7.4",
+    "webauthn>=2.5",
 ]
 
 [project.optional-dependencies]
@@ -42,6 +43,14 @@ target-version = "py312"
 # vorherige Installation möglich.
 pythonpath = ["."]
 testpaths = ["tests"]
+# Session-weiter statt function-weiter Event-Loop (pytest-asyncio-Default): der
+# SQLAlchemy-Async-Engine (app/database.py) ist ein Modul-Singleton mit eigenem
+# Connection-Pool — bei einem neuen Loop pro Testfunktion versucht ein Folgetest, eine an
+# den (dann bereits geschlossenen) Loop des Vorgängertests gebundene asyncpg-Connection
+# wiederzuverwenden ("cannot perform operation: another operation is in progress"). Erst
+# ab test_webauthn.py relevant (erste DB-gestützte Tests im Projekt).
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
 
 [tool.setuptools.packages.find]
 include = ["app*"]
