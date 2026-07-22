@@ -1,3 +1,10 @@
+## [0.32.0](https://github.com/Thoomaastb/receiptly/compare/v0.31.1...v0.32.0) (2026-07-22)
+
+### Features
+
+* **security:** passkey_exclusive_login-Spalte auf household_security_settings ([c412257](https://github.com/Thoomaastb/receiptly/commit/c412257bc21cd0ee6c5d401af03331f1353cb7c4))
+* **security:** Passkeys/WebAuthn (Security Hardening Phase 3) ([d821c3b](https://github.com/Thoomaastb/receiptly/commit/d821c3b25044b34632a96ec8abbd336b9796f66b))
+
 ## [0.31.1](https://github.com/Thoomaastb/receiptly/compare/v0.31.0...v0.31.1) (2026-07-22)
 
 ### Bug Fixes
