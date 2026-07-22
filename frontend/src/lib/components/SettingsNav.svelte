@@ -7,7 +7,8 @@
 		{ href: '/settings/profile', label: 'Profil' },
 		{ href: '/settings/appearance', label: 'Darstellung' },
 		{ href: '/settings/localization', label: 'Lokalisation' },
-		{ href: '/settings/security', label: 'Sicherheit' }
+		{ href: '/settings/security', label: 'Sicherheit' },
+		{ href: '/settings/notifications', label: 'Benachrichtigungen' }
 	];
 
 	const adminItems: { href: string; label: string }[] = [

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import '../app.css';
 	import { page } from '$app/stores';
 	import { goto, afterNavigate } from '$app/navigation';
@@ -10,6 +10,7 @@
 	import PasskeyEnrollment from '$lib/components/PasskeyEnrollment.svelte';
 	import { initThemeSync } from '$lib/theme';
 	import { categoryColor, categoryLabel } from '$lib/categories';
+	import { unreadTotal, refreshUnreadCounts, startPolling, stopPolling } from '$lib/notifications';
 	import { m } from '$lib/i18n';
 
 	let categories: { value: string; name: string; color: string; count: number }[] = [];
@@ -42,6 +43,18 @@
 	// da beide Gates unterschiedliche Rollen betreffen und sich so nie überschneiden.
 	$: passkeySetupRequired = currentUser?.passkey_setup_required === true;
 
+	// Benachrichtigungs-Polling startet erst, sobald die App-Shell tatsächlich sichtbar wird
+	// (gleiche Bedingung wie der {:else}-Zweig unten) — /api/notifications/* ist ohnehin durch
+	// require_totp_enrolled gesperrt, ein früherer Start würde nur nutzlos fehlschlagende
+	// Requests während TOTP-/Passkey-Gate erzeugen. pollingStarted verhindert mehrfaches
+	// Neu-Aufsetzen bei jeder currentUser-Aktualisierung nach Navigation.
+	let pollingStarted = false;
+	$: if (currentUser && !totpSetupRequired && !passkeySetupRequired && !pollingStarted) {
+		pollingStarted = true;
+		startPolling();
+		refreshUnreadCounts();
+	}
+
 	let authChecked = false;
 
 	let appVersion = '';
@@ -53,19 +66,96 @@
 		userMenuOpen = !userMenuOpen;
 	}
 
+	interface NotificationItem {
+		id: string;
+		category: string;
+		type: string;
+		title: string;
+		body: string;
+		link: string | null;
+		read_at: string | null;
+		created_at: string;
+	}
+
+	// Kleine lokale Kategorie->Label-Map, NICHT categoryLabel() aus $lib/categories
+	// wiederverwenden — jenes ist für Beleg-Kategorien (Elektronik, Lebensmittel, ...), ein
+	// anderes Vokabular als die Benachrichtigungs-Kategorien hier.
+	const NOTIFICATION_CATEGORY_LABELS: Record<string, string> = {
+		garantie: 'Garantie',
+		sicherheit: 'Sicherheit'
+	};
+
+	function notificationCategoryLabel(category: string): string {
+		return NOTIFICATION_CATEGORY_LABELS[category] ?? category;
+	}
+
+	function formatNotificationTime(iso: string): string {
+		return new Date(iso).toLocaleString('de-DE', { dateStyle: 'medium', timeStyle: 'short' });
+	}
+
+	let notificationsOpen = false;
+	let notificationsEl: HTMLDivElement;
+	let notifications: NotificationItem[] = [];
+	let notificationsLoading = false;
+	let activeNotificationTab = 'all';
+
+	// Tab-Angebot aus der bereits geladenen Gesamtliste abgeleitet (distinct categories),
+	// nicht aus $unreadByCategory — Letzteres enthält nur Kategorien mit mindestens einer
+	// UNGELESENEN Zeile und würde eine Kategorie ausblenden, sobald ihre Historie vollständig
+	// gelesen ist, obwohl der Nutzer sie hier weiterhin durchblättern können soll.
+	$: notificationTabs = Array.from(new Set(notifications.map((n) => n.category)));
+	$: filteredNotifications =
+		activeNotificationTab === 'all'
+			? notifications
+			: notifications.filter((n) => n.category === activeNotificationTab);
+
+	async function loadNotifications() {
+		notificationsLoading = true;
+		try {
+			const res = await fetch('/api/notifications?limit=50', { credentials: 'include' });
+			if (res.ok) {
+				notifications = await res.json();
+			}
+		} catch {
+			// Rein lesendes Panel — bei Fehlern lieber leer/ungeändert lassen als kaputt wirken,
+			// gleicher Silent-fail-Stil wie der Ungelesen-Zähler
+		} finally {
+			notificationsLoading = false;
+		}
+	}
+
+	function toggleNotifications() {
+		notificationsOpen = !notificationsOpen;
+		if (notificationsOpen) loadNotifications();
+	}
+
+	async function openNotification(n: NotificationItem) {
+		await fetch(`/api/notifications/${n.id}/read`, { method: 'POST', credentials: 'include' });
+		await refreshUnreadCounts();
+		notificationsOpen = false;
+		if (n.link) goto(n.link);
+	}
+
 	function handleUserMenuClickOutside(e: MouseEvent) {
-		if (!userMenuOpen) return;
-		if (!userMenuEl?.contains(e.target as Node)) {
+		if (userMenuOpen && !userMenuEl?.contains(e.target as Node)) {
 			userMenuOpen = false;
+		}
+		if (notificationsOpen && !notificationsEl?.contains(e.target as Node)) {
+			notificationsOpen = false;
 		}
 	}
 
 	function handleUserMenuKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') userMenuOpen = false;
+		if (e.key === 'Escape') {
+			userMenuOpen = false;
+			notificationsOpen = false;
+		}
 	}
 
 	async function logout() {
 		userMenuOpen = false;
+		stopPolling();
+		pollingStarted = false;
 		await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
 		goto('/login');
 	}
@@ -147,6 +237,10 @@
 		} finally {
 			categoriesLoading = false;
 		}
+	});
+
+	onDestroy(() => {
+		stopPolling();
 	});
 </script>
 
@@ -268,15 +362,104 @@
 					<path d="M20 20l-5.5-5.5" />
 				</svg>
 			</a>
-			<button
-				aria-label="Benachrichtigungen"
-				class="flex h-[38px] w-[38px] items-center justify-center rounded-[10px] text-hifi-text-muted transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text"
-			>
-				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-					<path d="M6 10a6 6 0 0112 0v4l2 3H4l2-3z" />
-					<path d="M10 20a2 2 0 004 0" />
-				</svg>
-			</button>
+			<div class="relative" bind:this={notificationsEl}>
+				<button
+					on:click={toggleNotifications}
+					aria-label={m.notifications.bellAriaLabel}
+					aria-expanded={notificationsOpen}
+					class="relative flex h-[38px] w-[38px] items-center justify-center rounded-[10px] text-hifi-text-muted transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text"
+				>
+					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M6 10a6 6 0 0112 0v4l2 3H4l2-3z" />
+						<path d="M10 20a2 2 0 004 0" />
+					</svg>
+					{#if $unreadTotal > 0}
+						<span
+							aria-hidden="true"
+							class="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold leading-none text-white"
+						>
+							{$unreadTotal > 9 ? '9+' : $unreadTotal}
+						</span>
+					{/if}
+				</button>
+				{#if notificationsOpen}
+					<!-- SPRECHBLASEN-FLYOUT (designer-Durchgang v0.34): weichere Elevation via
+					     --shadow-popover + größerer Radius (rounded-2xl) heben es bewusst vom flachen
+					     Benutzermenü ab. Der Zeiger-Pfeil ist ein um 45° rotiertes Quadrat mit
+					     durchlaufendem Hairline-Border (border-l/-t), sodass Bubble-Kontur + Pfeil als
+					     eine Form lesen. Horizontale Position: Panel ist right-0 unter der rechtsbündigen
+					     Topbar, die Glocke ist 38px breit → ihre Mitte liegt 19px vom rechten Rand.
+					     Pfeil (10px-Raute) bei right-[14px] → Rauten-Mitte 14+5=19px = exakt Glocken-Mitte,
+					     unabhängig von der absoluten Bell-Position (rein rechtsbündig verankert). -->
+					<div class="absolute right-0 top-[42px] z-30 w-80 rounded-2xl border border-hifi-border bg-hifi-surface p-1.5 shadow-popover">
+						<span
+							aria-hidden="true"
+							class="absolute -top-[6px] right-[14px] h-2.5 w-2.5 rotate-45 rounded-tl-[3px] border-l border-t border-hifi-border bg-hifi-surface"
+						></span>
+						<div class="flex flex-wrap gap-1.5 px-1.5 pb-2 pt-1">
+							<button
+								type="button"
+								on:click={() => (activeNotificationTab = 'all')}
+								class="rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors"
+								class:bg-hifi-accent-tint={activeNotificationTab === 'all'}
+								class:text-hifi-accent-text={activeNotificationTab === 'all'}
+								class:bg-hifi-surface={activeNotificationTab !== 'all'}
+								class:border={activeNotificationTab !== 'all'}
+								class:border-hifi-border={activeNotificationTab !== 'all'}
+								class:text-hifi-text-muted={activeNotificationTab !== 'all'}
+							>
+								{m.notifications.tabAll}
+							</button>
+							{#each notificationTabs as cat (cat)}
+								<button
+									type="button"
+									on:click={() => (activeNotificationTab = cat)}
+									class="rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors"
+									class:bg-hifi-accent-tint={activeNotificationTab === cat}
+									class:text-hifi-accent-text={activeNotificationTab === cat}
+									class:bg-hifi-surface={activeNotificationTab !== cat}
+									class:border={activeNotificationTab !== cat}
+									class:border-hifi-border={activeNotificationTab !== cat}
+									class:text-hifi-text-muted={activeNotificationTab !== cat}
+								>
+									{notificationCategoryLabel(cat)}
+								</button>
+							{/each}
+						</div>
+						<div class="mb-1 h-px bg-hifi-border"></div>
+						<div class="max-h-96 overflow-y-auto">
+							{#if notificationsLoading}
+								<p class="px-3 py-4 text-center text-[13px] text-hifi-text-muted">{m.notifications.loading}</p>
+							{:else if filteredNotifications.length === 0}
+								<p class="px-3 py-4 text-center text-[13px] text-hifi-text-muted">{m.notifications.empty}</p>
+							{:else}
+								<ul class="flex flex-col">
+									{#each filteredNotifications as n (n.id)}
+										<li>
+											<button
+												type="button"
+												on:click={() => openNotification(n)}
+												class="flex w-full items-start gap-2.5 rounded-[9px] px-3 py-2.5 text-left transition-colors hover:bg-hifi-accent-tint"
+											>
+												<span
+													aria-hidden="true"
+													class="mt-1.5 h-2 w-2 flex-none rounded-full"
+													class:bg-hifi-accent={!n.read_at}
+												></span>
+												<span class="min-w-0 flex-1">
+													<span class="block truncate text-[13px] font-semibold text-hifi-text">{n.title}</span>
+													<span class="mt-0.5 block text-[12.5px] leading-relaxed text-hifi-text-muted">{n.body}</span>
+													<span class="mt-1 block text-[11.5px] text-hifi-text-faint">{formatNotificationTime(n.created_at)}</span>
+												</span>
+											</button>
+										</li>
+									{/each}
+								</ul>
+							{/if}
+						</div>
+					</div>
+				{/if}
+			</div>
 			<ThemeToggle />
 			<div class="mx-1.5 h-[22px] w-px bg-hifi-border"></div>
 			<a

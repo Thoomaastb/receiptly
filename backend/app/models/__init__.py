@@ -8,6 +8,7 @@ from app.models.household import Household  # noqa: F401
 from app.models.household_security_settings import HouseholdSecuritySettings  # noqa: F401
 from app.models.item import Item  # noqa: F401
 from app.models.merchant import Merchant  # noqa: F401
+from app.models.notification import Notification  # noqa: F401
 from app.models.product import Product  # noqa: F401
 from app.models.receipt import Receipt  # noqa: F401
 from app.models.smtp_settings import SmtpSettings  # noqa: F401

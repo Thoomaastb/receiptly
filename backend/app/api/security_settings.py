@@ -1,6 +1,6 @@
 """GET/PUT haushaltsweite Sicherheitsrichtlinien — alle Endpoints Admin-only."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import require_admin
@@ -11,6 +11,7 @@ from app.schemas.security_settings import (
     SecurityPolicyResponse,
     SecurityPolicyUpdate,
 )
+from app.services.audit import record_event
 from app.services.household_security import (
     get_or_create_security_settings,
     get_passkey_exclusive_gate_status,
@@ -58,6 +59,7 @@ async def get_passkey_exclusive_gate(
 @router.put("/security-policy", response_model=SecurityPolicyResponse)
 async def update_security_policy(
     payload: SecurityPolicyUpdate,
+    request: Request,
     admin: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> SecurityPolicyResponse:
@@ -76,6 +78,13 @@ async def update_security_policy(
     # ausschließen soll.
     activating_exclusive_login = (
         payload.passkey_exclusive_login and not settings.passkey_exclusive_login
+    )
+    # Für das Sicherheits-Benachrichtigungssystem (v0.25) muss VOR dem Überschreiben unten
+    # verglichen werden, ob sich der Schalter überhaupt ändert (an->aus zählt genauso wie
+    # aus->an, anders als activating_exclusive_login oben, das nur die Precondition-Gate-
+    # Richtung betrifft).
+    passkey_exclusive_login_changed = (
+        payload.passkey_exclusive_login != settings.passkey_exclusive_login
     )
     if activating_exclusive_login:
         missing_members, total_members = await get_passkey_exclusive_gate_status(
@@ -97,6 +106,21 @@ async def update_security_policy(
     settings.audit_retention_days = payload.audit_retention_days
     settings.log_attempted_username = payload.log_attempted_username
     settings.passkey_exclusive_login = payload.passkey_exclusive_login
+
+    if passkey_exclusive_login_changed:
+        # commit=False: teilt sich den db.commit() direkt unterhalb dieser Funktion mit
+        # (umgekehrter Fall zum sonstigen "Teilt sich den Commit mit record_event(commit=True)"
+        # -Kommentar in auth.py/totp.py — hier committet die AUFRUFENDE Funktion, nicht
+        # record_event() selbst).
+        await record_event(
+            db,
+            household_id=admin.household_id,
+            user_id=admin.id,
+            event_type="passkey_exclusive_login_toggled",
+            request=request,
+            metadata={"enabled": payload.passkey_exclusive_login},
+            commit=False,
+        )
 
     await db.commit()
     await db.refresh(settings)

@@ -61,6 +61,14 @@
 	--color-stripe-thumb-b: oklch(58% 0.19 290 / 0.04);
 	--color-stripe-doc-a: oklch(58% 0.19 290 / 0.08);
 	--color-stripe-doc-b: oklch(58% 0.19 290 / 0.03);
+
+	/* Elevation — erstes Shadow-Token des Projekts (v0.34). Popover/Flyouts schweben über
+	   dem Inhalt und brauchen dafür Höhe, sonst wirken sie wie eingebettete Boxen. Bewusst
+	   generisch benannt (nicht "notification"), damit künftige Popover-/Overlay-UI dieselbe
+	   Elevation-Stufe wiederverwendet statt neue Ad-hoc-Schatten zu erfinden. Zweilagig:
+	   enger Kontaktschatten + weicher Ambient-Schatten; Ton zur Text-Hue (280) gekippt
+	   statt reinem Schwarz, damit er in der warmen Hifi-Palette nicht schmutzig wirkt. */
+	--shadow-popover: 0 2px 4px -2px oklch(22% 0.02 280 / 0.08), 0 10px 24px -6px oklch(22% 0.02 280 / 0.14);
 }
 
 /* Dark Mode (v0.28.0, siehe concepts/dark-mode.md).
@@ -114,6 +122,11 @@
 	--color-stripe-thumb-b: oklch(72% 0.14 290 / 0.06);
 	--color-stripe-doc-a: oklch(72% 0.14 290 / 0.11);
 	--color-stripe-doc-b: oklch(72% 0.14 290 / 0.05);
+
+	/* Dark: Schatten sind auf dunklen Flächen kaum sichtbar → tiefer und deckender (reines
+	   Schwarz, höhere Alpha). Die Kantendefinition trägt hier primär der Hairline-Border,
+	   der Schatten liefert nur die Ablösung vom Hintergrund. */
+	--shadow-popover: 0 2px 6px -2px oklch(0% 0 0 / 0.5), 0 12px 28px -8px oklch(0% 0 0 / 0.55);
 }
 
 body {

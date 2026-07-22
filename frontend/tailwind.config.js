@@ -43,6 +43,11 @@ export default {
 			},
 			borderWidth: {
 				DEFAULT: '0.5px'
+			},
+			boxShadow: {
+				// Zeigt auf --shadow-popover (app.css, light/dark) — Elevation zentral gepflegt,
+				// analog zum Farb-Token-Muster. Nutzung als `shadow-popover`.
+				popover: 'var(--shadow-popover)'
 			}
 		}
 	},

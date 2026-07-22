@@ -10,6 +10,7 @@ from app.api import (
     auth,
     buckets,
     health,
+    notifications,
     receipts,
     security_settings,
     settings as settings_router,
@@ -18,6 +19,7 @@ from app.api import (
     webauthn,
 )
 from app.config import get_settings
+from app.scheduler import lifespan
 
 settings = get_settings()
 
@@ -25,6 +27,7 @@ app = FastAPI(
     title="receiptly API",
     version=settings.app_version,
     description="Privacy-first Belege-DMS — Originalbild verlässt das Gerät nie.",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -61,6 +64,7 @@ app.include_router(settings_router.router, prefix="/api")
 app.include_router(security_settings.router, prefix="/api")
 app.include_router(smtp_settings.router, prefix="/api")
 app.include_router(audit_log.router, prefix="/api")
+app.include_router(notifications.router, prefix="/api")
 
 
 # Statisches Frontend (adapter-static-Build) ausliefern. Der Ordner existiert nur im

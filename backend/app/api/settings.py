@@ -8,15 +8,17 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.dependencies import require_admin
+from app.auth.dependencies import require_admin, require_totp_enrolled
 from app.database import get_db
 from app.models.ai_settings import AISettings, AIProviderType
 from app.models.ai_usage_event import AIUsageEvent
 from app.models.user import User
 from app.schemas.ai_settings import AISettingsResponse, AISettingsUpdate, AIUsageResponse
+from app.schemas.notification import NotificationEmailPreferences
 from app.services import ai_pricing
 from app.services.ai_provider_resolution import resolve_effective_provider
 from app.services.crypto import encrypt_secret
+from app.services.notifications import ALL_NOTIFICATION_TYPES
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
@@ -197,3 +199,34 @@ async def get_ai_usage(
         total_cost_eur=total_cost_eur,
         has_unpriced_usage=unpriced_count > 0,
     )
+
+
+@router.get("/notification-preferences", response_model=NotificationEmailPreferences)
+async def get_notification_preferences(
+    user: User = Depends(require_totp_enrolled),
+) -> NotificationEmailPreferences:
+    """
+    Self-Service (nicht Admin-only) — jeder User verwaltet seine eigenen E-Mail-Opt-ins,
+    gated mit require_totp_enrolled wie der übrige Notifications-Bereich
+    (api/notifications.py), nicht require_admin.
+    """
+    return NotificationEmailPreferences(opted_in_types=user.notification_email_opt_ins)
+
+
+@router.put("/notification-preferences", response_model=NotificationEmailPreferences)
+async def update_notification_preferences(
+    payload: NotificationEmailPreferences,
+    user: User = Depends(require_totp_enrolled),
+    db: AsyncSession = Depends(get_db),
+) -> NotificationEmailPreferences:
+    unknown_types = set(payload.opted_in_types) - ALL_NOTIFICATION_TYPES
+    if unknown_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Unbekannte Notification-Typen: {', '.join(sorted(unknown_types))}",
+        )
+
+    user.notification_email_opt_ins = payload.opted_in_types
+    await db.commit()
+    await db.refresh(user)
+    return NotificationEmailPreferences(opted_in_types=user.notification_email_opt_ins)

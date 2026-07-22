@@ -216,5 +216,39 @@ export const de = {
 		testSuccess: 'Testmail an deine Adresse verschickt — bitte Posteingang prüfen.',
 		testError: 'Testmail konnte nicht gesendet werden.',
 		testUnavailableHint: 'SMTP muss zuerst konfiguriert und gespeichert werden, bevor eine Testmail verschickt werden kann.'
+	},
+
+	// Glocken-Flyout in der Topbar (v0.25.0, Benachrichtigungssystem)
+	notifications: {
+		bellAriaLabel: 'Benachrichtigungen',
+		tabAll: 'Alle',
+		loading: 'Wird geladen …',
+		empty: 'Keine Benachrichtigungen.'
+	},
+
+	// Self-Service-Einstellungsseite für E-Mail-Opt-ins pro Benachrichtigungstyp
+	notificationSettings: {
+		cardTitle: 'Benachrichtigungen',
+		cardDescription: 'Wähle aus, für welche Ereignisse du zusätzlich eine E-Mail erhalten möchtest — die In-App-Benachrichtigung in der Glocke oben erscheint unabhängig davon immer.',
+		groupGarantie: 'Garantie',
+		groupSicherheit: 'Sicherheit',
+		typeLabels: {
+			warranty_expiring: 'Garantie läuft bald ab',
+			security_password_changed: 'Passwort geändert',
+			security_totp_enabled: 'Zwei-Faktor-Login aktiviert',
+			security_totp_disabled: 'Zwei-Faktor-Login deaktiviert',
+			security_passkey_registered: 'Neuer Passkey registriert',
+			security_passkey_removed: 'Passkey entfernt',
+			security_recovery_code_used: 'Recovery-Code verwendet',
+			security_session_terminated: 'Sitzung beendet',
+			security_passkey_exclusive_login_toggled: 'Passkey-exklusiver Login geändert',
+			security_new_login: 'Neuer Login erkannt'
+		},
+		emailOptInSuffix: '(zusätzlich per E-Mail)',
+		saveButton: 'Speichern',
+		saveButtonSaving: 'Speichert …',
+		saveSuccess: 'Gespeichert.',
+		saveError: 'Speichern fehlgeschlagen.',
+		loadError: 'Einstellungen konnten nicht geladen werden.'
 	}
 } as const;
