@@ -13,10 +13,13 @@
 	// behalten") pro Anwendungsfall frei formuliert werden können.
 
 	// Fixer Fake-String für den geblurrten Platzhalter — bewusst ohne echten Aussagewert
-	// und projektweit identisch, damit das Muster überall gleich aussieht. aria-hidden im
-	// Markup, da er nichts Sinnvolles zum Vorlesen beiträgt (der Hinweistext im Label
-	// übernimmt die Screenreader-Kommunikation "bereits hinterlegt").
-	const FAKE_PLACEHOLDER = 'wirdnievollständigangezeigt';
+	// und projektweit identisch, damit das Muster überall gleich aussieht. Zufällig
+	// wirkendes Zeichen-Gemisch statt eines lesbaren Wortes, damit der Blur-Effekt auch
+	// bei nur leichter Unschärfe (kleine Displays, Zoom) nicht versehentlich als echter
+	// Klartext-Wert lesbar wird. aria-hidden im Markup, da er nichts Sinnvolles zum
+	// Vorlesen beiträgt (der Hinweistext im Label übernimmt die Screenreader-
+	// Kommunikation "bereits hinterlegt").
+	const FAKE_PLACEHOLDER = 'x7K$mQ9p&Zv2#wL8nR4tYc¤fG6';
 
 	// Ob bereits ein Wert hinterlegt ist (entspricht has_api_key / password_set etc.).
 	export let isSet: boolean;
