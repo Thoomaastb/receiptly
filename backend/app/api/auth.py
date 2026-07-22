@@ -54,6 +54,7 @@ from app.services import totp
 from app.services.audit import record_event
 from app.services.crypto import decrypt_secret
 from app.services.email import send_email
+from app.services.email_templates import render_password_reset_email
 from app.services.household_security import get_or_create_security_settings
 
 logger = logging.getLogger(__name__)
@@ -401,7 +402,11 @@ async def request_password_reset(
         )
         try:
             await send_email(
-                to=user.email, subject="receiptly – Passwort zurücksetzen", text_body=text_body
+                db,
+                to=user.email,
+                subject="receiptly – Passwort zurücksetzen",
+                text_body=text_body,
+                html_body=render_password_reset_email(link),
             )
         except Exception:
             logger.exception("Versand der Passwort-Reset-Mail an %s fehlgeschlagen", user.email)

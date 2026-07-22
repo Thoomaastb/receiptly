@@ -13,6 +13,7 @@ from app.api import (
     receipts,
     security_settings,
     settings as settings_router,
+    smtp_settings,
     totp,
 )
 from app.config import get_settings
@@ -56,6 +57,7 @@ app.include_router(receipts.router, prefix="/api")
 app.include_router(buckets.router, prefix="/api")
 app.include_router(settings_router.router, prefix="/api")
 app.include_router(security_settings.router, prefix="/api")
+app.include_router(smtp_settings.router, prefix="/api")
 app.include_router(audit_log.router, prefix="/api")
 
 

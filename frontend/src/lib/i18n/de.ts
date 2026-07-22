@@ -118,5 +118,37 @@ export const de = {
 		auditEmpty: 'Noch keine Aktivität.',
 		auditLoadError: 'Aktivität konnte nicht geladen werden.',
 		auditLoadMore: 'Mehr laden'
+	},
+
+	// Admin-Seite E-Mail-Versand (SMTP)
+	smtp: {
+		cardTitle: 'E-Mail-Versand (SMTP)',
+		cardDescription: 'Steuert, über welchen Mailserver Benachrichtigungen und Testmails verschickt werden.',
+		lockedBannerPrefix: 'Der SMTP-Server ist serverseitig fest konfiguriert:',
+		hostLabel: 'Host',
+		portLabel: 'Port',
+		usernameLabel: 'Benutzername (optional)',
+		passwordLabel: 'Passwort',
+		passwordSetHint: 'bereits hinterlegt',
+		passwordChangeButton: 'Ändern',
+		passwordChangeAriaLabel: 'Passwort ändern',
+		passwordCancelButton: 'Abbrechen',
+		fromEmailLabel: 'Absender-E-Mail',
+		encryptionLabel: 'Verschlüsselung',
+		encryptionStarttls: 'STARTTLS (Port 587)',
+		encryptionSsl: 'SSL/TLS (Port 465)',
+		saveButton: 'Speichern',
+		saveButtonSaving: 'Speichert …',
+		saveSuccess: 'Gespeichert.',
+		saveError: 'Speichern fehlgeschlagen.',
+		loadError: 'Einstellungen konnten nicht geladen werden.',
+		accessDenied: 'Diese Einstellungen sind nur für Admins sichtbar.',
+		testCardTitle: 'Testmail',
+		testCardDescription: 'Verschickt eine Testmail an deine eigene E-Mail-Adresse, um die Konfiguration zu prüfen.',
+		testButton: 'Testmail senden',
+		testButtonSending: 'Wird gesendet …',
+		testSuccess: 'Testmail an deine Adresse verschickt — bitte Posteingang prüfen.',
+		testError: 'Testmail konnte nicht gesendet werden.',
+		testUnavailableHint: 'SMTP muss zuerst konfiguriert und gespeichert werden, bevor eine Testmail verschickt werden kann.'
 	}
 } as const;
