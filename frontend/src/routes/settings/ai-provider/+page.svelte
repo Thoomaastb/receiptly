@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import CustomSelect from '$lib/components/CustomSelect.svelte';
+	import SecretField from '$lib/components/SecretField.svelte';
 
 	interface AISettings {
 		provider: string | null;
@@ -22,6 +23,7 @@
 	let settings: AISettings | null = null;
 	let provider = 'ollama';
 	let apiKeyInput = '';
+	let apiKeyEditing = true;
 	let endpointUrl = '';
 	let modelName = '';
 	let loading = true;
@@ -59,6 +61,7 @@
 			provider = settings!.provider ?? 'ollama';
 			endpointUrl = settings!.endpoint_url ?? '';
 			modelName = settings!.model_name ?? '';
+			apiKeyEditing = !settings!.has_api_key;
 		} catch (err) {
 			errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler.';
 		} finally {
@@ -93,6 +96,7 @@
 
 			settings = await res.json();
 			apiKeyInput = '';
+			apiKeyEditing = !settings!.has_api_key;
 			saveMessage = 'Gespeichert.';
 		} catch (err) {
 			errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler beim Speichern.';
@@ -159,20 +163,23 @@
 						nie — aber der erkannte Text geht an {providerLabels[provider]}.
 					</div>
 
-					<label class="mb-4 block text-sm">
-						<span class="mb-1 block text-hifi-text-muted">
+					<div class="mb-4">
+						<span id="api-key-label" class="mb-1 block text-sm text-hifi-text-muted">
 							API-Key
 							{#if settings?.has_api_key}
 								<span class="text-xs">(bereits hinterlegt — leer lassen, um ihn zu behalten)</span>
 							{/if}
 						</span>
-						<input
-							type="password"
+						<SecretField
+							isSet={!!settings?.has_api_key}
 							bind:value={apiKeyInput}
-							placeholder={settings?.has_api_key ? '••••••••••••' : 'sk-…'}
-							class="w-full rounded border border-hifi-border bg-hifi-surface p-2 disabled:opacity-50"
+							bind:editing={apiKeyEditing}
+							disabled={!!settings?.locked_by_server}
+							labelledBy="api-key-label"
+							placeholder="sk-…"
+							changeButtonAriaLabel="API-Key ändern"
 						/>
-					</label>
+					</div>
 
 					<label class="mb-4 block text-sm">
 						<span class="mb-1 block text-hifi-text-muted">Modell (optional)</span>
