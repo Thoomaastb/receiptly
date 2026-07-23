@@ -33,6 +33,7 @@ from app.auth.webauthn_challenge import (
 from app.database import get_db
 from app.models.user import User
 from app.models.webauthn_credential import WebauthnCredential
+from app.schemas.account import RequiresReactivationResponse
 from app.schemas.auth import RequiresTotpResponse, UserResponse
 from app.schemas.webauthn import (
     WebauthnAuthenticateOptionsRequest,
@@ -306,7 +307,7 @@ async def authenticate_options(
 
 @router.post(
     "/authenticate/verify",
-    response_model=UserResponse | RequiresTotpResponse,
+    response_model=UserResponse | RequiresTotpResponse | RequiresReactivationResponse,
     dependencies=[Depends(rate_limit("webauthn_authenticate_verify_ip", limit=15, window_seconds=900))],
 )
 async def authenticate_verify(
@@ -314,7 +315,7 @@ async def authenticate_verify(
     response: Response,
     request: Request,
     db: AsyncSession = Depends(get_db),
-) -> UserResponse | RequiresTotpResponse:
+) -> UserResponse | RequiresTotpResponse | RequiresReactivationResponse:
     """
     Zweiter Schritt des Passkey-Logins (siehe authenticate_options oben). Bei Erfolg
     durchläuft der User dieselbe Admin/TOTP-Verzweigung wie der Passwort-Login

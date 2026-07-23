@@ -6,6 +6,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api import (
+    account,
     audit_log,
     auth,
     buckets,
@@ -67,6 +68,7 @@ app.include_router(smtp_settings.router, prefix="/api")
 app.include_router(audit_log.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(share.router, prefix="/api")
+app.include_router(account.router, prefix="/api")
 
 
 # Statisches Frontend (adapter-static-Build) ausliefern. Der Ordner existiert nur im

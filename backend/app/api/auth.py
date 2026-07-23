@@ -39,6 +39,7 @@ from app.models.household import Household
 from app.models.totp_recovery_code import TotpRecoveryCode
 from app.models.user import User, UserRole
 from app.models.webauthn_credential import WebauthnCredential
+from app.schemas.account import RequiresReactivationResponse
 from app.schemas.auth import (
     ChangePasswordRequest,
     InviteRequest,
@@ -52,6 +53,7 @@ from app.schemas.auth import (
     UserResponse,
 )
 from app.services import totp
+from app.services.account_deletion import check_reactivation_required
 from app.services.audit import record_event
 from app.services.crypto import decrypt_secret
 from app.services.email import send_email
@@ -107,7 +109,7 @@ async def _finalize_first_factor(
     request: Request,
     *,
     success_event_type: str = "login_success",
-) -> UserResponse | RequiresTotpResponse:
+) -> UserResponse | RequiresTotpResponse | RequiresReactivationResponse:
     """
     Gemeinsame Verzweigung NACH erfolgreichem ersten Faktor (Passwort ODER Passkey) —
     extrahiert aus login(), damit login() und der neue Passkey-Verify-Endpoint
@@ -121,6 +123,12 @@ async def _finalize_first_factor(
     ("login_success") und Passkey-Pfad ("passkey_login_success") — bei aktiver
     TOTP-Pflicht entsteht ohnehin kein Erfolgs-Event hier, das übernimmt erst
     /auth/login/totp nach dem zweiten Faktor.
+
+    check_reactivation_required() (Konto-Löschung/DSGVO, siehe
+    app/services/account_deletion.py) läuft NACH dem Erfolgs-Audit-Event, aber VOR
+    create_session() — der Login-Versuch war faktisch vollständig korrekt (das bleibt ein
+    ehrlicher Audit-Eintrag), es entsteht nur (noch) keine normale Session, solange das
+    Konto in der 14-tägigen Löschungs-Karenzzeit steckt.
     """
     security_settings = await get_or_create_security_settings(db, user.household_id)
     totp_required = user.totp_enabled or security_settings.totp_required_for_household
@@ -138,6 +146,10 @@ async def _finalize_first_factor(
         event_type=success_event_type,
         request=request,
     )
+
+    reactivation_response = await check_reactivation_required(db, user, response, request)
+    if reactivation_response is not None:
+        return reactivation_response
 
     await create_session(user.id, response, request)
     return await _build_user_response(db, user)
@@ -209,12 +221,12 @@ async def register(
 
 @router.post(
     "/login",
-    response_model=UserResponse | RequiresTotpResponse,
+    response_model=UserResponse | RequiresTotpResponse | RequiresReactivationResponse,
     dependencies=[Depends(rate_limit("login_ip", limit=20, window_seconds=900))],
 )
 async def login(
     payload: LoginRequest, response: Response, request: Request, db: AsyncSession = Depends(get_db)
-) -> UserResponse | RequiresTotpResponse:
+) -> UserResponse | RequiresTotpResponse | RequiresReactivationResponse:
     """
     Zwei Rate-Limits gleichzeitig: das IP-only-Limit (20/15min, Schutz gegen Username-
     Enumeration-Sweeps über viele Accounts von einer IP) läuft als `Depends()` vor, weil es
@@ -332,7 +344,7 @@ async def login(
 
 @router.post(
     "/login/totp",
-    response_model=UserResponse,
+    response_model=UserResponse | RequiresReactivationResponse,
     dependencies=[Depends(rate_limit("login_totp_ip", limit=10, window_seconds=900))],
 )
 async def login_with_totp(
@@ -341,7 +353,7 @@ async def login_with_totp(
     request: Request,
     db: AsyncSession = Depends(get_db),
     pending_cookie: str | None = Cookie(default=None, alias=PENDING_2FA_COOKIE_NAME),
-) -> UserResponse:
+) -> UserResponse | RequiresReactivationResponse:
     """
     Zweiter Schritt des zweistufigen Logins (siehe login() oben). Der primäre Fehlversuchs-
     Zähler ist strikt an den Pending-Token selbst gebunden (app/auth/pending_2fa.py) — nach
@@ -441,6 +453,14 @@ async def login_with_totp(
         event_type=event_type,
         request=request,
     )
+
+    # Konto-Löschung/DSGVO (siehe app/services/account_deletion.py und der analoge
+    # Kommentar in _finalize_first_factor oben): der zweite Faktor war korrekt, das bleibt
+    # ein ehrlicher Audit-Eintrag — nur die eigentliche Session entsteht (noch) nicht,
+    # solange das Konto in der 14-tägigen Löschungs-Karenzzeit steckt.
+    reactivation_response = await check_reactivation_required(db, user, response, request)
+    if reactivation_response is not None:
+        return reactivation_response
 
     await create_session(user.id, response, request)
     return await _build_user_response(db, user)
@@ -679,8 +699,16 @@ async def delete_session(
 async def list_household_members(
     user: User = Depends(require_totp_enrolled), db: AsyncSession = Depends(get_db)
 ) -> list[UserResponse]:
-    """Alle User im selben Haushalt — Grundlage für die Bucket-Freigabe-Auswahl."""
-    result = await db.execute(select(User).where(User.household_id == user.household_id))
+    """
+    Alle User im selben Haushalt — Grundlage für die Bucket-Freigabe-Auswahl. Schließt
+    Platzhalter-User (Konto-Löschung/DSGVO, Migration 0022) aus — sonst würde ein
+    Tombstone als reales, freigabefähiges Mitglied erscheinen.
+    """
+    result = await db.execute(
+        select(User).where(
+            User.household_id == user.household_id, User.is_placeholder.is_(False)
+        )
+    )
     members = list(result.scalars().all())
     # Ein Count-Query pro Mitglied (_build_user_response) statt eines Batch-Querys — für
     # die Zielgruppe (Konzept: 2-Personen-Haushalt) ist das N+1 hier vernachlässigbar,

@@ -17,6 +17,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI
 
+from app.scripts.account_deletion_teardown import run_scheduled_deletions
 from app.scripts.cleanup_notifications import cleanup_notifications
 from app.scripts.warranty_notifications import scan_warranty_expirations
 
@@ -35,6 +36,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         cleanup_notifications,
         CronTrigger(hour=3, minute=30),
         id="notification_cleanup",
+        misfire_grace_time=3600,
+        coalesce=True,
+    )
+    # Stufe B der Konto-Löschung (DSGVO, siehe app/scripts/account_deletion_teardown.py) —
+    # irreversibler Teardown fälliger 14-Tage-Karenzzeit-Konten. Bewusst nach den beiden
+    # bestehenden 03:00/03:30-Jobs, eigenes Zeitfenster.
+    scheduler.add_job(
+        run_scheduled_deletions,
+        CronTrigger(hour=4, minute=0),
+        id="account_deletion_teardown",
         misfire_grace_time=3600,
         coalesce=True,
     )
