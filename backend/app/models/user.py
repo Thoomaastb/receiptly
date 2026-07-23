@@ -42,6 +42,21 @@ class User(Base, TimestampMixin):
 
     last_login: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Konto löschen (DSGVO, v0.36.0): 14-Tage-Karenzzeit. NULL = aktiv, gesetzt = zur
+    # endgültigen Löschung vorgesehen zum jeweiligen Zeitpunkt (siehe
+    # app/scripts/account_deletion_teardown.py). Kein eigenes Status-Enum nötig, der
+    # Timestamp trägt die gesamte Zustandsmaschine.
+    scheduled_deletion_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # Tombstone-Zeile pro Haushalt, auf die Uploader-Referenzen verbliebener geteilter
+    # Belege beim endgültigen Löschen eines Users umgeschrieben werden (max. eine pro
+    # Haushalt, siehe Migration 0022). Muss von jeder Abfrage "echter" Haushaltsmitglieder
+    # ausgeschlossen werden (list_household_members, Passkey-Exklusiv-Gate, Notification-
+    # Fan-outs) — sonst leakt der Platzhalter in Logik, die alle User als reale Personen
+    # behandelt.
+    is_placeholder: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
     # Benachrichtigungssystem: Liste der Notification-`type`-Werte, für die dieser User
     # zusätzlich zur In-App-Zeile eine E-Mail erhalten möchte (Opt-in pro Typ, Default
     # leer = konservativ, siehe Migration 0019).
@@ -50,4 +65,12 @@ class User(Base, TimestampMixin):
     )
 
     household: Mapped["Household"] = relationship(back_populates="users")  # noqa: F821
-    owned_buckets: Mapped[list["Bucket"]] = relationship(back_populates="owner")  # noqa: F821
+    # passive_deletes=True (Konto-Löschung/DSGVO, siehe app/scripts/account_deletion_teardown.py
+    # — der erste Ort im Projekt, der einen User per ORM löscht): analog zu
+    # app/models/household.py — verhindert, dass die ORM beim Löschen eines Users versucht,
+    # buckets.owner_id selbst auf NULL zu setzen (NOT NULL, würde scheitern), statt die
+    # DB-seitige ON DELETE CASCADE greifen zu lassen. In der Teardown-Routine sind zu diesem
+    # Zeitpunkt ohnehin bereits alle eigenen Buckets übertragen/gelöscht — reine Absicherung.
+    owned_buckets: Mapped[list["Bucket"]] = relationship(  # noqa: F821
+        back_populates="owner", passive_deletes=True
+    )

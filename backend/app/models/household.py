@@ -18,5 +18,16 @@ class Household(Base, TimestampMixin):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
 
-    users: Mapped[list["User"]] = relationship(back_populates="household")  # noqa: F821
-    buckets: Mapped[list["Bucket"]] = relationship(back_populates="household")  # noqa: F821
+    # passive_deletes=True (Konto-Löschung/DSGVO, siehe app/scripts/account_deletion_teardown.py
+    # ::_dissolve_household — der erste Ort im Projekt, der ein Household per ORM löscht):
+    # ohne das versucht SQLAlchemys Unit-of-Work beim Löschen eines Household, users.
+    # household_id/buckets.household_id VORHER selbst auf NULL zu setzen (Default-Verhalten
+    # für Relationships ohne cascade="all, delete-orphan"), was an der NOT-NULL-Constraint
+    # scheitert — die DB-seitige ON DELETE CASCADE (siehe Migrationen) übernimmt das stattdessen
+    # vollständig, sobald die ORM sich hier nicht mehr einmischt.
+    users: Mapped[list["User"]] = relationship(  # noqa: F821
+        back_populates="household", passive_deletes=True
+    )
+    buckets: Mapped[list["Bucket"]] = relationship(  # noqa: F821
+        back_populates="household", passive_deletes=True
+    )
