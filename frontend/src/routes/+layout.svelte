@@ -10,7 +10,13 @@
 	import PasskeyEnrollment from '$lib/components/PasskeyEnrollment.svelte';
 	import { initThemeSync } from '$lib/theme';
 	import { categoryColor, categoryLabel } from '$lib/categories';
-	import { unreadTotal, refreshUnreadCounts, startPolling, stopPolling } from '$lib/notifications';
+	import {
+		unreadTotal,
+		refreshUnreadCounts,
+		startPolling,
+		stopPolling,
+		markAllRead
+	} from '$lib/notifications';
 	import { m } from '$lib/i18n';
 
 	let categories: { value: string; name: string; color: string; count: number }[] = [];
@@ -127,6 +133,18 @@
 	function toggleNotifications() {
 		notificationsOpen = !notificationsOpen;
 		if (notificationsOpen) loadNotifications();
+	}
+
+	let markingAllRead = false;
+
+	async function handleMarkAllRead() {
+		markingAllRead = true;
+		try {
+			await markAllRead();
+			await loadNotifications();
+		} finally {
+			markingAllRead = false;
+		}
 	}
 
 	async function openNotification(n: NotificationItem) {
@@ -411,6 +429,21 @@
 							aria-hidden="true"
 							class="absolute -top-[6px] right-[14px] h-2.5 w-2.5 rotate-45 rounded-tl-[3px] border-l border-t border-hifi-border bg-hifi-surface"
 						></span>
+						{#if $unreadTotal > 0}
+							<div class="flex justify-end px-1.5 pt-1">
+								<button
+									type="button"
+									on:click={handleMarkAllRead}
+									disabled={markingAllRead}
+									class="flex items-center gap-1 rounded-[7px] px-2 py-1 text-[12px] font-semibold text-hifi-accent-text transition-colors hover:bg-hifi-accent-tint disabled:opacity-50"
+								>
+									<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+										<path d="M4 12l4 4L18 6" />
+									</svg>
+									{markingAllRead ? m.notifications.markAllReadButtonLoading : m.notifications.markAllReadButton}
+								</button>
+							</div>
+						{/if}
 						<div class="flex flex-wrap gap-1.5 px-1.5 pb-2 pt-1">
 							<button
 								type="button"

@@ -28,6 +28,24 @@ export async function refreshUnreadCounts(): Promise<void> {
 	}
 }
 
+// Bulk-Read (v0.37.0) — Backend-Endpoint POST /notifications/read-all existiert bereits
+// seit v0.34.0, nur ohne Frontend-Anbindung. Kein `category`-Filter nötig für den
+// aktuellen Anwendungsfall (Glocken-Flyout "Alle als gelesen markieren" markiert wirklich
+// alle, unabhängig vom aktiven Tab) — Parameter trotzdem optional gehalten, falls ein
+// späterer Aufrufer nur eine Kategorie markieren will.
+export async function markAllRead(category?: string): Promise<void> {
+	try {
+		const url = category
+			? `/api/notifications/read-all?category=${encodeURIComponent(category)}`
+			: '/api/notifications/read-all';
+		await fetch(url, { method: 'POST', credentials: 'include' });
+	} finally {
+		// Zähler unabhängig vom Erfolg neu abfragen, statt ihn lokal auf 0 zu raten — bei
+		// einem Fehlschlag zeigt refreshUnreadCounts() dann korrekt den unveränderten Stand.
+		await refreshUnreadCounts();
+	}
+}
+
 let pollHandle: ReturnType<typeof setInterval> | undefined;
 
 // Bewusst setInterval statt des rekursiven setTimeout-mit-Attempt-Cap-Musters aus

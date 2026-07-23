@@ -229,7 +229,9 @@ export const de = {
 		bellAriaLabel: 'Benachrichtigungen',
 		tabAll: 'Alle',
 		loading: 'Wird geladen …',
-		empty: 'Keine Benachrichtigungen.'
+		empty: 'Keine Benachrichtigungen.',
+		markAllReadButton: 'Alle als gelesen markieren',
+		markAllReadButtonLoading: 'Wird markiert …'
 	},
 
 	// Self-Service-Einstellungsseite für E-Mail-Opt-ins pro Benachrichtigungstyp
