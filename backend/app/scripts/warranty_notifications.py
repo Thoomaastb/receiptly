@@ -60,7 +60,9 @@ async def scan_warranty_expirations() -> int:
 
         household_ids = {household_id for _receipt, household_id, _merchant_name in rows}
         members_result = await db.execute(
-            select(User.id, User.household_id).where(User.household_id.in_(household_ids))
+            select(User.id, User.household_id).where(
+                User.household_id.in_(household_ids), User.is_placeholder.is_(False)
+            )
         )
         members_by_household: dict[uuid.UUID, list[uuid.UUID]] = {}
         for member_id, household_id in members_result.all():

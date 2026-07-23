@@ -77,9 +77,15 @@ async def get_passkey_exclusive_gate_status(
     die serverseitige Durchsetzung beim PUT) — beide müssen exakt dieselbe Definition von
     "hat einen Passkey" verwenden, sonst könnte der Live-Status grünes Licht geben, das
     PUT aber trotzdem ablehnen (oder umgekehrt).
+
+    Schließt Platzhalter-User (Konto-Löschung/DSGVO, Migration 0022) aus beiden Zählungen
+    aus — ein Tombstone hat nie einen Passkey und würde `eligible` sonst dauerhaft
+    verhindern, sobald ein Haushalt einmal eine Konto-Löschung durchlaufen hat.
     """
     total_result = await db.execute(
-        select(func.count()).select_from(User).where(User.household_id == household_id)
+        select(func.count())
+        .select_from(User)
+        .where(User.household_id == household_id, User.is_placeholder.is_(False))
     )
     total_members = total_result.scalar_one()
 
@@ -90,7 +96,11 @@ async def get_passkey_exclusive_gate_status(
         .exists()
     )
     missing_result = await db.execute(
-        select(User).where(User.household_id == household_id, ~has_credential)
+        select(User).where(
+            User.household_id == household_id,
+            User.is_placeholder.is_(False),
+            ~has_credential,
+        )
     )
     missing_members = list(missing_result.scalars().all())
 

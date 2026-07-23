@@ -137,9 +137,13 @@ async def _maybe_create_security_notifications(
         category, type_ = allowlisted
         if entry.event_type == "passkey_exclusive_login_toggled":
             # Haushaltsweite Sicherheitsrichtlinien-Änderung (Q6) — jedes Mitglied
-            # benachrichtigen, nicht nur den auslösenden Admin.
+            # benachrichtigen, nicht nur den auslösenden Admin. Platzhalter-User
+            # (Konto-Löschung/DSGVO, Migration 0022) ausgeschlossen — ein Tombstone kann
+            # keine Notification lesen.
             members = await db.execute(
-                select(User.id).where(User.household_id == entry.household_id)
+                select(User.id).where(
+                    User.household_id == entry.household_id, User.is_placeholder.is_(False)
+                )
             )
             targets.extend((member_id, category, type_) for (member_id,) in members.all())
         else:
