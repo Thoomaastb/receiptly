@@ -1,3 +1,14 @@
+## [0.37.0](https://github.com/Thoomaastb/receiptly/compare/v0.36.0...v0.37.0) (2026-07-23)
+
+### Features
+
+* **account:** Bestätigungs-UI, Export-Settings-Seite, Reaktivierungs-UI im Login ([b2f9f11](https://github.com/Thoomaastb/receiptly/commit/b2f9f113aa6f0a6c39bafd3bb4cbd670f4090754))
+* **account:** Löschantrag, Reaktivierung, Stufe-B-Teardown, DSGVO-Export ([bcdfb23](https://github.com/Thoomaastb/receiptly/commit/bcdfb23b60457540d817938d6f39b9314580ef12))
+
+### Bug Fixes
+
+* **security:** Platzhalter-User aus Haushaltsmitglied-Abfragen ausschließen ([b90d7d0](https://github.com/Thoomaastb/receiptly/commit/b90d7d08caabecf4087eaee13840339589bbebb3))
+
 ## [0.36.0](https://github.com/Thoomaastb/receiptly/compare/v0.35.0...v0.36.0) (2026-07-23)
 
 ### Features
