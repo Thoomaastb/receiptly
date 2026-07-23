@@ -437,8 +437,9 @@
 									disabled={markingAllRead}
 									class="flex items-center gap-1 rounded-[7px] px-2 py-1 text-[12px] font-semibold text-hifi-accent-text transition-colors hover:bg-hifi-accent-tint disabled:opacity-50"
 								>
-									<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-										<path d="M4 12l4 4L18 6" />
+									<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+										<path d="M2 12l4 4L15 7" />
+										<path d="M8 12l4 4L23 5" />
 									</svg>
 									{markingAllRead ? m.notifications.markAllReadButtonLoading : m.notifications.markAllReadButton}
 								</button>
