@@ -163,7 +163,17 @@
 	// Routen ohne App-Shell/Session-Prüfung: Login sowie der Self-Service-
 	// Passwort-Reset-Flow, den auch ausgeloggte Nutzer über einen E-Mail-Link erreichen.
 	const AUTH_ROUTES = ['/login', '/forgot-password', '/reset-password'];
-	$: isAuthRoute = AUTH_ROUTES.includes($page.url.pathname);
+
+	// Gemeinsames Prädikat statt zweier getrennter Checks (Exact-Match-Array +
+	// dupliziertes Inline-if unten in afterNavigate) — /share/[token] ist eine dynamische
+	// Route ohne festen Pfad und braucht einen Prefix-Check, kann also nicht einfach ins
+	// AUTH_ROUTES-Array aufgenommen werden. Gilt auch für einen im selben Tab bereits
+	// eingeloggten Nutzer, der einen eigenen Share-Link testet — rein pfadbasiert, keine
+	// Ausnahme für vorhandene Session.
+	function isAuthPath(pathname: string): boolean {
+		return AUTH_ROUTES.includes(pathname) || pathname.startsWith('/share/');
+	}
+	$: isAuthRoute = isAuthPath($page.url.pathname);
 	$: isSettingsRoute = $page.url.pathname.startsWith('/settings');
 
 	async function refreshCurrentUser() {
@@ -189,7 +199,7 @@
 	// einem frischen Login im selben Tab verpassen — genau der in Punkt 3 beschriebene
 	// kritische Fall.
 	afterNavigate(() => {
-		if (AUTH_ROUTES.includes($page.url.pathname)) {
+		if (isAuthPath($page.url.pathname)) {
 			currentUser = null;
 			authChecked = false;
 			return;

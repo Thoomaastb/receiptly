@@ -1,7 +1,7 @@
 import asyncio
 import calendar
 import uuid
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from fastapi import (
@@ -12,6 +12,7 @@ from fastapi import (
     Form,
     HTTPException,
     Query,
+    Request,
     UploadFile,
     status,
 )
@@ -21,12 +22,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user, require_totp_enrolled
+from app.config import get_settings
 from app.database import get_db
 from app.models.bucket import Bucket, BucketAccess, BucketVisibility
 from app.models.item import Item
 from app.models.merchant import Merchant
 from app.models.receipt import Receipt, ReceiptStatus
-from app.models.user import User
+from app.models.receipt_share import ReceiptShare
+from app.models.user import User, UserRole
 from app.schemas.receipt import (
     ItemCreate,
     ItemResponse,
@@ -36,15 +39,29 @@ from app.schemas.receipt import (
     ReceiptUpdate,
     ReceiptUploadResponse,
 )
+from app.schemas.receipt_share import (
+    ReceiptShareCreateRequest,
+    ReceiptShareCreateResponse,
+    ReceiptShareListItem,
+)
 
 from app.services.ai_extraction import run_ai_extraction
+from app.services.audit import record_event
 from app.services.bucket_access import visible_bucket_ids_query
+from app.services.receipt_shares import (
+    ShareLimitExceededError,
+    _share_status,
+    create_share,
+    list_all_shares,
+)
 from app.services.storage import (
     FileTooLargeError,
     UnsupportedFileTypeError,
     generate_thumbnail_for_existing_file,
     store_upload,
 )
+
+settings = get_settings()
 
 # Content-Type-Ableitung aus der Dateiendung für Alt-Belege ohne mime_type-Spalte —
 # spiegelt die Endungen, die store_upload() beim Upload vergibt (siehe app/services/
@@ -555,3 +572,133 @@ async def delete_item(
     if item is not None:
         await db.delete(item)
         await db.commit()
+
+
+@router.post(
+    "/{receipt_id}/shares",
+    response_model=ReceiptShareCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_receipt_share(
+    receipt_id: uuid.UUID,
+    payload: ReceiptShareCreateRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> ReceiptShareCreateResponse:
+    """Erstellt einen anonymen Freigabe-Link — Berechtigung wie Bearbeiten des Belegs."""
+    receipt = await _get_writable_receipt(db, receipt_id, user)
+
+    try:
+        share, token = await create_share(
+            db,
+            receipt_id=receipt.id,
+            household_id=user.household_id,
+            created_by=user.id,
+            single_use=payload.single_use,
+            expiry_preset=payload.expiry_preset,
+            label=payload.label,
+        )
+    except ShareLimitExceededError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Maximal 10 aktive Links pro Beleg — bitte zuerst einen bestehenden widerrufen.",
+        )
+
+    # commit=True (Default) committet hier den bereits geflushten, aber noch nicht
+    # committeten Share aus create_share() zusammen mit diesem Audit-Eintrag.
+    await record_event(
+        db,
+        household_id=user.household_id,
+        event_type="share_link_created",
+        user_id=user.id,
+        request=request,
+        metadata={
+            "receipt_id": str(receipt.id),
+            "share_id": str(share.id),
+            "single_use": share.single_use,
+        },
+    )
+
+    return ReceiptShareCreateResponse(
+        id=share.id,
+        url=f"{settings.public_app_url}/share/{token}",
+        single_use=share.single_use,
+        expires_at=share.expires_at,
+        created_at=share.created_at,
+        label=share.label,
+    )
+
+
+@router.get("/{receipt_id}/shares", response_model=list[ReceiptShareListItem])
+async def list_receipt_shares(
+    receipt_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> list[ReceiptShareListItem]:
+    """
+    Volle Historie aller je für diesen Beleg erstellten Freigabe-Links (nicht nur aktive)
+    inkl. Status-Badge pro Eintrag — ein Einmal-Link soll nach Verbrauch/Widerruf/Ablauf
+    weiter sichtbar bleiben statt aus der Liste zu verschwinden. Baut die Response-Liste
+    explizit, da `status` keine ORM-Spalte ist und daher nicht über
+    `model_config = {"from_attributes": True}` allein befüllt werden kann.
+    """
+    await _get_writable_receipt(db, receipt_id, user)
+    shares = await list_all_shares(db, receipt_id)
+    now = datetime.now(timezone.utc)
+    return [
+        ReceiptShareListItem(
+            id=share.id,
+            single_use=share.single_use,
+            expires_at=share.expires_at,
+            accessed_at=share.accessed_at,
+            access_count=share.access_count,
+            created_at=share.created_at,
+            label=share.label,
+            status=_share_status(share, now),
+        )
+        for share in shares
+    ]
+
+
+@router.delete("/{receipt_id}/shares/{share_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def revoke_receipt_share(
+    receipt_id: uuid.UUID,
+    share_id: uuid.UUID,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    """
+    Widerruft einen Freigabe-Link — enger als die Erstell-Berechtigung (Q7): nur der
+    Ersteller des Links oder ein Admin darf widerrufen, nicht jedes Haushaltsmitglied mit
+    Bucket-Edit-Recht. Idempotent, analog zu revoke_bucket_access in app/api/buckets.py:
+    kein Fehler, wenn der Link ohnehin nicht (mehr) existiert.
+    """
+    await _get_writable_receipt(db, receipt_id, user)
+
+    result = await db.execute(
+        select(ReceiptShare).where(
+            ReceiptShare.id == share_id, ReceiptShare.receipt_id == receipt_id
+        )
+    )
+    share = result.scalar_one_or_none()
+    if share is None:
+        return
+
+    if share.created_by != user.id and user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Nur der Ersteller oder ein Admin dürfen diesen Link widerrufen",
+        )
+
+    if share.revoked_at is None:
+        share.revoked_at = datetime.now(timezone.utc)
+        await record_event(
+            db,
+            household_id=user.household_id,
+            event_type="share_link_revoked",
+            user_id=user.id,
+            request=request,
+            metadata={"receipt_id": str(receipt_id), "share_id": str(share.id)},
+        )

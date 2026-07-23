@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { CATEGORIES, categoryLabel, categoryColor, categoryFields } from '$lib/categories';
 	import { formatDate } from '$lib/formatDate';
+	import { m } from '$lib/i18n';
+	import ShareManagementModal from './ShareManagementModal.svelte';
 
 	interface ItemRow {
 		id: string;
@@ -39,6 +41,7 @@
 	$: isImageFile = /\.(jpe?g|png)$/i.test(filePath);
 
 	let deleting = false;
+	let shareModalOpen = false;
 
 	async function deleteReceipt() {
 		if (!confirm('Diesen Beleg wirklich löschen? Das kann nicht rückgängig gemacht werden.')) return;
@@ -934,6 +937,14 @@
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2v6h-6" /><path d="M3 12a9 9 0 0 1 15-6.7L21 8" /><path d="M3 22v-6h6" /><path d="M21 12a9 9 0 0 1-15 6.7L3 16" /></svg>
 				</button>
 				<button
+					on:click={() => (shareModalOpen = true)}
+					aria-label={m.shareManage.buttonLabel}
+					title={m.shareManage.buttonLabel}
+					class="flex h-9 w-9 items-center justify-center rounded-full border border-hifi-border text-hifi-text-muted hover:border-hifi-accent hover:text-hifi-accent-text"
+				>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 13.5l6.8 3.9M15.4 6.6L8.6 10.5" /></svg>
+				</button>
+				<button
 					on:click={deleteReceipt}
 					disabled={deleting}
 					aria-label="Beleg löschen"
@@ -946,3 +957,7 @@
 		</div>
 	</div>
 </div>
+
+{#if shareModalOpen}
+	<ShareManagementModal {receiptId} onClose={() => (shareModalOpen = false)} />
+{/if}

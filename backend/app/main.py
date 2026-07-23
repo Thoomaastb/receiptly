@@ -14,6 +14,7 @@ from app.api import (
     receipts,
     security_settings,
     settings as settings_router,
+    share,
     smtp_settings,
     totp,
     webauthn,
@@ -65,6 +66,7 @@ app.include_router(security_settings.router, prefix="/api")
 app.include_router(smtp_settings.router, prefix="/api")
 app.include_router(audit_log.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
+app.include_router(share.router, prefix="/api")
 
 
 # Statisches Frontend (adapter-static-Build) ausliefern. Der Ordner existiert nur im
