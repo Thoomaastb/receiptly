@@ -1,3 +1,9 @@
+## [0.36.0](https://github.com/Thoomaastb/receiptly/compare/v0.35.0...v0.36.0) (2026-07-23)
+
+### Features
+
+* **account:** scheduled_deletion_at + is_placeholder (Migration + Model) ([b65fe70](https://github.com/Thoomaastb/receiptly/commit/b65fe70b2a22839ce4fbfb0eb22f65bc0c6fe8db))
+
 ## [0.35.0](https://github.com/Thoomaastb/receiptly/compare/v0.34.0...v0.35.0) (2026-07-23)
 
 ### Features
