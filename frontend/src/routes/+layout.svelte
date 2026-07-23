@@ -177,17 +177,22 @@
 	$: isSettingsRoute = $page.url.pathname.startsWith('/settings');
 
 	async function refreshCurrentUser() {
+		// Security first (Nutzervorgabe 2026-07-23, nach dem Migrations-Vorfall): JEDER
+		// nicht-erfolgreiche Ausgang (auch ein unerwarteter 5xx, auch ein Netzwerkfehler)
+		// muss zu einem sichtbaren Grund + Redirect zum Login führen — nie zu einer
+		// stillschweigend degradierten Oberfläche mit veraltetem/leerem currentUser. Lieber
+		// einmal zu oft neu anmelden als einmal zu wenig.
 		try {
 			const meRes = await fetch('/api/auth/me', { credentials: 'include' });
 			if (meRes.ok) {
 				currentUser = await meRes.json();
-			} else if (meRes.status === 401) {
+			} else {
 				currentUser = null;
-				goto('/login');
+				goto(`/login?reason=${meRes.status === 401 ? 'expired' : 'error'}`);
 			}
 		} catch {
-			// currentUser/Gate-Status bleibt beim letzten bekannten Stand, wenn das Backend
-			// kurz nicht erreichbar ist — kein Fehler-UI nötig für dieses Detail
+			currentUser = null;
+			goto('/login?reason=connection');
 		} finally {
 			authChecked = true;
 		}

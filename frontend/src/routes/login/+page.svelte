@@ -1,10 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { m } from '$lib/i18n';
 	import { browserSupportsWebAuthn } from '@simplewebauthn/browser';
 	import { runPasskeyAssertion } from '$lib/webauthn';
 	import { formatDate } from '$lib/formatDate';
+
+	// Grund-Codes aus +layout.svelte::refreshCurrentUser() — Security-first-Vorgabe
+	// (2026-07-23): jeder erzwungene Redirect zum Login muss dem Nutzer erklären, warum,
+	// statt ihn kommentarlos vor einem leeren Formular stehen zu lassen.
+	const REASON_MESSAGES: Record<string, string> = {
+		expired: 'Deine Sitzung ist abgelaufen — bitte erneut anmelden.',
+		error: 'Deine Sitzung konnte nicht überprüft werden — bitte erneut anmelden.',
+		connection: 'Verbindung zum Server fehlgeschlagen — bitte erneut anmelden.'
+	};
 
 	let mode: 'checking' | 'login' | 'setup' | 'totp' | 'reactivate' = 'checking';
 
@@ -43,6 +53,11 @@
 		: m.reactivate.descriptionFallback;
 
 	onMount(async () => {
+		const reason = $page.url.searchParams.get('reason');
+		if (reason && reason in REASON_MESSAGES) {
+			errorMessage = REASON_MESSAGES[reason];
+		}
+
 		try {
 			const meRes = await fetch('/api/auth/me', { credentials: 'include' });
 			if (meRes.ok) {
