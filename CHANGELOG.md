@@ -1,3 +1,9 @@
+## [0.37.1](https://github.com/Thoomaastb/receiptly/compare/v0.37.0...v0.37.1) (2026-07-23)
+
+### Bug Fixes
+
+* **ui:** jeden Session-Prüfungsfehler sichtbar zum Login umleiten statt still zu degradieren ([87d88f6](https://github.com/Thoomaastb/receiptly/commit/87d88f6e8b336ed2c7fee9af93d861797772642e))
+
 ## [0.37.0](https://github.com/Thoomaastb/receiptly/compare/v0.36.0...v0.37.0) (2026-07-23)
 
 ### Features
