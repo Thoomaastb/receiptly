@@ -1,3 +1,14 @@
+## [0.35.0](https://github.com/Thoomaastb/receiptly/compare/v0.34.0...v0.35.0) (2026-07-23)
+
+### Features
+
+* **receipts:** Teilen von Belegen (anonyme Freigabe-Links, Token-basiert) ([b40f6b9](https://github.com/Thoomaastb/receiptly/commit/b40f6b9392ed4b6289ed72ca7d4c481fac91d8d0))
+
+### Bug Fixes
+
+* **receipts:** receipt_shares.label-Spalte für optionale Link-Namen ergänzt ([8514c0e](https://github.com/Thoomaastb/receiptly/commit/8514c0ef32dc3044d3157254d10aa101536bfd72))
+* **ui:** PDF-Vorschau bei geteilten Belegen zeigte nur Download statt Inline-Ansicht ([0488f52](https://github.com/Thoomaastb/receiptly/commit/0488f52232510e16e2518e98c0e273bd72d68613))
+
 ## [0.34.0](https://github.com/Thoomaastb/receiptly/compare/v0.33.1...v0.34.0) (2026-07-22)
 
 ### Features
