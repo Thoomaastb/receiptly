@@ -1,3 +1,9 @@
+## [0.37.2](https://github.com/Thoomaastb/receiptly/compare/v0.37.1...v0.37.2) (2026-07-23)
+
+### Bug Fixes
+
+* **notifications:** "Alle als gelesen markieren"-Button im Benachrichtigungs-Flyout ([174837c](https://github.com/Thoomaastb/receiptly/commit/174837cd4229e71286f2c5903bd8ead8c1206bb1))
+
 ## [0.37.1](https://github.com/Thoomaastb/receiptly/compare/v0.37.0...v0.37.1) (2026-07-23)
 
 ### Bug Fixes
