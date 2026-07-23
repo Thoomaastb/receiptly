@@ -250,5 +250,59 @@ export const de = {
 		saveSuccess: 'Gespeichert.',
 		saveError: 'Speichern fehlgeschlagen.',
 		loadError: 'Einstellungen konnten nicht geladen werden.'
+	},
+
+	// Öffentliche, unauthentifizierte Beleg-Vorschau unter /share/[token]
+	sharePublic: {
+		loading: 'Lädt …',
+		invalidLink: 'Link nicht gültig',
+		fallbackTitle: 'Beleg',
+		amountLabel: 'Betrag',
+		download: 'Herunterladen',
+		previewAlt: 'Beleg'
+	},
+
+	// Verwaltung anonymer Freigabe-Links für einen einzelnen Beleg (Einstieg in
+	// ReceiptDetailView.svelte, Umsetzung in ShareManagementModal.svelte)
+	shareManage: {
+		buttonLabel: 'Teilen',
+		modalTitle: 'Beleg teilen',
+		closeAriaLabel: 'Schließen',
+		createHeading: 'Neuen Link erstellen',
+		typeLabel: 'Typ',
+		typeSingleUse: 'Einmal-Link',
+		typeMultiUse: 'Mehrfach nutzbar',
+		expiryLabel: 'Ablauf',
+		expiry7d: '7 Tage',
+		expiry30d: '30 Tage',
+		expiry90d: '90 Tage',
+		expiryUnlimited: 'Unbegrenzt',
+		labelInputLabel: 'Name (optional)',
+		labelInputPlaceholder: 'z. B. für die Versicherung',
+		createButton: 'Link erstellen',
+		createButtonLoading: 'Wird erstellt …',
+		createError: 'Link konnte nicht erstellt werden.',
+		limitReachedNote: 'Maximal 10 aktive Links erreicht — bitte zuerst einen widerrufen.',
+		createdUrlLabel: 'Neuer Link',
+		createdUrlNote: 'Dieser Link wird nur einmal angezeigt — bitte jetzt kopieren.',
+		copyButton: 'Kopieren',
+		copyButtonCopied: 'Kopiert',
+		activeListHeading: 'Verlauf',
+		listLoading: 'Wird geladen …',
+		listLoadError: 'Links konnten nicht geladen werden.',
+		emptyState: 'Noch keine Links erstellt.',
+		createdLabel: 'Erstellt',
+		expiresLabel: 'Ablauf',
+		expiresUnlimited: 'Unbegrenzt',
+		lastAccessLabel: 'Letzter Abruf',
+		neverAccessedLabel: 'Noch nicht abgerufen',
+		accessCountLabel: 'Abrufe',
+		revokeButton: 'Widerrufen',
+		revokeButtonLoading: 'Wird widerrufen …',
+		revokeError: 'Widerrufen fehlgeschlagen.',
+		statusActive: 'Aktiv',
+		statusConsumed: 'Verbraucht',
+		statusExpired: 'Abgelaufen',
+		statusRevoked: 'Widerrufen'
 	}
 } as const;
