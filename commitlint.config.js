@@ -18,7 +18,7 @@ module.exports = {
         'auth', 'receipts', 'buckets', 'pricing', 'documents', 'audit',
         'monitoring', 'logs', 'services', 'dashboard', 'api', 'db', 'ui',
         'docker', 'ci', 'deps', 'release', 'readme', 'license', 'security',
-        'notifications'
+        'notifications', 'account'
       ]
     ],
     'scope-empty': [2, 'never'],
