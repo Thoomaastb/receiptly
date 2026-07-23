@@ -7,6 +7,7 @@
 	import ReauthDialog from '$lib/components/ReauthDialog.svelte';
 	import PasskeyEnrollment from '$lib/components/PasskeyEnrollment.svelte';
 	import type { PasskeyCredentialSummary } from '$lib/webauthn';
+	import type { ReauthPayload } from '$lib/reauth';
 
 	interface SessionInfo {
 		session_id: string;
@@ -134,7 +135,12 @@
 		reauthDialog = null;
 	}
 
-	async function submitDisableTotp(payload: { current_password: string } | { code: string }) {
+	// Nimmt den vollen ReauthPayload-Unionstyp entgegen (inkl. Passkey-Variante), obwohl dieser
+	// Dialog allowPasskey nicht setzt und der Passkey-Zweig hier nie zur Laufzeit auftritt —
+	// nötig, damit die Funktionssignatur strukturell zu ReauthDialogs onSubmit-Prop passt
+	// (JSON.stringify(payload) serialisiert ohnehin unverändert, welche Felder auch immer
+	// vorhanden sind).
+	async function submitDisableTotp(payload: ReauthPayload) {
 		const res = await fetch('/api/auth/totp/disable', {
 			method: 'POST',
 			credentials: 'include',
@@ -151,7 +157,8 @@
 		revealedRecoveryCodes = null;
 	}
 
-	async function submitRegenerateRecoveryCodes(payload: { current_password: string } | { code: string }) {
+	// Gleiche Begründung wie bei submitDisableTotp oben.
+	async function submitRegenerateRecoveryCodes(payload: ReauthPayload) {
 		const res = await fetch('/api/auth/totp/recovery-codes/regenerate', {
 			method: 'POST',
 			credentials: 'include',

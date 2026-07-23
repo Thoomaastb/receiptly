@@ -76,12 +76,18 @@ export const de = {
 		disableDialogSubmit: 'Deaktivieren'
 	},
 
-	// Wiederverwendbarer Re-Verifizierungs-Dialog (Passwort ODER TOTP-Code)
+	// Wiederverwendbarer Re-Verifizierungs-Dialog (Passwort, TOTP-Code oder — seit
+	// v0.36.0/Konto-Löschung — Passkey)
 	reauth: {
 		methodPasswordLabel: 'Passwort',
 		methodTotpLabel: 'TOTP-Code',
+		methodPasskeyLabel: 'Passkey',
 		passwordFieldLabel: 'Aktuelles Passwort',
 		codeFieldLabel: 'Code aus der Authenticator-App',
+		passkeyDescription: 'Bestätige dich mit einem registrierten Passkey.',
+		passkeyConfirmButton: 'Passkey bestätigen',
+		passkeyCancelledMessage: 'Bestätigung mit Passkey abgebrochen.',
+		passkeyError: 'Bestätigung mit Passkey fehlgeschlagen.',
 		submitting: 'Wird geprüft …',
 		closeAriaLabel: 'Schließen',
 		genericError: 'Bestätigung fehlgeschlagen — bitte erneut versuchen.'
@@ -304,5 +310,52 @@ export const de = {
 		statusConsumed: 'Verbraucht',
 		statusExpired: 'Abgelaufen',
 		statusRevoked: 'Widerrufen'
+	},
+
+	// DSGVO-Datenexport (Art. 15/20) auf der neuen Settings-Seite "Konto" (v0.36.0)
+	dataExport: {
+		cardTitle: 'Daten exportieren',
+		cardDescription: 'Lädt alle deine personenbezogenen Daten als ZIP-Datei herunter — Stammdaten, Belege, Sitzungen, Aktivität, Benachrichtigungen, Freigabe-Links sowie 2FA-/Passkey-Metadaten. Dein Recht auf Auskunft und Datenübertragbarkeit nach Art. 15/20 DSGVO. Enthält keine Passwörter oder Geheimschlüssel.',
+		downloadButton: 'Export herunterladen'
+	},
+
+	// Konto-Löschung (Art. 17, 14-Tage-Karenzzeit) — Settings-Seite "Konto" +
+	// DeleteAccountDialog.svelte (v0.36.0)
+	accountDeletion: {
+		cardTitle: 'Konto löschen',
+		cardDescription: 'Startet eine 14-tägige Karenzzeit: Dein Zugriff wird sofort gesperrt, deine Daten bleiben bis zum Fristende unangetastet. Meldest du dich innerhalb der 14 Tage erneut an, kannst du die Löschung mit einem Klick rückgängig machen. Danach werden dein Konto und deine privaten Belege endgültig entfernt — Belege in gemeinsamen Buckets bleiben für den Haushalt erhalten.',
+		openButton: 'Konto löschen',
+		dialogTitle: 'Konto endgültig löschen',
+		dialogDescription: 'Bestätige dich mit deinem aktuellen Anmeldefaktor und tippe zur Sicherheit deinen Nutzernamen oder LÖSCHEN ein.',
+		closeAriaLabel: 'Schließen',
+		loadError: 'Kontoinformationen konnten nicht geladen werden.',
+		methodPasswordLabel: 'Passwort',
+		methodPasskeyLabel: 'Passkey',
+		passwordFieldLabel: 'Aktuelles Passwort',
+		passkeyDescription: 'Bestätige die Löschung mit einem registrierten Passkey.',
+		passkeyOnlyNote: 'Für diesen Haushalt ist der Passwort-Login deaktiviert — bestätige die Löschung mit einem Passkey.',
+		passkeyConfirmButton: 'Passkey bestätigen',
+		passkeyConfirmButtonLoading: 'Warte auf Bestätigung …',
+		passkeyCancelledMessage: 'Bestätigung mit Passkey abgebrochen.',
+		passkeyError: 'Bestätigung mit Passkey fehlgeschlagen.',
+		totpFieldLabel: 'TOTP-Code',
+		confirmationLabel: 'Zur Bestätigung Nutzernamen oder LÖSCHEN eingeben',
+		confirmationPlaceholder: 'LÖSCHEN',
+		confirmationHint: 'Gib deinen Nutzernamen ({username}) oder LÖSCHEN ein.',
+		submitButton: 'Konto endgültig löschen',
+		submitButtonLoading: 'Wird beantragt …',
+		passwordRejectedSwitchedToPasskey: 'Für diesen Haushalt ist der Passwort-Login deaktiviert — bitte mit Passkey bestätigen.',
+		genericError: 'Löschantrag fehlgeschlagen — bitte erneut versuchen.'
+	},
+
+	// Reaktivierungs-Schritt auf der Login-Seite (Konto in der 14-Tage-Karenzzeit, v0.36.0)
+	reactivate: {
+		title: 'Konto zur Löschung vorgesehen',
+		description: 'Dein Konto befindet sich in der 14-tägigen Karenzzeit und wird am {date} endgültig gelöscht. Du kannst die Löschung jederzeit vor diesem Datum rückgängig machen.',
+		descriptionFallback: 'Dein Konto befindet sich in der Karenzzeit vor der endgültigen Löschung. Du kannst die Löschung jederzeit rückgängig machen.',
+		submitButton: 'Konto reaktivieren',
+		submitting: 'Wird reaktiviert …',
+		backButton: 'Zurück zur Anmeldung',
+		error: 'Reaktivierung fehlgeschlagen — bitte erneut versuchen.'
 	}
 } as const;

@@ -2,13 +2,11 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { m } from '$lib/i18n';
-	import {
-		startAuthentication,
-		browserSupportsWebAuthn,
-		type PublicKeyCredentialRequestOptionsJSON
-	} from '@simplewebauthn/browser';
+	import { browserSupportsWebAuthn } from '@simplewebauthn/browser';
+	import { runPasskeyAssertion } from '$lib/webauthn';
+	import { formatDate } from '$lib/formatDate';
 
-	let mode: 'checking' | 'login' | 'setup' | 'totp' = 'checking';
+	let mode: 'checking' | 'login' | 'setup' | 'totp' | 'reactivate' = 'checking';
 
 	let username = '';
 	let password = '';
@@ -33,6 +31,17 @@
 	let totpError = '';
 	let totpSubmitting = false;
 
+	// Reaktivierungs-Schritt (v0.36.0, Konto-Löschung/Karenzzeit) — greift, wenn die
+	// Login-Faktoren vollständig korrekt waren, das Konto sich aber noch in der 14-Tage-
+	// Karenzzeit befindet (Konzept 3.4). scheduled_deletion_at kommt aus derselben
+	// Erfolgsantwort wie requires_totp, siehe handleAuthSuccessBody().
+	let scheduledDeletionAt: string | null = null;
+	let reactivateError = '';
+	let reactivateSubmitting = false;
+	$: reactivateDescription = scheduledDeletionAt
+		? m.reactivate.description.replace('{date}', formatDate(scheduledDeletionAt))
+		: m.reactivate.descriptionFallback;
+
 	onMount(async () => {
 		try {
 			const meRes = await fetch('/api/auth/me', { credentials: 'include' });
@@ -53,11 +62,23 @@
 		}
 	});
 
-	// Gemeinsame Auswertung für Passwort- UND Passkey-Login — beide Endpunkte liefern laut
-	// API-Vertrag exakt dieselbe Antwortform (volle UserResponse oder {requires_totp: true}),
-	// der bestehende TOTP-Zweitschritt wird für beide Wege unverändert wiederverwendet.
-	function handleAuthSuccessBody(body: { requires_totp?: boolean } | null) {
-		if (body?.requires_totp) {
+	// Gemeinsame Auswertung für Passwort- UND Passkey-Login — alle drei Endpunkte
+	// (/auth/login, /auth/login/totp, /webauthn/authenticate/verify) liefern laut API-Vertrag
+	// dieselbe Antwortform: volle UserResponse, {requires_totp: true} oder (v0.36.0, Konto-
+	// Löschung) {requires_reactivation: true, scheduled_deletion_at}. Beide Zusatz-Flags
+	// kommen laut Backend-Vertrag nie gleichzeitig — Reihenfolge der Prüfung ist daher egal.
+	function handleAuthSuccessBody(
+		body: {
+			requires_totp?: boolean;
+			requires_reactivation?: boolean;
+			scheduled_deletion_at?: string;
+		} | null
+	) {
+		if (body?.requires_reactivation) {
+			scheduledDeletionAt = body.scheduled_deletion_at ?? null;
+			reactivateError = '';
+			mode = 'reactivate';
+		} else if (body?.requires_totp) {
 			totpCode = '';
 			totpError = '';
 			mode = 'totp';
@@ -96,25 +117,19 @@
 		}
 		passkeySubmitting = true;
 		try {
-			const optionsRes = await fetch('/api/webauthn/authenticate/options', {
-				method: 'POST',
-				credentials: 'include',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ username: username.trim() })
-			});
-			// Bewusst generische Fehlermeldung bei jedem Fehlschlag ab hier (kein
-			// body?.detail-Auslesen) — laut API-Vertrag darf ein unbekannter Username nicht
-			// von einem falschen/abgelaufenen Passkey unterscheidbar sein.
-			if (!optionsRes.ok) throw new Error(m.passkeyLogin.genericError);
-			const { options, options_id } = await optionsRes.json();
-			const optionsJSON: PublicKeyCredentialRequestOptionsJSON = JSON.parse(options);
-			const credential = await startAuthentication({ optionsJSON });
+			// Options-Anfrage + Browser-Ceremony jetzt im gemeinsamen Helper (webauthn.ts) —
+			// gibt die Credential bereits als JSON-String zurück, daher hier ohne erneutes
+			// JSON.stringify in den Verify-Body übernehmen.
+			const { credential, options_id } = await runPasskeyAssertion(
+				'/api/webauthn/authenticate/options',
+				{ username: username.trim() }
+			);
 
 			const verifyRes = await fetch('/api/webauthn/authenticate/verify', {
 				method: 'POST',
 				credentials: 'include',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ options_id, credential: JSON.stringify(credential) })
+				body: JSON.stringify({ options_id, credential })
 			});
 			if (!verifyRes.ok) throw new Error(m.passkeyLogin.genericError);
 			handleAuthSuccessBody(await verifyRes.json().catch(() => null));
@@ -122,11 +137,46 @@
 			if (err instanceof Error && err.name === 'NotAllowedError') {
 				passkeyError = m.passkeyLogin.cancelledMessage;
 			} else {
-				passkeyError = err instanceof Error && err.message ? err.message : m.passkeyLogin.genericError;
+				// Bewusst immer die generische, lokalisierte Meldung statt err.message — der
+				// gemeinsame runPasskeyAssertion-Helper wirft bei einem fehlgeschlagenen
+				// Options-Request bewusst einen undekorierten technischen Error (siehe
+				// webauthn.ts), der hier nicht roh angezeigt werden soll. Gilt weiterhin: kein
+				// Unterschied zwischen "unbekannter Username" und "falscher/abgelaufener
+				// Passkey" (API-Vertrag) — war vorher schon der Fall.
+				passkeyError = m.passkeyLogin.genericError;
 			}
 		} finally {
 			passkeySubmitting = false;
 		}
+	}
+
+	async function handleReactivate() {
+		reactivateError = '';
+		reactivateSubmitting = true;
+		try {
+			const res = await fetch('/api/account/reactivate', {
+				method: 'POST',
+				credentials: 'include'
+			});
+			if (res.ok) {
+				goto('/');
+				return;
+			}
+			const body = await res.json().catch(() => null);
+			reactivateError = body?.detail ?? m.reactivate.error;
+		} catch {
+			reactivateError = m.reactivate.error;
+		} finally {
+			reactivateSubmitting = false;
+		}
+	}
+
+	function backToLoginFromReactivate() {
+		mode = 'login';
+		scheduledDeletionAt = null;
+		reactivateError = '';
+		username = '';
+		password = '';
 	}
 
 	async function handleTotpSubmit() {
@@ -299,6 +349,33 @@
 					{m.auth.totpStep.backToPassword}
 				</button>
 			</form>
+		{:else if mode === 'reactivate'}
+			<div class="mb-5">
+				<div class="text-lg font-bold text-hifi-text">{m.reactivate.title}</div>
+				<p class="mt-1 text-sm leading-relaxed text-hifi-text-muted">{reactivateDescription}</p>
+			</div>
+
+			{#if reactivateError}
+				<p class="mb-3 text-sm text-danger">{reactivateError}</p>
+			{/if}
+
+			<div class="flex flex-col gap-3">
+				<button
+					type="button"
+					on:click={handleReactivate}
+					disabled={reactivateSubmitting}
+					class="rounded-[10px] bg-hifi-accent px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+				>
+					{reactivateSubmitting ? m.reactivate.submitting : m.reactivate.submitButton}
+				</button>
+				<button
+					type="button"
+					on:click={backToLoginFromReactivate}
+					class="self-center text-sm text-hifi-text-muted transition-colors hover:text-hifi-text"
+				>
+					{m.reactivate.backButton}
+				</button>
+			</div>
 		{:else}
 			<div class="mb-5">
 				<div class="text-lg font-bold text-hifi-text">Anmelden</div>

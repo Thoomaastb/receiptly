@@ -8,6 +8,7 @@
 		{ href: '/settings/appearance', label: 'Darstellung' },
 		{ href: '/settings/localization', label: 'Lokalisation' },
 		{ href: '/settings/security', label: 'Sicherheit' },
+		{ href: '/settings/account', label: 'Konto' },
 		{ href: '/settings/notifications', label: 'Benachrichtigungen' }
 	];
 
