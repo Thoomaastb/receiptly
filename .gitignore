@@ -30,5 +30,6 @@ storage/thumbs/
 CLAUDE.md
 .claude/
 
-# Konzept-Dokumente (nur lokal, nie im Repo)
+# Nur lokal, nie im Repo
 concepts/
+tmp/
