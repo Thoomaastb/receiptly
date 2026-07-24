@@ -1,3 +1,9 @@
+## [0.38.1](https://github.com/Thoomaastb/receiptly/compare/v0.38.0...v0.38.1) (2026-07-24)
+
+### Bug Fixes
+
+* **ui:** Toggle-Switch-Thumb-Position — explizites left-0 ergänzt ([1e7d8df](https://github.com/Thoomaastb/receiptly/commit/1e7d8df454c10cd41b037eaab8b5c83d27814069))
+
 ## [0.38.0](https://github.com/Thoomaastb/receiptly/compare/v0.37.5...v0.38.0) (2026-07-24)
 
 ### Features
