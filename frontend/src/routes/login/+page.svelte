@@ -53,11 +53,6 @@
 		: m.reactivate.descriptionFallback;
 
 	onMount(async () => {
-		const reason = $page.url.searchParams.get('reason');
-		if (reason && reason in REASON_MESSAGES) {
-			errorMessage = REASON_MESSAGES[reason];
-		}
-
 		try {
 			const meRes = await fetch('/api/auth/me', { credentials: 'include' });
 			if (meRes.ok) {
@@ -74,6 +69,17 @@
 			mode = body.setup_required ? 'setup' : 'login';
 		} catch {
 			mode = 'login';
+		}
+
+		// reason=... (aus +layout.svelte::refreshCurrentUser()) beschreibt einen
+		// fehlgeschlagenen Session-Check — ergibt im Setup-Modus keinen Sinn (noch gar
+		// kein Account/keine Session vorhanden), sonst zeigt der Wizard fälschlich
+		// "Sitzung abgelaufen" beim allerersten Aufsetzen einer frischen Instanz.
+		if (mode === 'login') {
+			const reason = $page.url.searchParams.get('reason');
+			if (reason && reason in REASON_MESSAGES) {
+				errorMessage = REASON_MESSAGES[reason];
+			}
 		}
 	});
 
