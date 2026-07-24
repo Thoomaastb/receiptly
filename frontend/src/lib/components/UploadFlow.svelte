@@ -139,7 +139,7 @@
 	}
 </script>
 
-<div class="w-full max-w-md rounded-[14px] border border-hifi-border bg-hifi-surface p-6">
+<div class="w-full max-w-2xl rounded-[14px] border border-hifi-border bg-hifi-surface p-6">
 	{#if bucketsLoading}
 		<p class="mb-4 text-sm text-hifi-text-muted">Buckets werden geladen …</p>
 	{:else if buckets.length > 1}

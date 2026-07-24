@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { scale } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import { themePreference, effectiveTheme, setPreference, type ThemePreference } from '$lib/theme';
 
 	// Das Icon zeigt IMMER das effektive Theme (Sonne/Mond) — auch bei "System" wird
@@ -58,7 +60,8 @@
 
 	{#if open}
 		<div
-			class="absolute right-0 top-11 z-30 w-44 rounded-[14px] border border-hifi-border bg-hifi-surface p-1.5"
+			transition:scale={{ duration: 130, start: 0.96, easing: cubicOut }}
+			class="absolute right-0 top-11 z-30 w-44 origin-top-right rounded-[14px] border border-hifi-border bg-hifi-surface p-1.5"
 			role="menu"
 		>
 			{#each options as option (option.value)}
