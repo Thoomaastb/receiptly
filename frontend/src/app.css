@@ -143,9 +143,7 @@ body {
 
 /* Sanfter Light/Dark-Wechsel: alle Farb-Tokens sind CSS-Custom-Properties (siehe oben),
    ein Wechsel von [data-theme] ändert also nur Variablenwerte -- ohne diese Regel springen
-   background-color/color/border-color sofort um statt weich überzublenden. Elemente mit
-   eigener transition-colors-Klasse (z.B. Hover-States) haben höhere Spezifität und überschreiben
-   dies unverändert mit ihren eigenen 150ms; hier geht es nur um den globalen Theme-Wechsel.
+   background-color/color/border-color sofort um statt weich überzublenden.
    BEWUSST NUR diese 3 Properties (nicht fill/stroke/box-shadow wie im ersten Anlauf, siehe
    Nutzer-Feedback "flackert beim Wechsel"): fill/stroke auf * traf zusätzlich JEDEN einzelnen
    SVG-<path> im gesamten UI (hunderte Icons) und verdoppelte damit die Repaint-Arbeit beim
@@ -153,14 +151,21 @@ body {
    dadurch schon automatisch mit, sobald color auf einem Vorfahren übergeblendet wird, eine
    eigene stroke-Transition war komplett redundant. box-shadow ändert sich nur bei den wenigen
    shadow-popover-Flyouts (ohnehin per Svelte transition: separat animiert) und ist teuer zu
-   repainten -- auf * daher pures Overhead ohne sichtbaren Nutzen. */
+   repainten -- auf * daher pures Overhead ohne sichtbaren Nutzen.
+   Dauer/Easing bewusst IDENTISCH zu Tailwinds transition-colors-Utility (150ms,
+   cubic-bezier(0.4,0,0.2,1)) statt eigener Werte (zweiter Nutzer-Feedback-Fund: 200ms
+   "ease" hier vs. 150ms cubic-bezier auf z.B. der aktiven SettingsNav-Zeile lief spürbar
+   asynchron zum umgebenden Sidebar-Hintergrund, der nur diese Regel hat -- zwei
+   unterschiedlich schnelle/geformte Fades ineinander verschachtelt lesen sich als
+   Flackern. Mit identischen Werten gewinnt es zwar bei Elementen mit eigener
+   transition-colors-Klasse (höhere Spezifität), sieht aber ununterscheidbar gleich aus. */
 *,
 *::before,
 *::after {
 	transition:
-		background-color 0.2s ease,
-		border-color 0.2s ease,
-		color 0.2s ease;
+		background-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+		border-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+		color 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {
