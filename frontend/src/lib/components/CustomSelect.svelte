@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { scale } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
+
 	export let value: string;
 	export let options: { value: string; label: string }[];
 	export let placeholder = 'Bitte wählen';
@@ -112,7 +115,8 @@
 			role="listbox"
 			tabindex="-1"
 			on:keydown={handleListKeydown}
-			class="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded border border-hifi-border bg-hifi-surface py-1 text-sm"
+			transition:scale={{ duration: 120, start: 0.96, easing: cubicOut }}
+			class="absolute z-20 mt-1 max-h-60 w-full origin-top overflow-auto rounded border border-hifi-border bg-hifi-surface py-1 text-sm"
 		>
 			{#each options as opt, i (opt.value)}
 				<li role="presentation">

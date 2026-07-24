@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { scale } from 'svelte/transition';
+	import { cubicOut } from 'svelte/easing';
 	import '../app.css';
 	import { page } from '$app/stores';
 	import { goto, afterNavigate } from '$app/navigation';
@@ -431,7 +433,10 @@
 					     exakt Glocken-Mitte, unabhängig von der absoluten Bell-Position (rein
 					     rechtsbündig verankert). max-w-[calc(100vw-2rem)] als Sicherheitsnetz gegen
 					     Viewport-Überlauf auf sehr schmalen Geräten (320px). -->
-					<div class="absolute right-0 top-12 z-30 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-hifi-border bg-hifi-surface p-1.5 shadow-popover">
+					<div
+						transition:scale={{ duration: 130, start: 0.96, easing: cubicOut }}
+						class="absolute right-0 top-12 z-30 w-80 max-w-[calc(100vw-2rem)] origin-top-right rounded-2xl border border-hifi-border bg-hifi-surface p-1.5 shadow-popover"
+					>
 						<span
 							aria-hidden="true"
 							class="absolute -top-[6px] right-[17px] h-2.5 w-2.5 rotate-45 rounded-tl-[3px] border-l border-t border-hifi-border bg-hifi-surface"
@@ -544,7 +549,10 @@
 						{userInitial}
 					</button>
 					{#if userMenuOpen}
-						<div class="absolute right-0 top-[52px] z-30 w-56 rounded-[14px] border border-hifi-border bg-hifi-surface p-1.5">
+						<div
+							transition:scale={{ duration: 130, start: 0.96, easing: cubicOut }}
+							class="absolute right-0 top-[52px] z-30 w-56 origin-top-right rounded-[14px] border border-hifi-border bg-hifi-surface p-1.5"
+						>
 							<div class="px-3 py-2.5">
 								<div class="truncate text-[13.5px] font-bold text-hifi-text">{currentUser.username}</div>
 								<div class="truncate text-[12px] text-hifi-text-muted">{currentUser.email}</div>
