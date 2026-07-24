@@ -143,19 +143,24 @@ body {
 
 /* Sanfter Light/Dark-Wechsel: alle Farb-Tokens sind CSS-Custom-Properties (siehe oben),
    ein Wechsel von [data-theme] ändert also nur Variablenwerte -- ohne diese Regel springen
-   background-color/color/border-color etc. sofort um statt weich überzublenden. Elemente mit
+   background-color/color/border-color sofort um statt weich überzublenden. Elemente mit
    eigener transition-colors-Klasse (z.B. Hover-States) haben höhere Spezifität und überschreiben
-   dies unverändert mit ihren eigenen 150ms; hier geht es nur um den globalen Theme-Wechsel. */
+   dies unverändert mit ihren eigenen 150ms; hier geht es nur um den globalen Theme-Wechsel.
+   BEWUSST NUR diese 3 Properties (nicht fill/stroke/box-shadow wie im ersten Anlauf, siehe
+   Nutzer-Feedback "flackert beim Wechsel"): fill/stroke auf * traf zusätzlich JEDEN einzelnen
+   SVG-<path> im gesamten UI (hunderte Icons) und verdoppelte damit die Repaint-Arbeit beim
+   Theme-Wechsel unnötig -- die Icons nutzen durchgehend stroke="currentColor" und blenden
+   dadurch schon automatisch mit, sobald color auf einem Vorfahren übergeblendet wird, eine
+   eigene stroke-Transition war komplett redundant. box-shadow ändert sich nur bei den wenigen
+   shadow-popover-Flyouts (ohnehin per Svelte transition: separat animiert) und ist teuer zu
+   repainten -- auf * daher pures Overhead ohne sichtbaren Nutzen. */
 *,
 *::before,
 *::after {
 	transition:
 		background-color 0.2s ease,
 		border-color 0.2s ease,
-		color 0.2s ease,
-		fill 0.2s ease,
-		stroke 0.2s ease,
-		box-shadow 0.2s ease;
+		color 0.2s ease;
 }
 
 @media (prefers-reduced-motion: reduce) {
