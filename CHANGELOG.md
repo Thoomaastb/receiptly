@@ -1,3 +1,9 @@
+## [0.41.3](https://github.com/Thoomaastb/receiptly/compare/v0.41.2...v0.41.3) (2026-07-24)
+
+### Bug Fixes
+
+* Versionsanzeige in lokalen Builds + letztes Flackern beim Theme-Wechsel ([ab052cb](https://github.com/Thoomaastb/receiptly/commit/ab052cb1d0d30cf7d6e3d7969977020c7085b04d))
+
 ## [0.41.2](https://github.com/Thoomaastb/receiptly/compare/v0.41.1...v0.41.2) (2026-07-24)
 
 ### Bug Fixes
