@@ -42,7 +42,7 @@
 		aria-label="Darstellung ändern"
 		aria-haspopup="true"
 		aria-expanded={open}
-		class="flex h-[38px] w-[38px] items-center justify-center rounded-[10px] text-hifi-text-muted transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text"
+		class="flex h-11 w-11 items-center justify-center rounded-[10px] text-hifi-text-muted transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text"
 	>
 		{#if $effectiveTheme === 'dark'}
 			<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -58,7 +58,7 @@
 
 	{#if open}
 		<div
-			class="absolute right-0 top-[38px] z-30 w-44 rounded-[14px] border border-hifi-border bg-hifi-surface p-1.5"
+			class="absolute right-0 top-11 z-30 w-44 rounded-[14px] border border-hifi-border bg-hifi-surface p-1.5"
 			role="menu"
 		>
 			{#each options as option (option.value)}

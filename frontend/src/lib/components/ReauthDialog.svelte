@@ -100,25 +100,27 @@
 <svelte:window on:keydown={handleKeydown} />
 
 <!-- Gleiches Dialog-Grundmuster wie UploadModal.svelte (Backdrop + role=dialog,
-     Escape/Click-outside-to-close) — hier zusätzlich mit initialem Fokus und
+     Escape/Click-outside-to-close, Flexbox-Zentrierung statt Transform für das
+     Bottom-Sheet-Verhalten auf Mobile) — hier zusätzlich mit initialem Fokus und
      Fokus-Nachführung beim Methodenwechsel, da es sich um einen sicherheitskritischen
      Re-Auth-Flow handelt. -->
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <div class="fixed inset-0 z-40 bg-black opacity-50 backdrop-blur-sm" on:click={onClose} role="presentation"></div>
 
-<div
-	class="fixed left-1/2 top-1/2 z-50 w-[92vw] max-w-sm -translate-x-1/2 -translate-y-1/2 rounded-[20px] border border-hifi-border bg-hifi-surface p-5"
-	role="dialog"
-	aria-modal="true"
-	aria-labelledby="reauth-dialog-title"
->
-	<div class="mb-4 flex items-center justify-between">
-		<h2 id="reauth-dialog-title" class="text-[13.5px] font-bold text-hifi-text">{title}</h2>
-		<button on:click={onClose} aria-label={m.reauth.closeAriaLabel} class="rounded-full p-1 text-hifi-text-muted hover:text-hifi-text">
-			✕
-		</button>
-	</div>
-	<p class="mb-4 text-sm leading-relaxed text-hifi-text-muted">{description}</p>
+<div class="fixed inset-0 z-50 flex items-end justify-center lg:items-center">
+	<div
+		class="max-h-[92dvh] w-full overflow-auto rounded-t-[20px] border-t border-hifi-border bg-hifi-surface p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] lg:max-h-[85vh] lg:w-[92vw] lg:max-w-sm lg:rounded-[20px] lg:border lg:pb-5"
+		role="dialog"
+		aria-modal="true"
+		aria-labelledby="reauth-dialog-title"
+	>
+		<div class="mb-4 flex items-center justify-between">
+			<h2 id="reauth-dialog-title" class="text-[13.5px] font-bold text-hifi-text">{title}</h2>
+			<button on:click={onClose} aria-label={m.reauth.closeAriaLabel} class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-text-muted hover:text-hifi-text">
+				✕
+			</button>
+		</div>
+		<p class="mb-4 text-sm leading-relaxed text-hifi-text-muted">{description}</p>
 
 	<div class="mb-4 flex gap-1.5 rounded-[10px] border border-hifi-border p-1">
 		{#if !forcePasskeyOnly}
@@ -210,4 +212,5 @@
 			</button>
 		{/if}
 	</form>
+	</div>
 </div>

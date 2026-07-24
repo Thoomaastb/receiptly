@@ -22,17 +22,23 @@
 	role="presentation"
 ></div>
 
-<div
-	class="fixed left-1/2 top-1/2 z-50 max-h-[85vh] w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-[20px] border border-hifi-border bg-hifi-surface p-5"
-	role="dialog"
-	aria-modal="true"
-	aria-label="Beleg hochladen"
->
-	<div class="mb-4 flex items-center justify-between">
-		<h2 class="text-[13.5px] font-bold text-hifi-text">{captureMode === 'camera' ? 'Beleg scannen' : 'Beleg hochladen'}</h2>
-		<button on:click={handleClose} aria-label="Schließen" class="rounded-full p-1 text-hifi-text-muted hover:text-hifi-text">
-			✕
-		</button>
+<!-- Flexbox-Zentrierung statt left/top-50%+translate (Muster projektweit einheitlich für
+     alle 4 Modals): auf Mobile randloses Bottom-Sheet, ab lg unverändert die bisherige
+     zentrierte Karte -- kein Transform mehr im Spiel, damit auch kein Berührungspunkt mit
+     der Absolute/Transform-Inset-Regel aus CLAUDE.md. -->
+<div class="fixed inset-0 z-50 flex items-end justify-center lg:items-center">
+	<div
+		class="max-h-[92dvh] w-full overflow-auto rounded-t-[20px] border-t border-hifi-border bg-hifi-surface p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] lg:max-h-[85vh] lg:w-[92vw] lg:max-w-md lg:rounded-[20px] lg:border lg:pb-5"
+		role="dialog"
+		aria-modal="true"
+		aria-label="Beleg hochladen"
+	>
+		<div class="mb-4 flex items-center justify-between">
+			<h2 class="text-[13.5px] font-bold text-hifi-text">{captureMode === 'camera' ? 'Beleg scannen' : 'Beleg hochladen'}</h2>
+			<button on:click={handleClose} aria-label="Schließen" class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-text-muted hover:text-hifi-text">
+				✕
+			</button>
+		</div>
+		<UploadFlow onSuccess={handleClose} {captureMode} />
 	</div>
-	<UploadFlow onSuccess={handleClose} {captureMode} />
 </div>

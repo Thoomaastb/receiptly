@@ -77,7 +77,9 @@
 	<span class="hidden shrink-0 text-xs text-hifi-text-faint sm:inline">{statusLabel(status)}</span>
 
 	{#if showBucketPill}
-		<div class="shrink-0"><BucketPill name={bucketName} isDefault={bucketIsDefault} /></div>
+		<!-- Ausgeblendet bis sm (analog zum Status-Label oben) -- Thumb+Text+Pill+Betrag
+		     nebeneinander sprengt sonst die Zeile auf sehr schmalen Screens. -->
+		<div class="hidden shrink-0 sm:block"><BucketPill name={bucketName} isDefault={bucketIsDefault} /></div>
 	{/if}
 
 	<span class="w-24 shrink-0 text-right font-mono text-[14px] font-bold text-hifi-text">

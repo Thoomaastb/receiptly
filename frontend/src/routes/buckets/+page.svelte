@@ -296,7 +296,7 @@
 						</button>
 					</div>
 				{:else}
-					<div class="flex items-center gap-3">
+					<div class="flex flex-wrap items-center gap-3">
 						<button on:click={() => openBucket(bucket)} class="flex flex-1 items-center gap-3 text-left">
 							<span
 								class="h-2.5 w-2.5 flex-none rounded-full"
@@ -317,7 +317,12 @@
 						</button>
 
 						{#if bucket.owner_id === currentUserId}
-							<div class="flex flex-none items-center gap-2.5 text-xs">
+							<!-- w-full erzwingt bis sm einen Zeilenumbruch der Aktionen unterhalb des
+							     Bucket-Namens statt eines gequetschten Nebeneinander von bis zu 4
+							     Text-Buttons; flex-wrap zusätzlich als Sicherheitsnetz bei sehr
+							     schmalen Screens (320px) mit gesetztem "Sicher?"-Bestätigungsdialog. -->
+							<div class="flex w-full flex-wrap items-center gap-2.5 text-xs sm:w-auto">
+
 								<button on:click={() => openSharing(bucket)} class="font-medium text-hifi-text-muted hover:text-hifi-text">
 									Teilen
 								</button>

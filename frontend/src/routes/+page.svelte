@@ -128,7 +128,7 @@
 </div>
 
 {#if totalCount > 0}
-	<div class="mb-9 grid grid-cols-3 gap-4">
+	<div class="mb-9 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
 		<div class="rounded-2xl border border-hifi-border bg-hifi-surface px-[22px] py-5">
 			<div class="mb-2 text-[12.5px] font-semibold text-hifi-text-muted">Gesamt Belege</div>
 			<div class="font-mono text-[28px] font-extrabold text-hifi-text">{totalCount}</div>

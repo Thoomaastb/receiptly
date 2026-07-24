@@ -653,7 +653,7 @@
 													placeholder="Artikelname"
 													class="rounded border border-hifi-border bg-hifi-surface p-1.5 text-xs"
 												/>
-												<div class="grid grid-cols-4 gap-1.5">
+												<div class="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
 													<input
 														type="number"
 														step="0.001"
@@ -756,7 +756,7 @@
 									placeholder="Artikelname"
 									class="rounded border border-hifi-border bg-hifi-surface p-1.5 text-xs"
 								/>
-								<div class="grid grid-cols-4 gap-1.5">
+								<div class="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
 									<input
 										type="number"
 										step="0.001"
@@ -932,7 +932,7 @@
 					disabled={reanalyzing || status === 'pending'}
 					aria-label="Neu analysieren"
 					title="Neu analysieren"
-					class="flex h-9 w-9 items-center justify-center rounded-full border border-hifi-border text-hifi-text-muted hover:border-hifi-accent hover:text-hifi-accent-text disabled:opacity-40"
+					class="flex h-11 w-11 items-center justify-center rounded-full border border-hifi-border text-hifi-text-muted hover:border-hifi-accent hover:text-hifi-accent-text disabled:opacity-40"
 				>
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2v6h-6" /><path d="M3 12a9 9 0 0 1 15-6.7L21 8" /><path d="M3 22v-6h6" /><path d="M21 12a9 9 0 0 1-15 6.7L3 16" /></svg>
 				</button>
@@ -940,7 +940,7 @@
 					on:click={() => (shareModalOpen = true)}
 					aria-label={m.shareManage.buttonLabel}
 					title={m.shareManage.buttonLabel}
-					class="flex h-9 w-9 items-center justify-center rounded-full border border-hifi-border text-hifi-text-muted hover:border-hifi-accent hover:text-hifi-accent-text"
+					class="flex h-11 w-11 items-center justify-center rounded-full border border-hifi-border text-hifi-text-muted hover:border-hifi-accent hover:text-hifi-accent-text"
 				>
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 13.5l6.8 3.9M15.4 6.6L8.6 10.5" /></svg>
 				</button>
@@ -949,7 +949,7 @@
 					disabled={deleting}
 					aria-label="Beleg löschen"
 					title="Beleg löschen"
-					class="flex h-9 w-9 items-center justify-center rounded-full border border-hifi-border text-hifi-text-muted hover:border-danger-border hover:text-danger disabled:opacity-40"
+					class="flex h-11 w-11 items-center justify-center rounded-full border border-hifi-border text-hifi-text-muted hover:border-danger-border hover:text-danger disabled:opacity-40"
 				>
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6" /></svg>
 				</button>

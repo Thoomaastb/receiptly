@@ -342,7 +342,7 @@
 {:else}
 <div class="flex h-screen flex-col overflow-hidden bg-hifi-bg font-ui text-hifi-text">
 	<div
-		class="grid h-[72px] flex-none grid-cols-[1fr_auto_1fr] items-center border-b border-hifi-border bg-hifi-surface px-8"
+		class="flex h-[72px] flex-none items-center justify-between border-b border-hifi-border bg-hifi-surface px-4 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:px-8"
 	>
 		<a href="/" class="flex items-center gap-3 justify-self-start">
 			<span class="flex h-9 w-9 flex-none items-center justify-center rounded-[10px] bg-hifi-accent">
@@ -354,7 +354,10 @@
 			<span class="text-[19px] font-extrabold tracking-tight">receiptly</span>
 		</a>
 
-		<div class="flex items-center gap-2 justify-self-center">
+		<!-- Primärnavigation redundant zur Bottom-Tab-Bar unter lg -> dort ausgeblendet
+		     statt zusätzlich gequetscht (adaptive-navigation: große Screens Sidebar/Topbar-Nav,
+		     kleine Screens Bottom-Nav). -->
+		<div class="hidden items-center gap-2 justify-self-center lg:flex">
 			<a
 				href="/"
 				class="rounded-[10px] px-4 py-2 text-[14.5px] font-semibold transition-colors"
@@ -385,10 +388,12 @@
 		</div>
 
 		<div class="flex items-center gap-1.5 justify-self-end">
+			<!-- Redundant zum "Suche"-Tab der Bottom-Nav unter lg -> dort ausgeblendet statt
+			     zusätzlich in die schmale Topbar gequetscht (overflow-menu-Guideline). -->
 			<a
 				href="/receipts"
 				aria-label="Suche"
-				class="flex h-[38px] w-[38px] items-center justify-center rounded-[10px] text-hifi-text-muted transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text"
+				class="hidden h-11 w-11 items-center justify-center rounded-[10px] text-hifi-text-muted transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text lg:flex"
 			>
 				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					<circle cx="10" cy="10" r="6" />
@@ -400,7 +405,7 @@
 					on:click={toggleNotifications}
 					aria-label={m.notifications.bellAriaLabel}
 					aria-expanded={notificationsOpen}
-					class="relative flex h-[38px] w-[38px] items-center justify-center rounded-[10px] text-hifi-text-muted transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text"
+					class="relative flex h-11 w-11 items-center justify-center rounded-[10px] text-hifi-text-muted transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text"
 				>
 					<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 						<path d="M6 10a6 6 0 0112 0v4l2 3H4l2-3z" />
@@ -421,13 +426,15 @@
 					     Benutzermenü ab. Der Zeiger-Pfeil ist ein um 45° rotiertes Quadrat mit
 					     durchlaufendem Hairline-Border (border-l/-t), sodass Bubble-Kontur + Pfeil als
 					     eine Form lesen. Horizontale Position: Panel ist right-0 unter der rechtsbündigen
-					     Topbar, die Glocke ist 38px breit → ihre Mitte liegt 19px vom rechten Rand.
-					     Pfeil (10px-Raute) bei right-[14px] → Rauten-Mitte 14+5=19px = exakt Glocken-Mitte,
-					     unabhängig von der absoluten Bell-Position (rein rechtsbündig verankert). -->
-					<div class="absolute right-0 top-[42px] z-30 w-80 rounded-2xl border border-hifi-border bg-hifi-surface p-1.5 shadow-popover">
+					     Topbar, die Glocke ist 44px breit (Touch-Target-Anhebung) → ihre Mitte liegt 22px
+					     vom rechten Rand. Pfeil (10px-Raute) bei right-[17px] → Rauten-Mitte 17+5=22px =
+					     exakt Glocken-Mitte, unabhängig von der absoluten Bell-Position (rein
+					     rechtsbündig verankert). max-w-[calc(100vw-2rem)] als Sicherheitsnetz gegen
+					     Viewport-Überlauf auf sehr schmalen Geräten (320px). -->
+					<div class="absolute right-0 top-12 z-30 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-hifi-border bg-hifi-surface p-1.5 shadow-popover">
 						<span
 							aria-hidden="true"
-							class="absolute -top-[6px] right-[14px] h-2.5 w-2.5 rotate-45 rounded-tl-[3px] border-l border-t border-hifi-border bg-hifi-surface"
+							class="absolute -top-[6px] right-[17px] h-2.5 w-2.5 rotate-45 rounded-tl-[3px] border-l border-t border-hifi-border bg-hifi-surface"
 						></span>
 						{#if $unreadTotal > 0}
 							<div class="flex justify-end px-1.5 pt-1">
@@ -511,10 +518,11 @@
 			</div>
 			<ThemeToggle />
 			<div class="mx-1.5 h-[22px] w-px bg-hifi-border"></div>
+			<!-- Redundant zum "Einstellungen"-Tab der Bottom-Nav unter lg -> dort ausgeblendet. -->
 			<a
 				href="/settings"
 				aria-label="Einstellungen"
-				class="flex h-[38px] w-[38px] items-center justify-center rounded-[10px] text-hifi-text-muted transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text"
+				class="hidden h-11 w-11 items-center justify-center rounded-[10px] text-hifi-text-muted transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text lg:flex"
 			>
 				<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					<circle cx="12" cy="12" r="3" />
@@ -531,12 +539,12 @@
 						on:click={toggleUserMenu}
 						aria-label="Benutzermenü"
 						aria-expanded={userMenuOpen}
-						class="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-full bg-hifi-accent-tint text-[12px] font-bold text-hifi-accent-text"
+						class="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-hifi-accent-tint text-[12px] font-bold text-hifi-accent-text"
 					>
 						{userInitial}
 					</button>
 					{#if userMenuOpen}
-						<div class="absolute right-0 top-[38px] z-30 w-56 rounded-[14px] border border-hifi-border bg-hifi-surface p-1.5">
+						<div class="absolute right-0 top-[52px] z-30 w-56 rounded-[14px] border border-hifi-border bg-hifi-surface p-1.5">
 							<div class="px-3 py-2.5">
 								<div class="truncate text-[13.5px] font-bold text-hifi-text">{currentUser.username}</div>
 								<div class="truncate text-[12px] text-hifi-text-muted">{currentUser.email}</div>
@@ -565,7 +573,11 @@
 	</div>
 
 	<div class="flex min-h-0 flex-1">
-		<aside class="flex w-[232px] flex-none flex-col overflow-hidden border-r border-hifi-border bg-hifi-surface p-4 py-6">
+		<!-- Sidebar (Kategorien bzw. SettingsNav-Desktop-Variante) nur ab lg -- darunter kein
+		     Hamburger-Drawer (siehe Plan): Kategorien sind auf /receipts ohnehin als Chips
+		     erreichbar, SettingsNav bekommt stattdessen das eigene Mobile-Dropdown unten in
+		     <main>. -->
+		<aside class="hidden w-[232px] flex-none flex-col overflow-hidden border-r border-hifi-border bg-hifi-surface p-4 py-6 lg:flex">
 			<div class="flex min-h-0 flex-1 flex-col gap-6">
 			{#if isSettingsRoute}
 				<SettingsNav {isAdmin} />
@@ -604,9 +616,95 @@
 			{/if}
 		</aside>
 
-		<main class="min-w-0 flex-1 overflow-y-auto px-10 pb-16 pt-9">
+		<main class="min-w-0 flex-1 overflow-y-auto px-4 pb-24 pt-6 sm:px-6 sm:pt-8 lg:px-10 lg:pb-16 lg:pt-9">
+			{#if isSettingsRoute}
+				<!-- Negative Margins lassen das Dropdown randlos über die volle Breite laufen,
+				     trotz des Paddings von <main> -- lg:hidden, weil die Desktop-Sidebar
+				     (SettingsNav variant="desktop" oben im <aside>) ab lg dieselbe Aufgabe übernimmt. -->
+				<div class="-mx-4 -mt-6 mb-6 border-b border-hifi-border bg-hifi-surface p-4 sm:-mx-6 sm:-mt-8 lg:hidden">
+					<SettingsNav {isAdmin} variant="mobile" />
+				</div>
+			{/if}
 			<slot />
 		</main>
 	</div>
+
+	<!-- Bottom-Tab-Bar: einzige Primärnavigation unter lg (ersetzt die ausgeblendeten
+	     Topbar-Links/-Icons), max. 5 Items je bottom-nav-limit-Guideline. Sitzt fest am
+	     unteren Rand, env(safe-area-inset-bottom) hält sie über Home-Indicator/Notch
+	     (Capacitor-native-App + iOS-Browser) frei. -->
+	<nav
+		aria-label="Hauptnavigation"
+		class="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-hifi-border bg-hifi-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
+	>
+		<a
+			href="/"
+			aria-current={$page.url.pathname === '/' ? 'page' : undefined}
+			class="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition-colors"
+			class:text-hifi-accent-text={$page.url.pathname === '/'}
+			class:text-hifi-text-muted={$page.url.pathname !== '/'}
+		>
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<path d="M3 12l9-9 9 9M5 10v10h14V10" />
+			</svg>
+			Start
+		</a>
+		<a
+			href="/receipts"
+			aria-current={$page.url.pathname.startsWith('/receipts') ? 'page' : undefined}
+			class="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition-colors"
+			class:text-hifi-accent-text={$page.url.pathname.startsWith('/receipts')}
+			class:text-hifi-text-muted={!$page.url.pathname.startsWith('/receipts')}
+		>
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<circle cx="10" cy="10" r="6" />
+				<path d="M20 20l-5.5-5.5" />
+			</svg>
+			Suche
+		</a>
+		<a
+			href="/upload"
+			aria-current={$page.url.pathname.startsWith('/upload') ? 'page' : undefined}
+			class="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition-colors"
+			class:text-hifi-accent-text={$page.url.pathname.startsWith('/upload')}
+			class:text-hifi-text-muted={!$page.url.pathname.startsWith('/upload')}
+		>
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<path d="M12 16V4M8 8l4-4 4 4" />
+				<path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3" />
+			</svg>
+			Hochladen
+		</a>
+		<a
+			href="/buckets"
+			aria-current={$page.url.pathname.startsWith('/buckets') ? 'page' : undefined}
+			class="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition-colors"
+			class:text-hifi-accent-text={$page.url.pathname.startsWith('/buckets')}
+			class:text-hifi-text-muted={!$page.url.pathname.startsWith('/buckets')}
+		>
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<rect x="5" y="11" width="14" height="10" rx="1" />
+				<path d="M8 11V7a4 4 0 018 0v4" />
+			</svg>
+			Buckets
+		</a>
+		<a
+			href="/settings"
+			aria-current={isSettingsRoute ? 'page' : undefined}
+			class="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 text-[11px] font-medium transition-colors"
+			class:text-hifi-accent-text={isSettingsRoute}
+			class:text-hifi-text-muted={!isSettingsRoute}
+		>
+			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<circle cx="12" cy="12" r="3" />
+				<path
+					d="M19.4 15a1.7 1.7 0 00.34 1.87l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.7 1.7 0 00-1.87-.34 1.7 1.7 0 00-1 1.55V21a2 2 0 01-4 0v-.09a1.7 1.7 0 00-1-1.55 1.7 1.7 0 00-1.87.34l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.7 1.7 0 004.6 15a1.7 1.7 0 00-1.55-1H3a2 2 0 010-4h.09A1.7 1.7 0 004.6 9a1.7 1.7 0 00-.34-1.87l-.06-.06a2 2 0 112.83-2.83l.06.06A1.7 1.7 0 009 4.6a1.7 1.7 0 001-1.55V3a2 2 0 014 0v.09a1.7 1.7 0 001 1.55 1.7 1.7 0 001.87-.34l.06-.06a2 2 0 112.83 2.83l-.06.06A1.7 1.7 0 0019.4 9a1.7 1.7 0 001.55 1H21a2 2 0 010 4h-.09a1.7 1.7 0 00-1.55 1z"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
+			</svg>
+			Einstellungen
+		</a>
+	</nav>
 </div>
 {/if}
