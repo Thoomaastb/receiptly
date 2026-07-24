@@ -1,3 +1,9 @@
+## [0.41.0](https://github.com/Thoomaastb/receiptly/compare/v0.40.1...v0.41.0) (2026-07-24)
+
+### Features
+
+* **frontend:** sanfter Übergang beim Light/Dark-Wechsel ([0696988](https://github.com/Thoomaastb/receiptly/commit/06969884d004749b9f6c0cde8ca85ad360b1d55b))
+
 ## [0.40.1](https://github.com/Thoomaastb/receiptly/compare/v0.40.0...v0.40.1) (2026-07-24)
 
 ### Bug Fixes
