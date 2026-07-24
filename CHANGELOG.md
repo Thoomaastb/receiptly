@@ -1,3 +1,9 @@
+## [0.39.0](https://github.com/Thoomaastb/receiptly/compare/v0.38.1...v0.39.0) (2026-07-24)
+
+### Features
+
+* **frontend:** App-weite Responsive-/Mobile-Überarbeitung ([013a7a8](https://github.com/Thoomaastb/receiptly/commit/013a7a85fd07279295c69a73b5a73ab193c80bc0))
+
 ## [0.38.1](https://github.com/Thoomaastb/receiptly/compare/v0.38.0...v0.38.1) (2026-07-24)
 
 ### Bug Fixes
