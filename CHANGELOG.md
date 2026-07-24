@@ -1,3 +1,9 @@
+## [0.40.1](https://github.com/Thoomaastb/receiptly/compare/v0.40.0...v0.40.1) (2026-07-24)
+
+### Bug Fixes
+
+* **frontend:** Design-Flyout-Animation nachgezogen, Upload-Karte verbreitert ([3cb3c58](https://github.com/Thoomaastb/receiptly/commit/3cb3c58cb7f9e0594eefabc8bed987e8eb122d1b))
+
 ## [0.40.0](https://github.com/Thoomaastb/receiptly/compare/v0.39.2...v0.40.0) (2026-07-24)
 
 ### Features
