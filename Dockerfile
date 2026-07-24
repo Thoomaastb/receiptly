@@ -33,6 +33,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY backend/pyproject.toml ./
 RUN pip install --no-cache-dir -e .
 
+# Fallback für lokale Builds ohne --build-arg APP_VERSION (z.B. "docker compose up --build"
+# gegen docker-compose.yml, das keinen Build-Arg setzt): app/config.py::_fallback_app_version()
+# liest diese Datei, sobald ENV APP_VERSION oben leer bleibt. CI (docker.yml) setzt den
+# Build-Arg weiterhin explizit aus dem Release-Tag -- dort gewinnt die Env-Variable ohnehin
+# vor diesem Fallback, diese Zeile ändert an CI-Images also nichts.
+COPY VERSION ./VERSION
+
 COPY backend/app ./app
 COPY backend/alembic ./alembic
 COPY backend/alembic.ini ./alembic.ini

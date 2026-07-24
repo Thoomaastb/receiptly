@@ -353,7 +353,7 @@
 					<path d="M9 9h6M9 13h6M9 17h3" />
 				</svg>
 			</span>
-			<span class="text-[19px] font-extrabold tracking-tight">receiptly</span>
+			<span class="text-[19px] font-extrabold tracking-tight text-hifi-text">receiptly</span>
 		</a>
 
 		<!-- Primärnavigation redundant zur Bottom-Tab-Bar unter lg -> dort ausgeblendet
