@@ -1,3 +1,9 @@
+## [0.37.5](https://github.com/Thoomaastb/receiptly/compare/v0.37.4...v0.37.5) (2026-07-24)
+
+### Bug Fixes
+
+* **auth:** irreführende Session-abgelaufen-Meldung im Setup-Wizard unterdrücken ([a4d89b3](https://github.com/Thoomaastb/receiptly/commit/a4d89b3223293f106e78db3a4e90b13f60a38607))
+
 ## [0.37.4](https://github.com/Thoomaastb/receiptly/compare/v0.37.3...v0.37.4) (2026-07-24)
 
 ### Bug Fixes
