@@ -1,3 +1,9 @@
+## [0.40.0](https://github.com/Thoomaastb/receiptly/compare/v0.39.2...v0.40.0) (2026-07-24)
+
+### Features
+
+* **frontend:** Ein-/Ausblend-Animationen für Flyouts, Dropdowns und Modals ([c661649](https://github.com/Thoomaastb/receiptly/commit/c6616494e069ce5ede7c4776359a817334c90e1d))
+
 ## [0.39.2](https://github.com/Thoomaastb/receiptly/compare/v0.39.1...v0.39.2) (2026-07-24)
 
 ### Bug Fixes
