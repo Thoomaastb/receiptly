@@ -1,3 +1,9 @@
+## [0.41.4](https://github.com/Thoomaastb/receiptly/compare/v0.41.3...v0.41.4) (2026-07-24)
+
+### Bug Fixes
+
+* **frontend:** Sidebar-Flackern durch Timing-Mismatch behoben ([62c3da0](https://github.com/Thoomaastb/receiptly/commit/62c3da00b2b35c1c0e2e0d826a918f80cdd53741))
+
 ## [0.41.3](https://github.com/Thoomaastb/receiptly/compare/v0.41.2...v0.41.3) (2026-07-24)
 
 ### Bug Fixes
