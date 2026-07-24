@@ -385,7 +385,11 @@
 	});
 </script>
 
-<div class="flex max-w-2xl flex-col gap-6">
+<div class="flex max-w-5xl flex-col gap-6">
+	<!-- Passwort + TOTP sind beide kurze Formulare -> nebeneinander ab lg, damit Desktop
+	     nicht auf max-w-2xl-Breite verschenkt bleibt. Passkeys/Sitzungen/Aktivität darunter
+	     bewusst NICHT im Grid -- potenziell lange Listen, volle Breite passt dort besser. -->
+	<div class="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
 	<div class="rounded-[14px] border border-hifi-border bg-hifi-surface p-6">
 		<h2 class="mb-1 text-[13.5px] font-bold text-hifi-text">Passwort ändern</h2>
 		<p class="mb-4 text-sm text-hifi-text-muted">
@@ -500,6 +504,7 @@
 				<p class="mt-2 text-sm text-hifi-text-muted">{m.totpManage.adminLockedNote}</p>
 			{/if}
 		{/if}
+	</div>
 	</div>
 
 	{#if reauthDialog === 'disable'}

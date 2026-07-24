@@ -147,7 +147,7 @@
 {:else if !isAdmin}
 	<p class="text-sm text-hifi-text-muted">{m.smtp.accessDenied}</p>
 {:else}
-	<div class="flex max-w-lg flex-col gap-6">
+	<div class="grid max-w-4xl grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
 		<div class="rounded-[14px] border border-hifi-border bg-hifi-surface p-6">
 			<h2 class="mb-1 text-[13.5px] font-bold text-hifi-text">{m.smtp.cardTitle}</h2>
 			<p class="mb-4 text-sm text-hifi-text-muted">{m.smtp.cardDescription}</p>
