@@ -1,3 +1,9 @@
+## [0.37.4](https://github.com/Thoomaastb/receiptly/compare/v0.37.3...v0.37.4) (2026-07-24)
+
+### Bug Fixes
+
+* **devops:** Alembic-Migrationen automatisch beim Container-Start ausführen ([64999b1](https://github.com/Thoomaastb/receiptly/commit/64999b17a1d0def45eb29a3f19c82b7480e4809c))
+
 ## [0.37.3](https://github.com/Thoomaastb/receiptly/compare/v0.37.2...v0.37.3) (2026-07-23)
 
 ### Bug Fixes
