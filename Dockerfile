@@ -40,13 +40,16 @@ COPY backend/alembic.ini ./alembic.ini
 # Statischer Frontend-Build landet dort, wo app/main.py ihn erwartet (app/../static)
 COPY --from=frontend-build /frontend/build ./static
 
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+
 # storage/originals + storage/thumbs vorab anlegen: die docker-compose-Volumes mounten
 # hier erst zur Laufzeit hinein, und Docker kopiert beim allerersten (leeren) Mount den
 # bestehenden Image-Inhalt inkl. Eigentümer in das Volume. Ohne das existiert der Pfad im
 # Image nicht (nur Python legt ihn zur Laufzeit per mkdir an) — das Volume landet dann
 # root-owned, und der non-root User "receiptly" kann nie hineinschreiben (jeder Upload
 # schlägt mit PermissionError fehl).
-RUN mkdir -p storage/originals storage/thumbs && chown -R receiptly:receiptly /app
+RUN mkdir -p storage/originals storage/thumbs && chmod +x docker-entrypoint.sh \
+    && chown -R receiptly:receiptly /app
 USER receiptly
 
 EXPOSE 8000
@@ -54,4 +57,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s \
     CMD curl -f http://localhost:8000/api/health || exit 1
 
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
