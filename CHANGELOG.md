@@ -1,3 +1,9 @@
+## [0.38.0](https://github.com/Thoomaastb/receiptly/compare/v0.37.5...v0.38.0) (2026-07-24)
+
+### Features
+
+* **devops:** container_name je Service über INSTANCE_NAME parametrisierbar ([e586382](https://github.com/Thoomaastb/receiptly/commit/e586382d73a6521696d7dd83dcd66274fbf5a8a2))
+
 ## [0.37.5](https://github.com/Thoomaastb/receiptly/compare/v0.37.4...v0.37.5) (2026-07-24)
 
 ### Bug Fixes
