@@ -315,7 +315,7 @@
 								: 'bg-hifi-border'}"
 						>
 							<span
-								class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform {totpRequiredForHousehold
+								class="absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform {totpRequiredForHousehold
 									? 'translate-x-[22px]'
 									: 'translate-x-0.5'}"
 							></span>
@@ -352,7 +352,7 @@
 								: 'bg-hifi-border'}"
 						>
 							<span
-								class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform {logAttemptedUsername
+								class="absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform {logAttemptedUsername
 									? 'translate-x-[22px]'
 									: 'translate-x-0.5'}"
 							></span>
@@ -402,7 +402,7 @@
 									: 'bg-hifi-border'}"
 							>
 								<span
-									class="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform {passkeyExclusiveLogin
+									class="absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform {passkeyExclusiveLogin
 										? 'translate-x-[22px]'
 										: 'translate-x-0.5'}"
 								></span>
