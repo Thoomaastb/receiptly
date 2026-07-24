@@ -139,7 +139,7 @@
 	}
 </script>
 
-<div class="max-w-md rounded-[14px] border border-hifi-border bg-hifi-surface p-6">
+<div class="w-full max-w-md rounded-[14px] border border-hifi-border bg-hifi-surface p-6">
 	{#if bucketsLoading}
 		<p class="mb-4 text-sm text-hifi-text-muted">Buckets werden geladen …</p>
 	{:else if buckets.length > 1}
@@ -169,13 +169,22 @@
 			Kamera öffnen
 		</button>
 	{:else}
-		<input
-			type="file"
-			accept={captureMode === 'camera' ? 'image/*' : 'application/pdf,image/jpeg,image/png'}
-			capture={captureMode === 'camera' ? 'environment' : undefined}
-			on:change={handleFileSelect}
-			class="mb-4 block w-full text-sm text-hifi-text-muted"
-		/>
+		<label
+			class="mb-4 flex w-full cursor-pointer items-center justify-center gap-2 rounded-[10px] border border-hifi-border bg-hifi-surface py-3 text-sm font-medium transition-colors hover:bg-hifi-accent-tint hover:text-hifi-accent-text"
+		>
+			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<path d="M12 16V4M8 8l4-4 4 4" />
+				<path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3" />
+			</svg>
+			{selectedFile ? 'Andere Datei wählen' : 'Datei auswählen'}
+			<input
+				type="file"
+				accept={captureMode === 'camera' ? 'image/*' : 'application/pdf,image/jpeg,image/png'}
+				capture={captureMode === 'camera' ? 'environment' : undefined}
+				on:change={handleFileSelect}
+				class="sr-only"
+			/>
+		</label>
 	{/if}
 	{#if captureMode === 'camera'}
 		<p class="mb-4 text-xs text-hifi-text-muted">
@@ -217,7 +226,7 @@
 	<button
 		on:click={handleSubmit}
 		disabled={!selectedFile || !selectedBucketId || stage === 'ocr' || stage === 'uploading'}
-		class="mt-4 rounded-[10px] bg-hifi-accent px-4 py-2 text-sm text-white disabled:opacity-50"
+		class="mt-4 w-full rounded-[10px] bg-hifi-accent px-4 py-2 text-sm text-white disabled:opacity-50"
 	>
 		Hochladen
 	</button>

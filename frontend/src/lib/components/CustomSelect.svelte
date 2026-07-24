@@ -85,7 +85,7 @@
 		on:click={toggle}
 		on:keydown={handleTriggerKeydown}
 		{disabled}
-		class="flex w-full items-center justify-between rounded border border-hifi-border bg-hifi-surface p-2 text-left text-sm transition-colors hover:border-hifi-text-muted disabled:opacity-50"
+		class="flex w-full items-center justify-between rounded border border-hifi-border bg-hifi-surface p-2 text-left text-sm transition-colors hover:border-hifi-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hifi-accent focus-visible:ring-offset-2 disabled:opacity-50"
 		aria-haspopup="listbox"
 		aria-expanded={open}
 		aria-labelledby={labelledBy}

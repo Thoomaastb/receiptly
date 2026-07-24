@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { m } from '$lib/i18n';
+	import CustomSelect from './CustomSelect.svelte';
 
 	export let receiptId: string;
 	export let onClose: () => void;
@@ -243,14 +244,14 @@
 				</div>
 			</fieldset>
 
-			<label class="mb-3 block text-xs">
-				<span class="mb-1.5 block text-hifi-text-muted">{m.shareManage.expiryLabel}</span>
-				<select bind:value={expiryPreset} class="w-full rounded-[10px] border border-hifi-border bg-hifi-bg p-2 text-sm">
-					{#each EXPIRY_OPTIONS as option (option.value)}
-						<option value={option.value}>{option.label}</option>
-					{/each}
-				</select>
-			</label>
+			<div class="mb-3">
+				<span id="share-expiry-label" class="mb-1.5 block text-xs text-hifi-text-muted">{m.shareManage.expiryLabel}</span>
+				<CustomSelect
+					bind:value={expiryPreset}
+					labelledBy="share-expiry-label"
+					options={EXPIRY_OPTIONS}
+				/>
+			</div>
 
 			<label class="mb-3 block text-xs">
 				<span class="mb-1.5 block text-hifi-text-muted">{m.shareManage.labelInputLabel}</span>

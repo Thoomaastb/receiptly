@@ -683,8 +683,8 @@
 			class:text-hifi-text-muted={!$page.url.pathname.startsWith('/buckets')}
 		>
 			<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-				<rect x="5" y="11" width="14" height="10" rx="1" />
-				<path d="M8 11V7a4 4 0 018 0v4" />
+				<path d="M5 8h14l-1.5 11a2 2 0 01-2 1.8H8.5a2 2 0 01-2-1.8L5 8z" />
+				<path d="M8 8a4 4 0 018 0" />
 			</svg>
 			Buckets
 		</a>

@@ -3,6 +3,7 @@
 	import { formatDate } from '$lib/formatDate';
 	import { m } from '$lib/i18n';
 	import ShareManagementModal from './ShareManagementModal.svelte';
+	import CustomSelect from './CustomSelect.svelte';
 
 	interface ItemRow {
 		id: string;
@@ -504,22 +505,18 @@
 						<input type="checkbox" bind:checked={draftHighValue} />
 						<span>Hochwertiger Kauf</span>
 					</label>
-					<label class="text-xs">
-						<span class="mb-1 block text-hifi-text-muted">Kategorie</span>
-						<select
+					<div class="text-xs">
+						<span id="receipt-category-label" class="mb-1 block text-hifi-text-muted">Kategorie</span>
+						<CustomSelect
 							bind:value={draftCategory}
 							disabled={!draftMerchant.trim()}
-							class="w-full rounded border border-hifi-border bg-hifi-surface p-2 text-sm disabled:opacity-50"
-						>
-							<option value="">Keine</option>
-							{#each CATEGORIES as cat (cat.value)}
-								<option value={cat.value}>{cat.label}</option>
-							{/each}
-						</select>
+							labelledBy="receipt-category-label"
+							options={[{ value: '', label: 'Keine' }, ...CATEGORIES]}
+						/>
 						{#if !draftMerchant.trim()}
 							<span class="mt-1 block text-hifi-text-muted">Braucht zuerst einen Händlernamen.</span>
 						{/if}
-					</label>
+					</div>
 					{#each categoryFields(draftCategory || null) as field (field.key)}
 						<label class="text-xs">
 							<span class="mb-1 block text-hifi-text-muted">
