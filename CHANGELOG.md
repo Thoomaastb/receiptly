@@ -1,3 +1,9 @@
+## [0.39.2](https://github.com/Thoomaastb/receiptly/compare/v0.39.1...v0.39.2) (2026-07-24)
+
+### Bug Fixes
+
+* **frontend:** Buckets-Seite nutzt mehr Breite (max-w-md -> max-w-2xl) ([e454067](https://github.com/Thoomaastb/receiptly/commit/e454067992d595683487910877644e2ccc15f225))
+
 ## [0.39.1](https://github.com/Thoomaastb/receiptly/compare/v0.39.0...v0.39.1) (2026-07-24)
 
 ### Bug Fixes
