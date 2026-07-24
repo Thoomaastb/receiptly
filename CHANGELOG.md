@@ -1,3 +1,9 @@
+## [0.41.2](https://github.com/Thoomaastb/receiptly/compare/v0.41.1...v0.41.2) (2026-07-24)
+
+### Bug Fixes
+
+* **frontend:** Flackern beim Light/Dark-Wechsel behoben ([d2ae094](https://github.com/Thoomaastb/receiptly/commit/d2ae09492f45e0e5fad581f00dc91743b7a0d894))
+
 ## [0.41.1](https://github.com/Thoomaastb/receiptly/compare/v0.41.0...v0.41.1) (2026-07-24)
 
 ### Bug Fixes
