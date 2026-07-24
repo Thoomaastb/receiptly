@@ -1,0 +1,8 @@
+#!/bin/sh
+# Blockt Co-Authored-By-Trailer hart (Konvention seit 2026-07-xx, siehe CLAUDE.md) —
+# ein solcher Trailer hatte GitHub dazu gebracht, "claude" als Repo-Contributor zu führen.
+# Aktivieren: git config core.hooksPath .githooks (einmalig pro Checkout).
+if grep -qi '^co-authored-by:' "$1"; then
+  echo "Commit abgelehnt: Co-Authored-By-Trailer ist in diesem Repo nicht erlaubt." >&2
+  exit 1
+fi
