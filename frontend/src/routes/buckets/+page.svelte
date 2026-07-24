@@ -255,7 +255,7 @@
 
 <h1 class="mb-6 text-[26px] font-extrabold tracking-tight text-hifi-text">Buckets</h1>
 
-<div class="relative mb-4 max-w-md">
+<div class="relative mb-4 max-w-2xl">
 	<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-hifi-text-faint" aria-hidden="true">
 		<circle cx="10" cy="10" r="6" />
 		<path d="M20 20l-5.5-5.5" />
@@ -274,10 +274,10 @@
 	<p class="text-sm text-danger">{errorMessage}</p>
 {:else}
 	{#if actionError}
-		<p class="mb-4 max-w-md text-sm text-danger">{actionError}</p>
+		<p class="mb-4 max-w-2xl text-sm text-danger">{actionError}</p>
 	{/if}
 
-	<ul class="mb-5 flex max-w-md flex-col gap-2">
+	<ul class="mb-5 flex max-w-2xl flex-col gap-2">
 		{#each filteredBuckets as bucket (bucket.id)}
 			<li class="rounded-[14px] border border-hifi-border bg-hifi-surface p-4">
 				{#if renamingId === bucket.id}
@@ -408,7 +408,7 @@
 	</ul>
 
 	{#if creating}
-		<div class="flex max-w-md gap-2">
+		<div class="flex max-w-2xl gap-2">
 			<input
 				type="text"
 				bind:value={newBucketName}
@@ -426,7 +426,7 @@
 		</button>
 	{/if}
 
-	<div class="mt-8 max-w-md border-t border-hifi-border pt-6">
+	<div class="mt-8 max-w-2xl border-t border-hifi-border pt-6">
 		<div class="mb-3 text-[13.5px] font-bold text-hifi-text">Haushaltsmitglieder</div>
 		{#if members.length > 0}
 			<ul class="mb-3 flex flex-col gap-1.5">
