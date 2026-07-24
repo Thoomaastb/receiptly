@@ -1,3 +1,9 @@
+## [0.41.1](https://github.com/Thoomaastb/receiptly/compare/v0.41.0...v0.41.1) (2026-07-24)
+
+### Bug Fixes
+
+* **frontend:** Settings-Seiten mit mehreren Karten zweispaltig ab lg ([545079f](https://github.com/Thoomaastb/receiptly/commit/545079fd4601ae4054db693082560d7b3c3a3c0c))
+
 ## [0.41.0](https://github.com/Thoomaastb/receiptly/compare/v0.40.1...v0.41.0) (2026-07-24)
 
 ### Features
