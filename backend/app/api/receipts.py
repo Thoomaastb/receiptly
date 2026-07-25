@@ -17,7 +17,7 @@ from fastapi import (
     status,
 )
 from fastapi.responses import FileResponse
-from sqlalchemy import exists, or_, select
+from sqlalchemy import delete, exists, insert, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -29,6 +29,7 @@ from app.models.item import Item
 from app.models.merchant import Merchant
 from app.models.receipt import Receipt, ReceiptStatus
 from app.models.receipt_share import ReceiptShare
+from app.models.tag import Tag, receipt_tags
 from app.models.user import User, UserRole
 from app.schemas.receipt import (
     ItemCreate,
@@ -84,7 +85,11 @@ router = APIRouter(
     dependencies=[Depends(require_totp_enrolled)],
 )
 
-_RECEIPT_DETAIL_OPTIONS = (selectinload(Receipt.merchant), selectinload(Receipt.items))
+_RECEIPT_DETAIL_OPTIONS = (
+    selectinload(Receipt.merchant),
+    selectinload(Receipt.items),
+    selectinload(Receipt.tags),
+)
 
 
 def _normalize_merchant_name(name: str) -> str:
@@ -209,7 +214,10 @@ async def list_receipts(
     type: str | None = Query(
         default=None, description="Filter: high_value | warranty | needs_review"
     ),
-    category: str | None = Query(default=None, description="Merchant-Kategorie"),
+    category: str | None = Query(default=None, description="Beleg-Kategorie"),
+    tags: list[uuid.UUID] | None = Query(
+        default=None, description="Filter: Belege mit mindestens einem der Tag-IDs (ODER-Semantik)"
+    ),
     sort: str | None = Query(
         default=None, description="date_desc | date_asc | amount_desc | amount_asc"
     ),
@@ -256,13 +264,15 @@ async def list_receipts(
         stmt = stmt.where(Receipt.status == ReceiptStatus.NEEDS_REVIEW)
 
     if category:
-        stmt = stmt.where(
-            exists(
-                select(Merchant.id).where(
-                    Merchant.id == Receipt.merchant_id, Merchant.category == category
-                )
+        stmt = stmt.where(Receipt.category == category)
+
+    if tags:
+        tag_match = exists(
+            select(receipt_tags.c.receipt_id).where(
+                receipt_tags.c.receipt_id == Receipt.id, receipt_tags.c.tag_id.in_(tags)
             )
         )
+        stmt = stmt.where(tag_match)
 
     order_by = _SORT_OPTIONS.get(sort, (Receipt.created_at.desc(),))
     stmt = stmt.order_by(*order_by).offset(offset)
@@ -444,24 +454,45 @@ async def update_receipt(
         # Vorschlag wurde gerade (implizit oder explizit) übernommen bzw. überschrieben —
         # der KI-Vorschlag ist damit erledigt, unabhängig vom Wert selbst.
         receipt.ai_suggested_merchant_name = None
+        # Merchant.category ist reiner Vorschlagswert (siehe Konzept) — nur befüllen, wenn der
+        # Beleg noch keine eigene Kategorie hat UND diese Anfrage nicht selbst eine explizite
+        # category mitschickt (die gewinnt so oder so). Verhindert, dass erneutes Verknüpfen
+        # eine bereits manuell gesetzte Kategorie überschreibt.
+        if receipt.category is None and payload.category is None and merchant.category:
+            receipt.category = merchant.category
     if payload.is_high_value is not None:
         receipt.is_high_value = payload.is_high_value
     if payload.warranty_months is not None:
         receipt.warranty_months = payload.warranty_months
     if payload.custom_fields is not None:
         receipt.custom_fields = payload.custom_fields
-
-    if payload.category is not None:
-        if receipt.merchant_id is None:
+    if payload.tag_ids is not None:
+        # Direkt über die receipt_tags-Core-Table statt receipt.tags-Zuweisung: die
+        # Relationship ist auf diesem Receipt (aus _get_writable_receipt, ohne
+        # selectinload) nicht vorgeladen — ein Ersetzen der Collection würde einen
+        # impliziten (im Async-Modus nicht erlaubten) Lazy-Load der aktuellen Tags
+        # auslösen. Konsistent mit der Entscheidung für ein reines secondary=-Table in
+        # app/models/tag.py.
+        requested_ids = set(payload.tag_ids)
+        result = await db.execute(
+            select(Tag.id).where(Tag.household_id == user.household_id, Tag.id.in_(requested_ids))
+        )
+        matched_ids = set(result.scalars().all())
+        if matched_ids != requested_ids:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Kategorie braucht zuerst einen Händler",
+                detail="Ein oder mehrere Tags nicht gefunden",
             )
-        merchant_result = await db.execute(
-            select(Merchant).where(Merchant.id == receipt.merchant_id)
-        )
-        merchant = merchant_result.scalar_one()
-        merchant.category = payload.category
+
+        await db.execute(delete(receipt_tags).where(receipt_tags.c.receipt_id == receipt.id))
+        if matched_ids:
+            await db.execute(
+                insert(receipt_tags),
+                [{"receipt_id": receipt.id, "tag_id": tag_id} for tag_id in matched_ids],
+            )
+
+    if payload.category is not None:
+        receipt.category = payload.category
         receipt.ai_suggested_category = None
 
     if payload.dismiss_ai_suggestion:

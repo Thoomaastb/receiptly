@@ -1,8 +1,30 @@
 import uuid
 from datetime import date, datetime
-from typing import Any
+from typing import Any, Literal, get_args
 
 from pydantic import BaseModel, Field
+
+from app.schemas.tag import TagResponse
+
+# Single Point of Truth für gültige Kategorie-Werte (siehe concepts/kategorie-neuordnung.md).
+# 7 bestehende Werte zuerst unverändert, dann 6 neue, "other" als Catch-all ans Ende.
+ReceiptCategory = Literal[
+    "electronics",
+    "groceries",
+    "travel",
+    "furniture",
+    "fashion",
+    "dining",
+    "fuel",
+    "health",
+    "drugstore",
+    "leisure",
+    "household",
+    "kids",
+    "pets",
+    "other",
+]
+ALLOWED_CATEGORY_VALUES: frozenset[str] = frozenset(get_args(ReceiptCategory))
 
 
 class ReceiptUploadResponse(BaseModel):
@@ -61,6 +83,7 @@ class ReceiptListItem(BaseModel):
     category: str | None
     item_count: int
     created_at: datetime
+    tags: list[TagResponse]
 
     model_config = {"from_attributes": True}
 
@@ -94,10 +117,13 @@ class ReceiptUpdate(BaseModel):
     # automatisch alle Belege desselben Händlers. Wie merchant_name/warranty_months: None
     # heißt "nicht mitschicken" (unverändert lassen), kein explizites Zurücksetzen über
     # dieses Feld — konsistent mit den übrigen optionalen Feldern hier.
-    category: str | None = Field(default=None, max_length=100)
+    category: ReceiptCategory | None = None
     # Kategorie-spezifische Zusatzfelder (siehe Receipt.custom_fields) — wie die übrigen
     # Felder hier: komplettes Objekt ersetzt den bisherigen Wert, kein Merge auf Server-Seite.
     custom_fields: dict[str, Any] | None = None
+    # Wie custom_fields: None=unverändert, []=alle Tags entfernen, [...]=Komplett-Ersetzen
+    # (kein Merge mit bestehenden Tags) — siehe update_receipt.
+    tag_ids: list[uuid.UUID] | None = None
     # True verwirft beide ai_suggested_*-Felder (unabhängig davon, ob merchant_name/category
     # in derselben Anfrage übernommen werden) — siehe update_receipt.
     dismiss_ai_suggestion: bool = False

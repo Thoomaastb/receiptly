@@ -17,6 +17,7 @@ from app.api import (
     settings as settings_router,
     share,
     smtp_settings,
+    tags,
     totp,
     webauthn,
 )
@@ -62,6 +63,7 @@ app.include_router(totp.router, prefix="/api")
 app.include_router(webauthn.router, prefix="/api")
 app.include_router(receipts.router, prefix="/api")
 app.include_router(buckets.router, prefix="/api")
+app.include_router(tags.router, prefix="/api")
 app.include_router(settings_router.router, prefix="/api")
 app.include_router(security_settings.router, prefix="/api")
 app.include_router(smtp_settings.router, prefix="/api")
