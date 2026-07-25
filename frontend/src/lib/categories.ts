@@ -30,7 +30,14 @@ export const CATEGORIES: CategoryDef[] = [
 		label: 'Tanken',
 		colorVar: 'var(--color-cat-fuel)',
 		fields: [{ key: 'odometer_km', label: 'Kilometerstand', type: 'number', unit: 'km' }]
-	}
+	},
+	{ value: 'health', label: 'Gesundheit', colorVar: 'var(--color-cat-health)' },
+	{ value: 'drugstore', label: 'Drogerie', colorVar: 'var(--color-cat-drugstore)' },
+	{ value: 'leisure', label: 'Freizeit', colorVar: 'var(--color-cat-leisure)' },
+	{ value: 'household', label: 'Haushalt', colorVar: 'var(--color-cat-household)' },
+	{ value: 'kids', label: 'Kinder & Baby', colorVar: 'var(--color-cat-kids)' },
+	{ value: 'pets', label: 'Tierbedarf', colorVar: 'var(--color-cat-pets)' },
+	{ value: 'other', label: 'Sonstiges', colorVar: 'var(--color-cat-other)' }
 ];
 
 export function categoryLabel(value: string | null): string | null {

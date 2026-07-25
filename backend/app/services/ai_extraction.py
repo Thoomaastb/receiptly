@@ -14,6 +14,7 @@ from app.database import AsyncSessionLocal
 from app.models.ai_usage_event import AIUsageEvent
 from app.models.item import Item
 from app.models.receipt import Receipt, ReceiptStatus
+from app.schemas.receipt import ALLOWED_CATEGORY_VALUES
 from app.services import ai_pricing
 from app.services.ai_provider_client import AIProviderError, StructuredCallResult, call_structured, resolve_model_name
 from app.services.ai_provider_resolution import EffectiveProviderConfig, resolve_effective_provider
@@ -22,19 +23,6 @@ from app.services.pii_redaction import redact_sensitive_patterns
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
-
-# Muss manuell synchron zu frontend/src/lib/categories.ts gehalten werden (dort die einzige
-# andere Quelle gültiger Kategorien im Projekt) — ein vergessener Sync führt nur zu
-# fehlenden Kategorie-Vorschlägen, nicht zu einem Crash.
-ALLOWED_CATEGORY_VALUES = {
-    "electronics",
-    "groceries",
-    "travel",
-    "furniture",
-    "fashion",
-    "dining",
-    "fuel",
-}
 
 _CURRENCY_PATTERN = re.compile(r"^[A-Z]{3}$")
 
@@ -269,7 +257,12 @@ async def _apply_extraction_result(db: AsyncSession, receipt: Receipt, data: dic
 
     category = data.get("category")
     if isinstance(category, str) and category.strip() in ALLOWED_CATEGORY_VALUES:
-        receipt.ai_suggested_category = category.strip()
+        guessed = category.strip()
+        receipt.ai_suggested_category = guessed
+        # Nur automatisch übernehmen, wenn der Beleg noch keine Kategorie hat — schützt eine
+        # bereits manuell gesetzte/korrigierte Kategorie vor einem späteren "Neu analysieren".
+        if receipt.category is None:
+            receipt.category = guessed
 
     items_data = data.get("items")
     # Nur anlegen, wenn der Beleg noch keine Artikel hat — verhindert Duplikate bei
