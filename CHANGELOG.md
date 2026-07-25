@@ -1,3 +1,12 @@
+## [0.42.0](https://github.com/Thoomaastb/receiptly/compare/v0.41.4...v0.42.0) (2026-07-25)
+
+### Features
+
+* **tags:** 24 gedämpfte Tag-Farben (Light+Dark) + Swatch-Picker-Feinschliff ([21f8899](https://github.com/Thoomaastb/receiptly/commit/21f889913b0fb4139bd1bb3855689e63e5c542d6))
+* **tags:** CRUD-Router, Zuweisung an Belege, Tag-Filter (OR-Semantik) ([55f595b](https://github.com/Thoomaastb/receiptly/commit/55f595b0b80f5a1fc558fa553615d5153d52a4f3))
+* **tags:** Tag-Chips, Freitext-Erstellung, Filter-Zeile im Frontend ([e470ada](https://github.com/Thoomaastb/receiptly/commit/e470ada2d14f505e264a286112f1631816e3c2ca))
+* **tags:** Tag-Modell + receipt_tags-Join-Table, Migration ([255c607](https://github.com/Thoomaastb/receiptly/commit/255c607a2c6af956c1ce1a4f85b91f5ff81c9e08))
+
 ## [0.41.4](https://github.com/Thoomaastb/receiptly/compare/v0.41.3...v0.41.4) (2026-07-24)
 
 ### Bug Fixes
