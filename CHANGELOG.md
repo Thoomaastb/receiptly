@@ -1,3 +1,9 @@
+## [0.42.1](https://github.com/Thoomaastb/receiptly/compare/v0.42.0...v0.42.1) (2026-07-25)
+
+### Bug Fixes
+
+* **receipts:** Kategorie-Erweiterung abschließen (Migration, KI-Auto-Apply, 7 neue Kategorien im UI) ([4bd4d36](https://github.com/Thoomaastb/receiptly/commit/4bd4d36db24eefca119cca3400d28ff6151de96d))
+
 ## [0.42.0](https://github.com/Thoomaastb/receiptly/compare/v0.41.4...v0.42.0) (2026-07-25)
 
 ### Features
