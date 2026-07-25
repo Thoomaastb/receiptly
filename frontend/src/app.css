@@ -42,6 +42,54 @@
 	--color-cat-fashion: oklch(62% 0.16 340);
 	--color-cat-dining: oklch(64% 0.15 45);
 	--color-cat-fuel: oklch(58% 0.17 25);
+	/* 7 neue Kategorien (A5). Hues füllen die Lücken der bestehenden 7 (25/45/80/150/230/
+	   290/340) mit ~25° Mindestabstand, damit alle 14 Töne nebeneinander unterscheidbar
+	   bleiben. Gleicher Hue je Token in Light/Dark — Dark passt nur L/C für Kontrast an,
+	   nie den Farbton. `other` bewusst NEUTRAL (Chroma ~0.012, Text-Hue 280), kein achtes
+	   Farbrad-Segment. */
+	--color-cat-health: oklch(60% 0.13 180);
+	--color-cat-drugstore: oklch(62% 0.16 315);
+	--color-cat-leisure: oklch(63% 0.15 115);
+	--color-cat-household: oklch(58% 0.15 260);
+	--color-cat-kids: oklch(63% 0.16 5);
+	--color-cat-pets: oklch(60% 0.13 205);
+	--color-cat-other: oklch(58% 0.012 280);
+
+	/* Tag-Farbpalette (B4) — 24 bewusst GEDÄMPFTE Slots als SEKUNDÄRES Farbsystem neben den
+	   Kategorien. Deutlich niedrigere Chroma (0.08 vs. Kategorie 0.13-0.19), damit Tags die
+	   strukturierten Kategorie-Töne ERGÄNZEN statt mit ihnen um Aufmerksamkeit zu
+	   konkurrieren. Uniforme L/C, nur der Hue variiert (~15°-Schritte rund um den Kreis) —
+	   so bleiben die 24 Slots als eine kohärente Familie lesbar. Die Hues weichen den 14
+	   Kategorie-Hues (5/25/45/80/115/150/180/205/230/260/280/290/315/340) um ≥3° aus; bei
+	   dieser niedrigen Chroma ist eine gewisse Hue-Nähe unkritisch. Gleicher Hue je Token in
+	   Light/Dark — Dark hebt nur L an und senkt C minimal, NIE den Farbton (Konvention wie
+	   --color-cat-*). Vollständigkeit ist Abnahmekriterium: alle 24 haben ihr Dark-
+	   Gegenstück unten. Slot-Keys bleiben neutral (tag-01…24, synchron mit
+	   backend/app/schemas/tag.py::TagColor und frontend/src/lib/tags.ts::TAG_COLOR_KEYS). */
+	--color-tag-01: oklch(62% 0.08 12);
+	--color-tag-02: oklch(62% 0.08 30);
+	--color-tag-03: oklch(62% 0.08 42);
+	--color-tag-04: oklch(62% 0.08 58);
+	--color-tag-05: oklch(62% 0.08 72);
+	--color-tag-06: oklch(62% 0.08 88);
+	--color-tag-07: oklch(62% 0.08 102);
+	--color-tag-08: oklch(62% 0.08 120);
+	--color-tag-09: oklch(62% 0.08 135);
+	--color-tag-10: oklch(62% 0.08 146);
+	--color-tag-11: oklch(62% 0.08 165);
+	--color-tag-12: oklch(62% 0.08 176);
+	--color-tag-13: oklch(62% 0.08 192);
+	--color-tag-14: oklch(62% 0.08 210);
+	--color-tag-15: oklch(62% 0.08 225);
+	--color-tag-16: oklch(62% 0.08 240);
+	--color-tag-17: oklch(62% 0.08 255);
+	--color-tag-18: oklch(62% 0.08 270);
+	--color-tag-19: oklch(62% 0.08 285);
+	--color-tag-20: oklch(62% 0.08 300);
+	--color-tag-21: oklch(62% 0.08 312);
+	--color-tag-22: oklch(62% 0.08 328);
+	--color-tag-23: oklch(62% 0.08 345);
+	--color-tag-24: oklch(62% 0.08 356);
 
 	--color-success: oklch(55% 0.14 150);
 	--color-success-bg: oklch(96% 0.02 150);
@@ -105,6 +153,43 @@
 	--color-cat-fashion: oklch(72% 0.15 340);
 	--color-cat-dining: oklch(74% 0.14 45);
 	--color-cat-fuel: oklch(68% 0.16 25);
+	/* Dark-Gegenstücke der 7 neuen Kategorien (A5) — identischer Hue wie Light, nur heller
+	   (L 68-74%) und leicht entsättigt für Kontrast auf dunklem Grund. `other` bleibt
+	   neutral. */
+	--color-cat-health: oklch(72% 0.12 180);
+	--color-cat-drugstore: oklch(72% 0.15 315);
+	--color-cat-leisure: oklch(74% 0.14 115);
+	--color-cat-household: oklch(70% 0.13 260);
+	--color-cat-kids: oklch(74% 0.15 5);
+	--color-cat-pets: oklch(72% 0.12 205);
+	--color-cat-other: oklch(68% 0.012 280);
+
+	/* Dark-Gegenstücke der 24 Tag-Slots (B4) — identischer Hue wie Light, nur heller (L 72%)
+	   und minimal entsättigt (C 0.07) für Kontrast auf dunklem Grund. Bleiben gedämpft. */
+	--color-tag-01: oklch(72% 0.07 12);
+	--color-tag-02: oklch(72% 0.07 30);
+	--color-tag-03: oklch(72% 0.07 42);
+	--color-tag-04: oklch(72% 0.07 58);
+	--color-tag-05: oklch(72% 0.07 72);
+	--color-tag-06: oklch(72% 0.07 88);
+	--color-tag-07: oklch(72% 0.07 102);
+	--color-tag-08: oklch(72% 0.07 120);
+	--color-tag-09: oklch(72% 0.07 135);
+	--color-tag-10: oklch(72% 0.07 146);
+	--color-tag-11: oklch(72% 0.07 165);
+	--color-tag-12: oklch(72% 0.07 176);
+	--color-tag-13: oklch(72% 0.07 192);
+	--color-tag-14: oklch(72% 0.07 210);
+	--color-tag-15: oklch(72% 0.07 225);
+	--color-tag-16: oklch(72% 0.07 240);
+	--color-tag-17: oklch(72% 0.07 255);
+	--color-tag-18: oklch(72% 0.07 270);
+	--color-tag-19: oklch(72% 0.07 285);
+	--color-tag-20: oklch(72% 0.07 300);
+	--color-tag-21: oklch(72% 0.07 312);
+	--color-tag-22: oklch(72% 0.07 328);
+	--color-tag-23: oklch(72% 0.07 345);
+	--color-tag-24: oklch(72% 0.07 356);
 
 	--color-success: oklch(72% 0.13 150);
 	--color-success-bg: oklch(25% 0.03 150);
