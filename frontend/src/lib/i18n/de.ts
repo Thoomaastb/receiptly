@@ -359,5 +359,28 @@ export const de = {
 		submitting: 'Wird reaktiviert …',
 		backButton: 'Zurück zur Anmeldung',
 		error: 'Reaktivierung fehlgeschlagen — bitte erneut versuchen.'
+	},
+
+	// Tags-Feature (Zuweisung/Anlegen in ReceiptDetailView, Filter auf /receipts, siehe
+	// $lib/tags.ts + TagPicker.svelte + TagColorSwatchPicker.svelte)
+	tags: {
+		colorPicker: {
+			groupLabel: 'Farbe wählen',
+			swatchAriaLabel: 'Farbe {n}'
+		},
+		picker: {
+			fieldLabel: 'Tags',
+			inputPlaceholder: '+ Neuer Tag',
+			removeAriaLabel: 'Tag entfernen: {name}',
+			noResults: 'Keine passenden Tags.',
+			createOptionLabel: 'Neuer Tag "{name}" anlegen',
+			confirmCreateButton: 'Anlegen',
+			creatingLabel: 'Wird angelegt …',
+			loadError: 'Tags konnten nicht geladen werden.',
+			createError: 'Tag konnte nicht angelegt werden.',
+			cancelCreateButton: 'Abbrechen'
+		},
+		overflowLabel: '+{count}',
+		filterSectionLabel: 'Tags'
 	}
 } as const;

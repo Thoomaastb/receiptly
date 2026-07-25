@@ -6,6 +6,8 @@
 	import ReceiptDetailView from '$lib/components/ReceiptDetailView.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import { categoryLabel } from '$lib/categories';
+	import { tagColorVar, type Tag } from '$lib/tags';
+	import { m } from '$lib/i18n';
 
 	interface Receipt {
 		id: string;
@@ -17,6 +19,7 @@
 		thumb_path: string | null;
 		merchant_name: string | null;
 		category: string | null;
+		tags: Tag[];
 		item_count: number;
 		created_at: string;
 	}
@@ -84,8 +87,15 @@
 	let searchQuery = '';
 	let activeType: string | null = null;
 	let activeCategory: string | null = null;
+	// Mehrfachauswahl (OR-Semantik serverseitig, siehe list_receipts) — im Unterschied zu
+	// activeCategory (Single-Select) ist das ein Array von Tag-IDs.
+	let activeTags: string[] = [];
 	let activeSort: string | null = null;
 	let allCategories: string[] = [];
+	// Anders als allCategories NICHT aus geladenen Seiten aggregiert, sondern einmalig als
+	// eigene Ressource geladen (siehe onMount) — Tags existieren unabhängig davon, ob gerade
+	// ein Beleg mit diesem Tag geladen ist.
+	let allTags: Tag[] = [];
 	let searchDebounceHandle: ReturnType<typeof setTimeout> | undefined;
 	let hasMore = true;
 	let loadingMore = false;
@@ -95,6 +105,7 @@
 		if (searchQuery.trim()) params.set('q', searchQuery.trim());
 		if (activeType) params.set('type', activeType);
 		if (activeCategory) params.set('category', activeCategory);
+		activeTags.forEach((id) => params.append('tags', id));
 		if (activeSort) params.set('sort', activeSort);
 		params.set('limit', String(PAGE_SIZE));
 		params.set('offset', String(offset));
@@ -174,6 +185,11 @@
 		refreshReceipts();
 	}
 
+	function selectTag(id: string) {
+		activeTags = activeTags.includes(id) ? activeTags.filter((t) => t !== id) : [...activeTags, id];
+		refreshReceipts();
+	}
+
 	function selectSort(value: string | null) {
 		activeSort = value;
 		refreshReceipts();
@@ -185,10 +201,15 @@
 			// damit gleich gefiltert geladen wird statt erst ungefiltert und dann nachzufiltern.
 			const categoryParam = $page.url.searchParams.get('category');
 			if (categoryParam) activeCategory = categoryParam;
+			// Deep-Link mit mehreren ?tags=<id>-Parametern (analog zum ?category-Handling oben,
+			// aber Mehrfachauswahl statt Single-Value).
+			const tagsParam = $page.url.searchParams.getAll('tags');
+			if (tagsParam.length > 0) activeTags = tagsParam;
 
-			const [receiptsRes, bucketsRes] = await Promise.all([
+			const [receiptsRes, bucketsRes, tagsRes] = await Promise.all([
 				fetch(`/api/receipts?${buildParams(0)}`, { credentials: 'include' }),
-				fetch('/api/buckets', { credentials: 'include' })
+				fetch('/api/buckets', { credentials: 'include' }),
+				fetch('/api/tags', { credentials: 'include' })
 			]);
 			if (!receiptsRes.ok) throw new Error(`Belege konnten nicht geladen werden (${receiptsRes.status})`);
 			if (!bucketsRes.ok) throw new Error(`Buckets konnten nicht geladen werden (${bucketsRes.status})`);
@@ -196,6 +217,7 @@
 			hasMore = receipts.length === PAGE_SIZE;
 			buckets = await bucketsRes.json();
 			mergeCategories(receipts);
+			if (tagsRes.ok) allTags = await tagsRes.json();
 			for (const bucket of buckets) expandedBuckets[bucket.id] = true;
 
 			// Direktlink von der Startseite ("Zuletzt hinzugefügt") -> Detail sofort öffnen,
@@ -331,6 +353,7 @@
 		status={openReceipt.status}
 		merchantName={openReceipt.merchant_name}
 		category={openReceipt.category}
+		tags={openReceipt.tags}
 		ocrRawText={openReceipt.ocr_raw_text}
 		filePath={openReceipt.file_path}
 		isHighValue={openReceipt.is_high_value}
@@ -399,6 +422,27 @@
 		</div>
 	{/if}
 
+	{#if allTags.length > 0}
+		<div class="mb-5 flex flex-wrap gap-2" aria-label={m.tags.filterSectionLabel}>
+			{#each allTags as tag (tag.id)}
+				{@const active = activeTags.includes(tag.id)}
+				<button
+					on:click={() => selectTag(tag.id)}
+					aria-pressed={active}
+					class="rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors"
+					class:text-white={active}
+					class:bg-hifi-surface={!active}
+					class:border={!active}
+					class:border-hifi-border={!active}
+					class:text-hifi-text-muted={!active}
+					style={active ? `background: ${tagColorVar(tag.color)};` : ''}
+				>
+					{tag.name}
+				</button>
+			{/each}
+		</div>
+	{/if}
+
 	{#if bucketFilter}
 		<div class="mb-4 inline-flex items-center gap-2 rounded-full border border-hifi-border bg-hifi-surface px-3 py-1 text-xs text-hifi-text">
 			<span>Bucket: {bucketFilter.name}</span>
@@ -437,7 +481,7 @@
 		<p class="text-sm" style="color: var(--color-danger);">{errorMessage}</p>
 	{:else if visibleReceipts.length === 0}
 		<p class="text-sm text-hifi-text-muted">
-			{searchQuery || activeType || activeCategory
+			{searchQuery || activeType || activeCategory || activeTags.length > 0
 				? 'Keine Belege gefunden — Filter anpassen oder Suche ändern.'
 				: 'Noch keine Belege hochgeladen.'}
 		</p>
@@ -461,6 +505,7 @@
 							status={receipt.status}
 							merchantName={receipt.merchant_name}
 							itemCount={receipt.item_count}
+							tags={receipt.tags}
 							bucketName={section.bucket.name}
 							bucketIsDefault={section.bucket.is_default}
 							showBucketPill={false}
@@ -483,6 +528,7 @@
 					status={receipt.status}
 					merchantName={receipt.merchant_name}
 					itemCount={receipt.item_count}
+					tags={receipt.tags}
 					bucketName={bucket?.name ?? '…'}
 					bucketIsDefault={bucket?.is_default ?? false}
 					thumbUrl={`/api/receipts/${receipt.id}/thumb`}

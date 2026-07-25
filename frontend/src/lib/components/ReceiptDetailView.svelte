@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { CATEGORIES, categoryLabel, categoryColor, categoryFields } from '$lib/categories';
+	import { tagColorVar, type Tag } from '$lib/tags';
 	import { formatDate } from '$lib/formatDate';
 	import { m } from '$lib/i18n';
 	import ShareManagementModal from './ShareManagementModal.svelte';
 	import CustomSelect from './CustomSelect.svelte';
+	import TagPicker from './TagPicker.svelte';
 
 	interface ItemRow {
 		id: string;
@@ -23,6 +25,7 @@
 	export let status: string;
 	export let merchantName: string | null = null;
 	export let category: string | null = null;
+	export let tags: Tag[] = [];
 	export let ocrRawText: string | null;
 	export let isHighValue: boolean = false;
 	export let warrantyMonths: number | null = null;
@@ -99,6 +102,7 @@
 	// Kategorien hinweg gesammelt, beim Speichern wird nur auf die Felder der aktuell
 	// gewählten Kategorie gefiltert (siehe saveEdit).
 	let draftCustomFields: Record<string, string> = {};
+	let draftTagIds: string[] = [];
 
 	function startEdit() {
 		draftDate = receiptDate ?? '';
@@ -110,6 +114,7 @@
 		draftCustomFields = Object.fromEntries(
 			Object.entries(customFields ?? {}).map(([key, value]) => [key, String(value)])
 		);
+		draftTagIds = tags.map((t) => t.id);
 		saveError = '';
 		editing = true;
 	}
@@ -123,6 +128,7 @@
 		total_amount: number | null;
 		merchant_name: string | null;
 		category: string | null;
+		tags?: Tag[];
 		is_high_value: boolean;
 		warranty_months: number | null;
 		warranty_expires_at: string | null;
@@ -138,6 +144,7 @@
 		totalAmount = detail.total_amount;
 		merchantName = detail.merchant_name;
 		category = detail.category;
+		if (detail.tags !== undefined) tags = detail.tags;
 		isHighValue = detail.is_high_value;
 		warrantyMonths = detail.warranty_months;
 		warrantyExpiresAt = detail.warranty_expires_at;
@@ -153,14 +160,10 @@
 	}
 
 	// --- KI-Struktur-Extraktions-Vorschlag (Übernehmen/Verwerfen/Neu analysieren) ---
-	// Kategorie-Vorschlag der KI wird gegen die feste CATEGORIES-Liste geprüft — nur
-	// bekannte Werte werden angezeigt/übernommen, sonst bliebe eine Freitext-Kategorie im
-	// System, die categoryLabel()/categoryColor() nicht kennen.
-	$: validSuggestedCategory =
-		aiSuggestedCategory && CATEGORIES.some((c) => c.value === aiSuggestedCategory)
-			? aiSuggestedCategory
-			: null;
-	$: hasSuggestion = !!aiSuggestedMerchantName || !!validSuggestedCategory;
+	// Die Kategorie wird von der KI mittlerweile direkt in receipt.category übernommen
+	// (siehe ai_extraction.py) statt nur vorgeschlagen zu werden — nur noch der Händlername
+	// bleibt ein offener, bestätigungspflichtiger Vorschlag.
+	$: hasSuggestion = !!aiSuggestedMerchantName;
 
 	let suggestionSaving = false;
 	let reanalyzing = false;
@@ -170,7 +173,6 @@
 		try {
 			const payload: Record<string, unknown> = { dismiss_ai_suggestion: true };
 			if (aiSuggestedMerchantName) payload.merchant_name = aiSuggestedMerchantName;
-			if (validSuggestedCategory) payload.category = validSuggestedCategory;
 			const res = await fetch(`/api/receipts/${receiptId}`, {
 				method: 'PATCH',
 				credentials: 'include',
@@ -254,7 +256,8 @@
 					is_high_value: draftHighValue,
 					warranty_months: draftWarrantyMonths ? Number(draftWarrantyMonths) : null,
 					category: draftCategory || null,
-					custom_fields: customFieldsPayload
+					custom_fields: customFieldsPayload,
+					tag_ids: draftTagIds
 				})
 			});
 			if (res.ok) {
@@ -466,6 +469,14 @@
 							{categoryLabel(category)}
 						</span>
 					{/if}
+					{#each tags as tag (tag.id)}
+						<span
+							class="rounded-full px-2.5 py-0.5 text-xs font-medium text-white"
+							style="background: {tagColorVar(tag.color)};"
+						>
+							{tag.name}
+						</span>
+					{/each}
 				</div>
 				{#if !editing}
 					<button on:click={startEdit} class="text-xs font-semibold text-hifi-text-muted hover:text-hifi-text">
@@ -509,13 +520,9 @@
 						<span id="receipt-category-label" class="mb-1 block text-hifi-text-muted">Kategorie</span>
 						<CustomSelect
 							bind:value={draftCategory}
-							disabled={!draftMerchant.trim()}
 							labelledBy="receipt-category-label"
 							options={[{ value: '', label: 'Keine' }, ...CATEGORIES]}
 						/>
-						{#if !draftMerchant.trim()}
-							<span class="mt-1 block text-hifi-text-muted">Braucht zuerst einen Händlernamen.</span>
-						{/if}
 					</div>
 					{#each categoryFields(draftCategory || null) as field (field.key)}
 						<label class="text-xs">
@@ -537,6 +544,7 @@
 							{/if}
 						</label>
 					{/each}
+					<TagPicker bind:selectedTagIds={draftTagIds} />
 					<label class="text-xs">
 						<span class="mb-1 block text-hifi-text-muted">Garantie (Monate)</span>
 						<input
@@ -848,9 +856,6 @@
 					<div class="mb-3 text-xs text-hifi-text">
 						{#if aiSuggestedMerchantName}
 							<div>Händler: <span class="font-semibold">{aiSuggestedMerchantName}</span></div>
-						{/if}
-						{#if validSuggestedCategory}
-							<div>Kategorie: <span class="font-semibold">{categoryLabel(validSuggestedCategory)}</span></div>
 						{/if}
 					</div>
 					<div class="flex gap-2">
