@@ -87,6 +87,8 @@ class Receipt(Base, UpdatableTimestampMixin):
     # Spalte pro Feld — neue Kategorie-Felder brauchen so keine eigene Migration.
     custom_fields: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
+    category: Mapped[str | None] = mapped_column(String(100), nullable=True)
+
     # KI-Struktur-Extraktions-Vorschläge (siehe app/services/ai_extraction.py) — bewusst
     # getrennt von merchant_id/category, bis der Nutzer den Vorschlag bestätigt (KI legt
     # nie selbst einen Merchant an).
@@ -101,14 +103,11 @@ class Receipt(Base, UpdatableTimestampMixin):
         back_populates="receipt", cascade="all, delete-orphan"
     )
     merchant: Mapped["Merchant | None"] = relationship()  # noqa: F821
+    tags: Mapped[list["Tag"]] = relationship(secondary="receipt_tags", back_populates="receipts")  # noqa: F821
 
     @property
     def merchant_name(self) -> str | None:
         return self.merchant.name if self.merchant else None
-
-    @property
-    def category(self) -> str | None:
-        return self.merchant.category if self.merchant else None
 
     @property
     def item_count(self) -> int:
