@@ -19,6 +19,7 @@ from app.api import (
     smtp_settings,
     tags,
     totp,
+    update_check_settings,
     webauthn,
 )
 from app.config import get_settings
@@ -67,6 +68,7 @@ app.include_router(tags.router, prefix="/api")
 app.include_router(settings_router.router, prefix="/api")
 app.include_router(security_settings.router, prefix="/api")
 app.include_router(smtp_settings.router, prefix="/api")
+app.include_router(update_check_settings.router, prefix="/api")
 app.include_router(audit_log.router, prefix="/api")
 app.include_router(notifications.router, prefix="/api")
 app.include_router(share.router, prefix="/api")
