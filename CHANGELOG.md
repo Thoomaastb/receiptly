@@ -1,3 +1,9 @@
+## [0.42.2](https://github.com/Thoomaastb/receiptly/compare/v0.42.1...v0.42.2) (2026-07-27)
+
+### Bug Fixes
+
+* **frontend:** gedämpfter, animierter Kassenzettel-Hintergrund auf Login/Wizard ([bc1bfd0](https://github.com/Thoomaastb/receiptly/commit/bc1bfd08c5f6152e8e3233b238558c6950eea15b))
+
 ## [0.42.1](https://github.com/Thoomaastb/receiptly/compare/v0.42.0...v0.42.1) (2026-07-25)
 
 ### Bug Fixes
