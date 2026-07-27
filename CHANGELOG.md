@@ -1,3 +1,9 @@
+## [0.47.1](https://github.com/Thoomaastb/receiptly/compare/v0.47.0...v0.47.1) (2026-07-27)
+
+### Bug Fixes
+
+* **frontend:** Hintergrund-Animation deutlich beschleunigt (kaum wahrnehmbar) ([5258c67](https://github.com/Thoomaastb/receiptly/commit/5258c677c4c9a1d4aa92091f47a2395e990d6061))
+
 ## [0.47.0](https://github.com/Thoomaastb/receiptly/compare/v0.46.0...v0.47.0) (2026-07-27)
 
 ### Features
