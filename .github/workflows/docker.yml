@@ -81,6 +81,23 @@ jobs:
     permissions:
       contents: read
       packages: read
+    # Seit v0.37.4 führt docker-entrypoint.sh bei jedem Containerstart unbedingt
+    # "alembic upgrade head" aus (set -e, kein Skip) — dafür reichen die bisherigen
+    # Dummy-DATABASE_URL-Werte nicht mehr, es braucht eine echte erreichbare DB.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: verify
+          POSTGRES_PASSWORD: verify
+          POSTGRES_DB: verify
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Determine pushed version
         id: version
@@ -107,11 +124,13 @@ jobs:
           echo "Pulling $IMAGE"
           docker pull "$IMAGE"
 
-          # /api/health greift laut app/api/health.py nicht auf DB/Redis zu, daher reichen
-          # Dummy-Werte für die drei Pflichtfelder in app/config.py (Settings) zum Hochfahren.
+          # docker-entrypoint.sh führt vor dem App-Start immer "alembic upgrade head"
+          # aus, daher muss DATABASE_URL auf eine echte, erreichbare DB zeigen (siehe
+          # postgres-Service oben). --network host, damit der Container den vom
+          # Runner auf localhost:5432 exponierten Service-Port direkt erreicht.
           docker run -d --name verify-app \
-            -p 18000:8000 \
-            -e DATABASE_URL=postgresql+asyncpg://verify:verify@localhost/verify \
+            --network host \
+            -e DATABASE_URL=postgresql+asyncpg://verify:verify@localhost:5432/verify \
             -e SESSION_SECRET=verify-only-not-used-at-runtime \
             -e ENCRYPTION_KEY=verify-only-not-used-at-runtime \
             "$IMAGE"
