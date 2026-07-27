@@ -98,7 +98,12 @@ jobs:
       - name: Pull and smoke-test image
         run: |
           set -euo pipefail
-          IMAGE="${{ env.REGISTRY }}/${{ github.repository }}:${{ steps.version.outputs.version }}"
+          # github.repository liefert die Groß-/Kleinschreibung des GitHub-Repos
+          # (Thoomaastb/receiptly), GHCR-Referenzen müssen aber komplett lowercase
+          # sein. docker/metadata-action lowercased das beim Build/Push automatisch,
+          # dieser rohe "docker pull" braucht die Normalisierung explizit.
+          REPO_LOWER=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          IMAGE="${{ env.REGISTRY }}/${REPO_LOWER}:${{ steps.version.outputs.version }}"
           echo "Pulling $IMAGE"
           docker pull "$IMAGE"
 
