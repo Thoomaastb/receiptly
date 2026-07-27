@@ -1,3 +1,9 @@
+## [0.47.3](https://github.com/Thoomaastb/receiptly/compare/v0.47.2...v0.47.3) (2026-07-27)
+
+### Bug Fixes
+
+* **ci:** echten Postgres-Service im Verify-Job bereitstellen (Alembic-Boot-Migration braucht erreichbare DB) ([e7a83f3](https://github.com/Thoomaastb/receiptly/commit/e7a83f332da266d6cccf88d1d9e3b4fcb5acc217))
+
 ## [0.47.2](https://github.com/Thoomaastb/receiptly/compare/v0.47.1...v0.47.2) (2026-07-27)
 
 ### Bug Fixes
