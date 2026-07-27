@@ -1,3 +1,11 @@
+## [0.44.0](https://github.com/Thoomaastb/receiptly/compare/v0.43.1...v0.44.0) (2026-07-27)
+
+### Features
+
+* **tags:** Häufigkeits-Query für Tag-Vorschläge aus Händler-Historie ([8b77959](https://github.com/Thoomaastb/receiptly/commit/8b779598a4defae773738a367d85d9f3fec0bd23))
+* **tags:** suggested_tags in Beleg-Detailansicht einbetten ([e73b08a](https://github.com/Thoomaastb/receiptly/commit/e73b08a433642d8c98852a2fd31ae73b88a094ce))
+* **tags:** Tag-Vorschläge aus Händler-Historie im Beleg-Editor anzeigen ([fe75729](https://github.com/Thoomaastb/receiptly/commit/fe757292236d819b259c7f9d6427b89d95733df4))
+
 ## [0.43.1](https://github.com/Thoomaastb/receiptly/compare/v0.43.0...v0.43.1) (2026-07-27)
 
 ### Bug Fixes
