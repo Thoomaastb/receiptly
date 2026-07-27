@@ -1,3 +1,9 @@
+## [0.47.4](https://github.com/Thoomaastb/receiptly/compare/v0.47.3...v0.47.4) (2026-07-27)
+
+### Bug Fixes
+
+* **ci:** Postgres- und Redis-Service im Verify-Job (App-Start braucht seit v0.37.4/v0.46.0 beide erreichbar) ([eab1eac](https://github.com/Thoomaastb/receiptly/commit/eab1eac9aac51b58c91a690993f047d5b09f28ad))
+
 ## [0.47.3](https://github.com/Thoomaastb/receiptly/compare/v0.47.2...v0.47.3) (2026-07-27)
 
 ### Bug Fixes
