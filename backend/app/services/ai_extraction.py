@@ -20,6 +20,7 @@ from app.services.ai_provider_client import AIProviderError, StructuredCallResul
 from app.services.ai_provider_resolution import EffectiveProviderConfig, resolve_effective_provider
 from app.services.pdf_extraction import extract_pdf_text
 from app.services.pii_redaction import redact_sensitive_patterns
+from app.services.receipt_heuristics import extract_receipt_heuristics
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -155,6 +156,30 @@ async def _run(db: AsyncSession, receipt_id: uuid.UUID, household_id: uuid.UUID)
         await _finish_needs_review(db, receipt, "Kein OCR-Text vorhanden")
         return
 
+    # Regex-Fallback VOR dem eigentlichen KI-Call: Die äußere Bedingung (alle drei
+    # ai_suggested_* noch None) verhindert redundantes Neu-Schreiben, falls eine künftige
+    # clientseitige Heuristik bei Bild-Uploads dieselben Felder bereits beim Upload gesetzt
+    # hat. Bei PDFs greift der Block praktisch immer, da dort aktuell nichts diese Felder vor
+    # diesem Zeitpunkt setzt. Läuft nicht-blockierend im ohnehin schon laufenden
+    # Background-Task, verzögert also nicht die Upload-HTTP-Response. Die direkt danach
+    # laufende KI-Extraktion (_apply_extraction_result, Vorrang-sicher) überschreibt bei
+    # Erfolg ohnehin wie gehabt.
+    if (
+        receipt.ai_suggested_receipt_date is None
+        and receipt.ai_suggested_total_amount is None
+        and receipt.ai_suggested_currency is None
+    ):
+        heur = extract_receipt_heuristics(receipt.ocr_raw_text)
+        if heur.receipt_date is not None and receipt.receipt_date is None:
+            receipt.receipt_date = heur.receipt_date
+            receipt.ai_suggested_receipt_date = heur.receipt_date
+        if heur.total_amount is not None and receipt.total_amount is None:
+            receipt.total_amount = heur.total_amount
+            receipt.ai_suggested_total_amount = heur.total_amount
+        if heur.currency is not None:
+            receipt.currency = heur.currency
+            receipt.ai_suggested_currency = heur.currency
+
     try:
         effective = await resolve_effective_provider(db, household_id)
     except ValueError as exc:
@@ -231,21 +256,34 @@ def _log_usage_event(
 async def _apply_extraction_result(db: AsyncSession, receipt: Receipt, data: dict) -> None:
     notes: list[str] = []
 
+    # Herkunfts-Tracking (siehe Receipt-Modell): ein bereits vom Nutzer bestätigter Wert
+    # (ai_suggested_X is None, receipt.X gesetzt) wird von der KI nie mehr überschrieben —
+    # nur ein noch unbestätigter Wert (leer, oder selbst noch eine Schätzung) darf ersetzt
+    # werden. Das gilt auch bei "Neu analysieren" auf einem bereits bestätigten Beleg.
     receipt_date = _parse_date(data.get("receipt_date"))
     if receipt_date is not None:
-        receipt.receipt_date = receipt_date
+        if receipt.receipt_date is None or receipt.ai_suggested_receipt_date is not None:
+            receipt.receipt_date = receipt_date
+            receipt.ai_suggested_receipt_date = receipt_date
     else:
         notes.append("Kein Beleg-Datum erkannt")
 
     total_amount = _parse_non_negative(data.get("total_amount"))
     if total_amount is not None:
-        receipt.total_amount = total_amount
+        if receipt.total_amount is None or receipt.ai_suggested_total_amount is not None:
+            receipt.total_amount = total_amount
+            receipt.ai_suggested_total_amount = total_amount
     else:
         notes.append("Kein Gesamtbetrag erkannt")
 
     currency = data.get("currency")
-    if isinstance(currency, str) and _CURRENCY_PATTERN.match(currency.strip()):
+    if (
+        isinstance(currency, str)
+        and _CURRENCY_PATTERN.match(currency.strip())
+        and receipt.ai_suggested_currency is not None
+    ):
         receipt.currency = currency.strip()
+        receipt.ai_suggested_currency = currency.strip()
 
     merchant_name = data.get("merchant_name")
     if isinstance(merchant_name, str) and merchant_name.strip():

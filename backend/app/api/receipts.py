@@ -46,7 +46,7 @@ from app.schemas.receipt_share import (
     ReceiptShareListItem,
 )
 
-from app.services.ai_extraction import run_ai_extraction
+from app.services.ai_extraction import _CURRENCY_PATTERN, run_ai_extraction
 from app.services.audit import record_event
 from app.services.bucket_access import visible_bucket_ids_query
 from app.services.receipt_shares import (
@@ -164,14 +164,19 @@ async def upload_receipt(
     file: UploadFile = File(...),
     ocr_text: str | None = Form(default=None),
     ocr_confidence: float | None = Form(default=None),
+    heuristic_receipt_date: date | None = Form(default=None),
+    heuristic_total_amount: float | None = Form(default=None),
+    heuristic_currency: str | None = Form(default=None),
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> Receipt:
     """
     Nimmt Kamerascan oder Datei-Upload entgegen (PDF, JPG, PNG), inkl. optionalem
     client-seitig erzeugtem OCR-Text (das Originalbild selbst verlässt das Gerät nie).
-    receipt_date/total_amount bleiben hier bewusst leer — die KI-Struktur-Extraktion
-    (app/services/ai_extraction.py) läuft asynchron nach dem Response als BackgroundTask.
+    receipt_date/total_amount bleiben leer, außer die client-seitige Heuristik hat einen
+    Wert geliefert (dann als Schätzung markiert, siehe ai_suggested_*) — die KI-Struktur-
+    Extraktion (app/services/ai_extraction.py) läuft asynchron nach dem Response als
+    BackgroundTask und respektiert die Vorrang-Regel (_apply_extraction_result).
     """
     await _assert_bucket_writable(db, bucket_id, user)
 
@@ -182,6 +187,13 @@ async def upload_receipt(
     except FileTooLargeError as exc:
         raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail=str(exc))
 
+    if heuristic_total_amount is not None and heuristic_total_amount < 0:
+        heuristic_total_amount = None
+    normalized_currency = heuristic_currency.strip().upper() if heuristic_currency else None
+    if normalized_currency is not None and not _CURRENCY_PATTERN.match(normalized_currency):
+        normalized_currency = None
+    resolved_currency = normalized_currency or "EUR"
+
     receipt = Receipt(
         user_id=user.id,
         bucket_id=bucket_id,
@@ -189,9 +201,14 @@ async def upload_receipt(
         thumb_path=thumb_path,
         content_hash=content_hash,
         status=ReceiptStatus.PENDING,
-        currency="EUR",
+        receipt_date=heuristic_receipt_date,
+        total_amount=heuristic_total_amount,
+        currency=resolved_currency,
         ocr_raw_text=ocr_text,
         ocr_confidence=ocr_confidence,
+        ai_suggested_receipt_date=heuristic_receipt_date,
+        ai_suggested_total_amount=heuristic_total_amount,
+        ai_suggested_currency=resolved_currency,
     )
     db.add(receipt)
     await db.commit()
@@ -450,8 +467,15 @@ async def update_receipt(
 
     if payload.receipt_date is not None:
         receipt.receipt_date = payload.receipt_date
+        # Bestätigt-Signal (siehe Receipt-Modell): der Nutzer hat das Datum explizit
+        # gesetzt/korrigiert — ein späterer KI-Lauf darf es nicht mehr überschreiben.
+        receipt.ai_suggested_receipt_date = None
     if payload.total_amount is not None:
         receipt.total_amount = payload.total_amount
+        receipt.ai_suggested_total_amount = None
+    if payload.currency is not None:
+        receipt.currency = payload.currency.strip().upper()
+        receipt.ai_suggested_currency = None
     if payload.merchant_name is not None:
         merchant = await _get_or_create_merchant(db, payload.merchant_name)
         receipt.merchant_id = merchant.id

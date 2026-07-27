@@ -101,6 +101,9 @@ class ReceiptDetail(ReceiptListItem):
     # bis der Nutzer ihn per PATCH übernimmt oder verwirft (dismiss_ai_suggestion).
     ai_suggested_merchant_name: str | None
     ai_suggested_category: str | None
+    ai_suggested_receipt_date: date | None
+    ai_suggested_total_amount: float | None
+    ai_suggested_currency: str | None
     ai_extraction_note: str | None
     ai_extracted_at: datetime | None
     # Tag-Vorschläge aus Händler-Historie (siehe app/services/tag_suggestions.py) — reines
@@ -113,6 +116,9 @@ class ReceiptUpdate(BaseModel):
 
     receipt_date: date | None = None
     total_amount: float | None = Field(default=None, ge=0)
+    # ISO-4217-Code, z.B. "EUR" — None heißt "nicht mitschicken" (unverändert lassen),
+    # konsistent mit den übrigen optionalen Feldern hier (siehe update_receipt).
+    currency: str | None = Field(default=None, min_length=3, max_length=3)
     merchant_name: str | None = Field(default=None, min_length=1, max_length=255)
     is_high_value: bool | None = None
     warranty_months: int | None = Field(default=None, ge=0, le=600)
