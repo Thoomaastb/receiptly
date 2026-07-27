@@ -1,5 +1,6 @@
 <script lang="ts">
 	import BucketPill from './BucketPill.svelte';
+	import Logo from './Logo.svelte';
 	import { formatDate } from '$lib/formatDate';
 	import { tagColorVar, type Tag } from '$lib/tags';
 	import { m } from '$lib/i18n';
@@ -67,10 +68,7 @@
 		/>
 	{:else}
 		<span class="flex h-9 w-9 flex-none items-center justify-center rounded-[10px] bg-hifi-accent-tint text-hifi-accent-text">
-			<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-				<path d="M6 3h9l3 3v15H6z" />
-				<path d="M9 9h6M9 13h6M9 17h3" />
-			</svg>
+			<Logo size={16} />
 		</span>
 	{/if}
 

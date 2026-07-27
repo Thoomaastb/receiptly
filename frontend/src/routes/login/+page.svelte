@@ -6,6 +6,8 @@
 	import { browserSupportsWebAuthn } from '@simplewebauthn/browser';
 	import { runPasskeyAssertion } from '$lib/webauthn';
 	import { formatDate } from '$lib/formatDate';
+	import Logo from '$lib/components/Logo.svelte';
+	import FloatingLogoBackground from '$lib/components/FloatingLogoBackground.svelte';
 
 	// Grund-Codes aus +layout.svelte::refreshCurrentUser() — Security-first-Vorgabe
 	// (2026-07-23): jeder erzwungene Redirect zum Login muss dem Nutzer erklären, warum,
@@ -274,14 +276,12 @@
 	}
 </script>
 
-<div class="flex min-h-screen items-center justify-center bg-hifi-bg px-4">
-	<div class="w-full max-w-sm rounded-2xl border border-hifi-border bg-hifi-surface p-8">
+<div class="relative flex min-h-screen items-center justify-center overflow-hidden bg-hifi-bg px-4">
+	<FloatingLogoBackground />
+	<div class="relative z-10 w-full max-w-sm rounded-2xl border border-hifi-border bg-hifi-surface p-8">
 		<div class="mb-6 flex items-center gap-3">
 			<span class="flex h-9 w-9 flex-none items-center justify-center rounded-[10px] bg-hifi-accent">
-				<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-					<path d="M6 3h9l3 3v15H6z" />
-					<path d="M9 9h6M9 13h6M9 17h3" />
-				</svg>
+				<Logo size={19} stroke="white" />
 			</span>
 			<span class="text-[19px] font-extrabold tracking-tight text-hifi-text">receiptly</span>
 		</div>
