@@ -1,3 +1,9 @@
+## [0.47.2](https://github.com/Thoomaastb/receiptly/compare/v0.47.1...v0.47.2) (2026-07-27)
+
+### Bug Fixes
+
+* **ci:** GHCR-Image-Referenz im Verify-Job lowercase erzwingen ([729c84c](https://github.com/Thoomaastb/receiptly/commit/729c84ccec7f2f453868b32d2d3631e85bfcb816))
+
 ## [0.47.1](https://github.com/Thoomaastb/receiptly/compare/v0.47.0...v0.47.1) (2026-07-27)
 
 ### Bug Fixes
