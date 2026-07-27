@@ -15,5 +15,6 @@ from app.models.receipt_share import ReceiptShare  # noqa: F401
 from app.models.smtp_settings import SmtpSettings  # noqa: F401
 from app.models.tag import Tag  # noqa: F401
 from app.models.totp_recovery_code import TotpRecoveryCode  # noqa: F401
+from app.models.update_check_settings import UpdateCheckSettings  # noqa: F401
 from app.models.user import User  # noqa: F401
 from app.models.webauthn_credential import WebauthnCredential  # noqa: F401
