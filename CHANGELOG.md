@@ -1,3 +1,11 @@
+## [0.47.0](https://github.com/Thoomaastb/receiptly/compare/v0.46.0...v0.47.0) (2026-07-27)
+
+### Features
+
+* **frontend:** Update-Hinweis in Sidebar-Footer (GitHub-Releases-Abgleich) ([0a583af](https://github.com/Thoomaastb/receiptly/commit/0a583af818ab0cd271ca281797e4739520066cee))
+* **settings:** Admin-Schalter für automatischen Update-Check ([8bc1d80](https://github.com/Thoomaastb/receiptly/commit/8bc1d805d792f4c7c6b2190f2f042f0b5e9be306))
+* **settings:** Toggle-UI für Update-Check-Einstellung ([94ae2c9](https://github.com/Thoomaastb/receiptly/commit/94ae2c9dca785ba68e62e71401c9ef577cdeabf8))
+
 ## [0.46.0](https://github.com/Thoomaastb/receiptly/compare/v0.45.0...v0.46.0) (2026-07-27)
 
 ### Features
