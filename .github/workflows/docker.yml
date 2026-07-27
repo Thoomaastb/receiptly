@@ -84,6 +84,9 @@ jobs:
     # Seit v0.37.4 führt docker-entrypoint.sh bei jedem Containerstart unbedingt
     # "alembic upgrade head" aus (set -e, kein Skip) — dafür reichen die bisherigen
     # Dummy-DATABASE_URL-Werte nicht mehr, es braucht eine echte erreichbare DB.
+    # App-Startup (main.py lifespan) baut außerdem beim Hochfahren eine Redis-Verbindung
+    # auf (app/config.py redis_url-Default "redis://redis:6379/0") — ohne erreichbaren
+    # Host schlägt /api/health mit 500 fehl, bevor der Healthcheck je "healthy" sieht.
     services:
       postgres:
         image: postgres:16
@@ -95,6 +98,15 @@ jobs:
           - 5432:5432
         options: >-
           --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -131,6 +143,7 @@ jobs:
           docker run -d --name verify-app \
             --network host \
             -e DATABASE_URL=postgresql+asyncpg://verify:verify@localhost:5432/verify \
+            -e REDIS_URL=redis://localhost:6379/0 \
             -e SESSION_SECRET=verify-only-not-used-at-runtime \
             -e ENCRYPTION_KEY=verify-only-not-used-at-runtime \
             "$IMAGE"
