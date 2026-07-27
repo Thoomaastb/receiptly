@@ -26,6 +26,7 @@
 	export let merchantName: string | null = null;
 	export let category: string | null = null;
 	export let tags: Tag[] = [];
+	export let suggestedTags: Tag[] = [];
 	export let ocrRawText: string | null;
 	export let isHighValue: boolean = false;
 	export let warrantyMonths: number | null = null;
@@ -104,6 +105,11 @@
 	let draftCustomFields: Record<string, string> = {};
 	let draftTagIds: string[] = [];
 
+	// Vorschläge aus der Händler-Historie (siehe suggested_tags in applyDetail) — nur die noch
+	// nicht ausgewählten anzeigen, damit ein bereits übernommener/manuell gesetzter Tag nicht
+	// doppelt (als Chip UND als Vorschlag) auftaucht.
+	$: unselectedSuggestions = suggestedTags.filter((t) => !draftTagIds.includes(t.id));
+
 	function startEdit() {
 		draftDate = receiptDate ?? '';
 		draftAmount = totalAmount !== null ? String(totalAmount) : '';
@@ -129,6 +135,7 @@
 		merchant_name: string | null;
 		category: string | null;
 		tags?: Tag[];
+		suggested_tags?: Tag[];
 		is_high_value: boolean;
 		warranty_months: number | null;
 		warranty_expires_at: string | null;
@@ -145,6 +152,7 @@
 		merchantName = detail.merchant_name;
 		category = detail.category;
 		if (detail.tags !== undefined) tags = detail.tags;
+		suggestedTags = detail.suggested_tags ?? [];
 		isHighValue = detail.is_high_value;
 		warrantyMonths = detail.warranty_months;
 		warrantyExpiresAt = detail.warranty_expires_at;
@@ -544,6 +552,28 @@
 							{/if}
 						</label>
 					{/each}
+					{#if unselectedSuggestions.length > 0}
+						<!-- Klick mutiert NUR draftTagIds (kein sofortiger PATCH) — identisches Verhalten
+						     zu TagPickers internem addTag(). Speichern läuft über den bestehenden
+						     Save-Button im Formular. Gestrichelter statt gefüllter Rahmen grenzt
+						     "Vorschlag, noch nicht übernommen" visuell von bereits zugewiesenen Tags
+						     (TagPicker selbst, gefüllte Chips) ab. -->
+						<div class="text-xs">
+							<span class="mb-1 block text-hifi-text-muted">Vorschlag aus Händler-Historie</span>
+							<div class="flex flex-wrap gap-1.5">
+								{#each unselectedSuggestions as tag (tag.id)}
+									<button
+										type="button"
+										on:click={() => (draftTagIds = [...draftTagIds, tag.id])}
+										class="flex items-center gap-1 rounded-full border border-dashed px-2.5 py-0.5 text-xs font-medium"
+										style="border-color: {tagColorVar(tag.color)}; color: {tagColorVar(tag.color)};"
+									>
+										+ {tag.name}
+									</button>
+								{/each}
+							</div>
+						</div>
+					{/if}
 					<TagPicker bind:selectedTagIds={draftTagIds} />
 					<label class="text-xs">
 						<span class="mb-1 block text-hifi-text-muted">Garantie (Monate)</span>

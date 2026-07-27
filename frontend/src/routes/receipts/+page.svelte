@@ -36,6 +36,7 @@
 	}
 
 	interface ReceiptDetail extends Receipt {
+		suggested_tags: Tag[];
 		ocr_raw_text: string | null;
 		file_path: string;
 		is_high_value: boolean;
@@ -354,6 +355,7 @@
 		merchantName={openReceipt.merchant_name}
 		category={openReceipt.category}
 		tags={openReceipt.tags}
+		suggestedTags={openReceipt.suggested_tags}
 		ocrRawText={openReceipt.ocr_raw_text}
 		filePath={openReceipt.file_path}
 		isHighValue={openReceipt.is_high_value}
