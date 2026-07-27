@@ -38,12 +38,22 @@
 	export let aiSuggestedCategory: string | null = null;
 	export let aiExtractionNote: string | null = null;
 	export let aiExtractedAt: string | null = null;
+	export let aiSuggestedReceiptDate: string | null = null;
+	export let aiSuggestedTotalAmount: number | null = null;
+	export let aiSuggestedCurrency: string | null = null;
 	export let onBack: () => void;
 	export let onUpdated: (() => void) | undefined = undefined;
 	export let onDeleted: (() => void) | undefined = undefined;
 
 	const fileUrl = `/api/receipts/${receiptId}/file`;
 	$: isImageFile = /\.(jpe?g|png)$/i.test(filePath);
+
+	// Solange Datum/Betrag/Währung nur eine unbestätigte Heuristik-/KI-Schätzung sind
+	// (Backend liefert dann einen Wert statt null), dezenten Hinweis in Lese- und
+	// Editier-Ansicht zeigen — verschwindet automatisch, sobald der Nutzer bestätigt/ändert.
+	$: dateIsEstimate = aiSuggestedReceiptDate !== null;
+	$: amountIsEstimate = aiSuggestedTotalAmount !== null;
+	$: currencyIsEstimate = aiSuggestedCurrency !== null;
 
 	let deleting = false;
 	let shareModalOpen = false;
@@ -95,6 +105,7 @@
 	let saveError = '';
 	let draftDate = '';
 	let draftAmount = '';
+	let draftCurrency = '';
 	let draftMerchant = '';
 	let draftHighValue = false;
 	let draftWarrantyMonths = '';
@@ -113,6 +124,7 @@
 	function startEdit() {
 		draftDate = receiptDate ?? '';
 		draftAmount = totalAmount !== null ? String(totalAmount) : '';
+		draftCurrency = currency;
 		draftMerchant = merchantName ?? '';
 		draftHighValue = isHighValue;
 		draftWarrantyMonths = warrantyMonths !== null ? String(warrantyMonths) : '';
@@ -146,6 +158,9 @@
 		ai_suggested_category?: string | null;
 		ai_extraction_note?: string | null;
 		ai_extracted_at?: string | null;
+		ai_suggested_receipt_date?: string | null;
+		ai_suggested_total_amount?: number | null;
+		ai_suggested_currency?: string | null;
 	}) {
 		receiptDate = detail.receipt_date;
 		totalAmount = detail.total_amount;
@@ -165,6 +180,13 @@
 		if (detail.ai_suggested_category !== undefined) aiSuggestedCategory = detail.ai_suggested_category;
 		if (detail.ai_extraction_note !== undefined) aiExtractionNote = detail.ai_extraction_note;
 		if (detail.ai_extracted_at !== undefined) aiExtractedAt = detail.ai_extracted_at;
+		if (detail.ai_suggested_receipt_date !== undefined) {
+			aiSuggestedReceiptDate = detail.ai_suggested_receipt_date;
+		}
+		if (detail.ai_suggested_total_amount !== undefined) {
+			aiSuggestedTotalAmount = detail.ai_suggested_total_amount;
+		}
+		if (detail.ai_suggested_currency !== undefined) aiSuggestedCurrency = detail.ai_suggested_currency;
 	}
 
 	// --- KI-Struktur-Extraktions-Vorschlag (Übernehmen/Verwerfen/Neu analysieren) ---
@@ -260,6 +282,7 @@
 				body: JSON.stringify({
 					receipt_date: draftDate || null,
 					total_amount: draftAmount ? Number(draftAmount) : null,
+					currency: draftCurrency.trim().toUpperCase() || null,
 					merchant_name: draftMerchant.trim() || null,
 					is_high_value: draftHighValue,
 					warranty_months: draftWarrantyMonths ? Number(draftWarrantyMonths) : null,
@@ -504,19 +527,28 @@
 							class="w-full rounded border border-hifi-border bg-hifi-surface p-2 text-sm"
 						/>
 					</label>
-					<div class="grid grid-cols-2 gap-2">
+					<div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
 						<label class="text-xs">
-							<span class="mb-1 block text-hifi-text-muted">Datum</span>
+							<span class="mb-1 block text-hifi-text-muted">Datum{dateIsEstimate ? ' · geschätzt' : ''}</span>
 							<input type="date" bind:value={draftDate} class="w-full rounded border border-hifi-border bg-hifi-surface p-2 text-sm" />
 						</label>
 						<label class="text-xs">
-							<span class="mb-1 block text-hifi-text-muted">Betrag ({currency})</span>
+							<span class="mb-1 block text-hifi-text-muted">Betrag{amountIsEstimate ? ' · geschätzt' : ''}</span>
 							<input
 								type="number"
 								step="0.01"
 								min="0"
 								bind:value={draftAmount}
 								class="w-full rounded border border-hifi-border bg-hifi-surface p-2 text-sm"
+							/>
+						</label>
+						<label class="text-xs">
+							<span class="mb-1 block text-hifi-text-muted">Währung{currencyIsEstimate ? ' · geschätzt' : ''}</span>
+							<input
+								type="text"
+								maxlength="3"
+								bind:value={draftCurrency}
+								class="w-full rounded border border-hifi-border bg-hifi-surface p-2 text-sm uppercase"
 							/>
 						</label>
 					</div>
@@ -605,9 +637,11 @@
 					<div class="text-[13.5px] font-bold text-hifi-text">{merchantName}</div>
 				{/if}
 				<div>
-					<div class="mb-1 text-[12px] text-hifi-text-muted">{receiptDate ? formatDate(receiptDate) : 'Datum folgt (OCR/KI)'}</div>
+					<div class="mb-1 text-[12px] text-hifi-text-muted">
+						{receiptDate ? formatDate(receiptDate) : 'Datum folgt (OCR/KI)'}{#if dateIsEstimate && receiptDate}<span class="text-hifi-accent-text"> · geschätzt</span>{/if}
+					</div>
 					<div class="text-2xl font-bold">
-						{totalAmount !== null ? `${totalAmount.toFixed(2)} ${currency}` : 'Betrag folgt (OCR/KI)'}
+						{totalAmount !== null ? `${totalAmount.toFixed(2)} ${currency}` : 'Betrag folgt (OCR/KI)'}{#if amountIsEstimate && totalAmount !== null}<span class="text-sm font-normal text-hifi-accent-text"> · geschätzt</span>{/if}
 					</div>
 				</div>
 				{#if customFields}

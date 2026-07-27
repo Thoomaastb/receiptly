@@ -48,6 +48,9 @@
 		ai_suggested_category: string | null;
 		ai_extraction_note: string | null;
 		ai_extracted_at: string | null;
+		ai_suggested_receipt_date: string | null;
+		ai_suggested_total_amount: number | null;
+		ai_suggested_currency: string | null;
 	}
 
 	interface Bucket {
@@ -367,6 +370,9 @@
 		aiSuggestedCategory={openReceipt.ai_suggested_category}
 		aiExtractionNote={openReceipt.ai_extraction_note}
 		aiExtractedAt={openReceipt.ai_extracted_at}
+		aiSuggestedReceiptDate={openReceipt.ai_suggested_receipt_date}
+		aiSuggestedTotalAmount={openReceipt.ai_suggested_total_amount}
+		aiSuggestedCurrency={openReceipt.ai_suggested_currency}
 		onBack={backToList}
 		onUpdated={handleReceiptUpdated}
 		onDeleted={handleDeleted}

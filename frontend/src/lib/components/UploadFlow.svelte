@@ -3,6 +3,7 @@
 	import { Capacitor } from '@capacitor/core';
 	import { Camera } from '@capacitor/camera';
 	import { getOCRProvider } from '$lib/ocr';
+	import { extractHeuristics, type HeuristicResult } from '$lib/ocr/heuristics';
 	import CustomSelect from './CustomSelect.svelte';
 
 	export let onSuccess: () => void = () => {};
@@ -78,6 +79,7 @@
 		try {
 			let ocrText: string | null = null;
 			let ocrConfidence: number | null = null;
+			let heuristics: HeuristicResult | null = null;
 
 			if (selectedFile.type === 'application/pdf') {
 				// TesseractJS kann nur Rasterbilder dekodieren, keine PDFs — der Versuch ließ den
@@ -93,6 +95,7 @@
 				});
 				ocrText = result.text;
 				ocrConfidence = result.confidence;
+				heuristics = extractHeuristics(ocrText);
 				stage = 'uploading';
 			}
 
@@ -101,6 +104,11 @@
 			formData.append('bucket_id', selectedBucketId);
 			if (ocrText !== null) formData.append('ocr_text', ocrText);
 			if (ocrConfidence !== null) formData.append('ocr_confidence', String(ocrConfidence));
+			if (heuristics?.receiptDate) formData.append('heuristic_receipt_date', heuristics.receiptDate);
+			if (heuristics?.totalAmount !== null && heuristics?.totalAmount !== undefined) {
+				formData.append('heuristic_total_amount', String(heuristics.totalAmount));
+			}
+			if (heuristics?.currency) formData.append('heuristic_currency', heuristics.currency);
 
 			await uploadWithProgress(formData);
 
