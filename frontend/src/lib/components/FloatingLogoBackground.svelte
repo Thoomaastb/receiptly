@@ -21,23 +21,26 @@
 		variant: 'a' | 'b' | 'c';
 	};
 
+	// Timing (dur) gegenüber der ursprünglichen Fassung auf ~1/3 verkürzt (Nutzer-
+	// Feedback: "so gut wie gar nicht wahrnehmbar") — Amplitude/Opacity bewusst
+	// unverändert, nur die Geschwindigkeit spürbar erhöht.
 	const floaters: Floater[] = [
-		{ top: 6, left: 8, size: 104, rot: -14, dur: 34, delay: -3, op: 0.07, variant: 'a' },
-		{ top: 14, left: 74, size: 132, rot: 10, dur: 38, delay: -12, op: 0.06, variant: 'b' },
-		{ top: 30, left: 40, size: 72, rot: -6, dur: 28, delay: -7, op: 0.08, variant: 'c' },
-		{ top: 52, left: 18, size: 116, rot: 16, dur: 36, delay: -20, op: 0.06, variant: 'b' },
-		{ top: 68, left: 62, size: 88, rot: -20, dur: 30, delay: -5, op: 0.07, variant: 'a' },
-		{ top: 78, left: 30, size: 64, rot: 8, dur: 26, delay: -15, op: 0.08, variant: 'c' },
-		{ top: 84, left: 84, size: 100, rot: -10, dur: 33, delay: -9, op: 0.06, variant: 'b' },
-		{ top: 42, left: 90, size: 60, rot: 22, dur: 24, delay: -2, op: 0.07, variant: 'a' },
-		{ top: 2, left: 46, size: 78, rot: 4, dur: 31, delay: -17, op: 0.07, variant: 'c' },
-		{ top: 58, left: 50, size: 120, rot: -18, dur: 40, delay: -25, op: 0.05, variant: 'a' },
-		{ top: 24, left: 22, size: 66, rot: 12, dur: 27, delay: -11, op: 0.08, variant: 'b' },
-		{ top: 92, left: 12, size: 82, rot: -4, dur: 35, delay: -6, op: 0.06, variant: 'c' },
-		{ top: 10, left: 58, size: 70, rot: 18, dur: 29, delay: -19, op: 0.07, variant: 'a' },
-		{ top: 46, left: 4, size: 94, rot: -12, dur: 37, delay: -14, op: 0.06, variant: 'b' },
-		{ top: 72, left: 96, size: 58, rot: 14, dur: 25, delay: -8, op: 0.08, variant: 'c' },
-		{ top: 96, left: 44, size: 110, rot: -8, dur: 32, delay: -22, op: 0.06, variant: 'a' }
+		{ top: 6, left: 8, size: 104, rot: -14, dur: 11, delay: -3, op: 0.07, variant: 'a' },
+		{ top: 14, left: 74, size: 132, rot: 10, dur: 13, delay: -12, op: 0.06, variant: 'b' },
+		{ top: 30, left: 40, size: 72, rot: -6, dur: 9, delay: -7, op: 0.08, variant: 'c' },
+		{ top: 52, left: 18, size: 116, rot: 16, dur: 12, delay: -20, op: 0.06, variant: 'b' },
+		{ top: 68, left: 62, size: 88, rot: -20, dur: 10, delay: -5, op: 0.07, variant: 'a' },
+		{ top: 78, left: 30, size: 64, rot: 8, dur: 9, delay: -15, op: 0.08, variant: 'c' },
+		{ top: 84, left: 84, size: 100, rot: -10, dur: 11, delay: -9, op: 0.06, variant: 'b' },
+		{ top: 42, left: 90, size: 60, rot: 22, dur: 8, delay: -2, op: 0.07, variant: 'a' },
+		{ top: 2, left: 46, size: 78, rot: 4, dur: 10, delay: -17, op: 0.07, variant: 'c' },
+		{ top: 58, left: 50, size: 120, rot: -18, dur: 13, delay: -25, op: 0.05, variant: 'a' },
+		{ top: 24, left: 22, size: 66, rot: 12, dur: 9, delay: -11, op: 0.08, variant: 'b' },
+		{ top: 92, left: 12, size: 82, rot: -4, dur: 12, delay: -6, op: 0.06, variant: 'c' },
+		{ top: 10, left: 58, size: 70, rot: 18, dur: 10, delay: -19, op: 0.07, variant: 'a' },
+		{ top: 46, left: 4, size: 94, rot: -12, dur: 12, delay: -14, op: 0.06, variant: 'b' },
+		{ top: 72, left: 96, size: 58, rot: 14, dur: 8, delay: -8, op: 0.08, variant: 'c' },
+		{ top: 96, left: 44, size: 110, rot: -8, dur: 11, delay: -22, op: 0.06, variant: 'a' }
 	];
 </script>
 
