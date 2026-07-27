@@ -1,3 +1,11 @@
+## [0.45.0](https://github.com/Thoomaastb/receiptly/compare/v0.44.0...v0.45.0) (2026-07-27)
+
+### Features
+
+* **db:** Spalten ai_suggested_receipt_date/total_amount/currency ([2ebed08](https://github.com/Thoomaastb/receiptly/commit/2ebed08b454f37c3be92045a0862db32c978f715))
+* **receipts:** lokale Heuristik-Vorbefüllung (Datum/Betrag/Währung) + KI-Overwrite-Bugfix ([55f7564](https://github.com/Thoomaastb/receiptly/commit/55f756498f7e481fd37226ec925df17bf8534749))
+* **ui:** Schätzung-Kennzeichnung + Währungsfeld im Beleg-Formular ([584a663](https://github.com/Thoomaastb/receiptly/commit/584a66398cb4cb19e63dec60bd8534b31c58058b))
+
 ## [0.44.0](https://github.com/Thoomaastb/receiptly/compare/v0.43.1...v0.44.0) (2026-07-27)
 
 ### Features
