@@ -1,3 +1,9 @@
+## [0.43.1](https://github.com/Thoomaastb/receiptly/compare/v0.43.0...v0.43.1) (2026-07-27)
+
+### Bug Fixes
+
+* **frontend:** mehr/stärkere Hintergrund-Animation + Glass-Effekt auf Login-Card ([996174e](https://github.com/Thoomaastb/receiptly/commit/996174eed418bf8011d71d2d837ed161fba768ce))
+
 ## [0.43.0](https://github.com/Thoomaastb/receiptly/compare/v0.42.2...v0.43.0) (2026-07-27)
 
 ### Features
