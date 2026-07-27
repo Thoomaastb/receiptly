@@ -33,7 +33,11 @@
 		{ top: 2, left: 46, size: 78, rot: 4, dur: 31, delay: -17, op: 0.07, variant: 'c' },
 		{ top: 58, left: 50, size: 120, rot: -18, dur: 40, delay: -25, op: 0.05, variant: 'a' },
 		{ top: 24, left: 22, size: 66, rot: 12, dur: 27, delay: -11, op: 0.08, variant: 'b' },
-		{ top: 92, left: 12, size: 82, rot: -4, dur: 35, delay: -6, op: 0.06, variant: 'c' }
+		{ top: 92, left: 12, size: 82, rot: -4, dur: 35, delay: -6, op: 0.06, variant: 'c' },
+		{ top: 10, left: 58, size: 70, rot: 18, dur: 29, delay: -19, op: 0.07, variant: 'a' },
+		{ top: 46, left: 4, size: 94, rot: -12, dur: 37, delay: -14, op: 0.06, variant: 'b' },
+		{ top: 72, left: 96, size: 58, rot: 14, dur: 25, delay: -8, op: 0.08, variant: 'c' },
+		{ top: 96, left: 44, size: 110, rot: -8, dur: 32, delay: -22, op: 0.06, variant: 'a' }
 	];
 </script>
 
@@ -94,7 +98,7 @@
 			transform: translate3d(0, 0, 0) rotate(0deg);
 		}
 		to {
-			transform: translate3d(28px, -22px, 0) rotate(4deg);
+			transform: translate3d(34px, -26px, 0) rotate(5deg);
 		}
 	}
 	@keyframes drift-b {
@@ -102,7 +106,7 @@
 			transform: translate3d(0, 0, 0) rotate(0deg);
 		}
 		to {
-			transform: translate3d(-32px, 18px, 0) rotate(-5deg);
+			transform: translate3d(-38px, 22px, 0) rotate(-6deg);
 		}
 	}
 	@keyframes drift-c {
@@ -110,7 +114,7 @@
 			transform: translate3d(0, 0, 0) rotate(0deg);
 		}
 		to {
-			transform: translate3d(18px, 26px, 0) rotate(3deg);
+			transform: translate3d(22px, 31px, 0) rotate(4deg);
 		}
 	}
 
