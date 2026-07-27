@@ -103,6 +103,9 @@ class ReceiptDetail(ReceiptListItem):
     ai_suggested_category: str | None
     ai_extraction_note: str | None
     ai_extracted_at: datetime | None
+    # Tag-Vorschläge aus Händler-Historie (siehe app/services/tag_suggestions.py) — reines
+    # Lese-Vorschlagsfeld, kein Persistenz-Feld auf Receipt.
+    suggested_tags: list[TagResponse]
 
 
 class ReceiptUpdate(BaseModel):

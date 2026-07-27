@@ -61,6 +61,7 @@ from app.services.storage import (
     generate_thumbnail_for_existing_file,
     store_upload,
 )
+from app.services.tag_suggestions import suggest_tags_for_receipt
 
 settings = get_settings()
 
@@ -298,6 +299,7 @@ async def get_receipt(
     if receipt is None:
         # Bewusst 404 statt 403 — Bucket-Existenz privater Buckets bleibt verborgen
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Beleg nicht gefunden")
+    receipt.suggested_tags = await suggest_tags_for_receipt(db, receipt, user)
     return receipt
 
 
@@ -401,11 +403,13 @@ async def _get_writable_receipt(db: AsyncSession, receipt_id: uuid.UUID, user: U
     return receipt
 
 
-async def _reload_receipt_detail(db: AsyncSession, receipt_id: uuid.UUID) -> Receipt:
+async def _reload_receipt_detail(db: AsyncSession, receipt_id: uuid.UUID, user: User) -> Receipt:
     result = await db.execute(
         select(Receipt).options(*_RECEIPT_DETAIL_OPTIONS).where(Receipt.id == receipt_id)
     )
-    return result.scalar_one()
+    receipt = result.scalar_one()
+    receipt.suggested_tags = await suggest_tags_for_receipt(db, receipt, user)
+    return receipt
 
 
 @router.post("/{receipt_id}/extract", response_model=ReceiptDetail, status_code=status.HTTP_202_ACCEPTED)
@@ -427,7 +431,7 @@ async def extract_receipt(
     await db.commit()
 
     background_tasks.add_task(run_ai_extraction, receipt.id, user.household_id)
-    return await _reload_receipt_detail(db, receipt_id)
+    return await _reload_receipt_detail(db, receipt_id, user)
 
 
 @router.patch("/{receipt_id}", response_model=ReceiptDetail)
@@ -503,7 +507,7 @@ async def update_receipt(
         receipt.warranty_expires_at = _add_months(receipt.receipt_date, receipt.warranty_months)
 
     await db.commit()
-    return await _reload_receipt_detail(db, receipt_id)
+    return await _reload_receipt_detail(db, receipt_id, user)
 
 
 @router.delete("/{receipt_id}", status_code=status.HTTP_204_NO_CONTENT)
