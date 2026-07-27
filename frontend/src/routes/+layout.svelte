@@ -9,6 +9,7 @@
 	import SettingsNav from '$lib/components/SettingsNav.svelte';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import AiUsageBadge from '$lib/components/AiUsageBadge.svelte';
+	import UpdateBanner from '$lib/components/UpdateBanner.svelte';
 	import TotpEnrollment from '$lib/components/TotpEnrollment.svelte';
 	import PasskeyEnrollment from '$lib/components/PasskeyEnrollment.svelte';
 	import { initThemeSync } from '$lib/theme';
@@ -67,6 +68,14 @@
 	let authChecked = false;
 
 	let appVersion = '';
+
+	// Sidebar-Footer-Update-Hinweis (Schritt 4/5 des Konzept-Plans): nur befüllt, wenn der
+	// Update-Check serverseitig aktiv ist UND bereits ein Cache-Wert vorliegt -- GET
+	// /api/health liefert die drei Felder dann zusätzlich zu version. Rendering/Verdrahtung
+	// von UpdateBanner.svelte folgt erst in Schritt 5, hier nur die Datenbeschaffung.
+	let latestVersion = '';
+	let releaseUrl = '';
+	let updateAvailable = false;
 
 	let userMenuOpen = false;
 	let userMenuEl: HTMLDivElement;
@@ -243,6 +252,9 @@
 			if (healthRes.ok) {
 				const health = await healthRes.json();
 				appVersion = health.version ?? '';
+				latestVersion = health.latest_version ?? '';
+				releaseUrl = health.release_url ?? '';
+				updateAvailable = health.update_available ?? false;
 			}
 		} catch {
 			// Versionsanzeige ist rein informativ — kein Fehler-UI nötig für dieses Detail
@@ -612,11 +624,17 @@
 			{/if}
 			</div>
 
-			{#if isAdmin}
-				<div class="flex-none pt-3">
+			<div class="flex-none pt-3">
+				{#if updateAvailable && latestVersion && releaseUrl}
+					<UpdateBanner {latestVersion} {releaseUrl} {isAdmin} />
+				{/if}
+				{#if isAdmin}
 					<AiUsageBadge />
-				</div>
-			{/if}
+				{/if}
+				{#if appVersion}
+					<div class="px-3 pt-2 text-[11px] text-hifi-text-faint">Version {appVersion}</div>
+				{/if}
+			</div>
 		</aside>
 
 		<main class="min-w-0 flex-1 overflow-y-auto px-4 pb-24 pt-6 sm:px-6 sm:pt-8 lg:px-10 lg:pb-16 lg:pt-9">
