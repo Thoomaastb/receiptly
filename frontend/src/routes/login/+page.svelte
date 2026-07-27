@@ -279,7 +279,7 @@
 <div class="relative flex min-h-screen items-center justify-center overflow-hidden bg-hifi-bg px-4">
 	<FloatingLogoBackground />
 	<div
-		class="relative z-10 w-full max-w-sm rounded-2xl border border-hifi-border bg-hifi-surface/90 p-8 backdrop-blur-[2px]"
+		class="relative z-10 w-full max-w-sm rounded-2xl border border-hifi-border bg-hifi-surface/95 p-8 backdrop-blur-[2px]"
 	>
 		<div class="mb-6 flex items-center gap-3">
 			<span class="flex h-9 w-9 flex-none items-center justify-center rounded-[10px] bg-hifi-accent">
