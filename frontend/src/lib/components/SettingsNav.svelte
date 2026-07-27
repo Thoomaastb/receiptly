@@ -22,7 +22,8 @@
 	const adminItems: { href: string; label: string }[] = [
 		{ href: '/settings/ai-provider', label: 'KI-Provider' },
 		{ href: '/settings/smtp', label: 'E-Mail-Versand' },
-		{ href: '/settings/security-policy', label: 'Sicherheitsrichtlinien' }
+		{ href: '/settings/security-policy', label: 'Sicherheitsrichtlinien' },
+		{ href: '/settings/update-check', label: 'Update-Check' }
 	];
 
 	$: pathname = $page.url.pathname;

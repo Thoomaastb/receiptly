@@ -224,6 +224,28 @@ export const de = {
 		testUnavailableHint: 'SMTP muss zuerst konfiguriert und gespeichert werden, bevor eine Testmail verschickt werden kann.'
 	},
 
+	// Admin-Schalter für den periodischen GitHub-Releases-Abgleich (Sidebar-Footer-Update-
+	// Hinweis, siehe Konzept-Plan "Sidebar-Footer: Update-Hinweis + Versionsanzeige").
+	updateCheck: {
+		cardTitle: 'Update-Check',
+		cardDescription: 'Steuert, ob receiptly automatisch auf eine neuere Version prüft.',
+		toggleLabel: 'Automatischen Update-Check aktivieren',
+		toggleDescription: 'Prüft periodisch gegen die öffentlichen GitHub-Releases, ob eine neuere Version verfügbar ist.',
+		loadError: 'Einstellung konnte nicht geladen werden.',
+		saveError: 'Änderung konnte nicht gespeichert werden — bitte erneut versuchen.',
+		accessDenied: 'Diese Einstellungen sind nur für Admins sichtbar.'
+	},
+
+	// Sidebar-Footer-Update-Hinweis (Schritt 4 des Konzept-Plans "Sidebar-Footer: Update-
+	// Hinweis") -- Titel/Versionstext sieht jedes Haushaltsmitglied, der Link zu den
+	// GitHub-Versionshinweisen nur Admins (siehe UpdateBanner.svelte, isAdmin-Prop).
+	updateBanner: {
+		title: 'Update verfügbar',
+		versionText: 'Version {version} ist verfügbar.',
+		releaseNotesLink: 'Versionshinweise ansehen',
+		dismissAriaLabel: 'Schließen'
+	},
+
 	// Glocken-Flyout in der Topbar (v0.25.0, Benachrichtigungssystem)
 	notifications: {
 		bellAriaLabel: 'Benachrichtigungen',
