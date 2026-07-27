@@ -1,3 +1,9 @@
+## [0.46.0](https://github.com/Thoomaastb/receiptly/compare/v0.45.0...v0.46.0) (2026-07-27)
+
+### Features
+
+* **db:** Instanz-Singleton-Tabelle update_check_settings ([ec18363](https://github.com/Thoomaastb/receiptly/commit/ec183631aaa439ca13682eb3b15a43e97af4cf05))
+
 ## [0.45.0](https://github.com/Thoomaastb/receiptly/compare/v0.44.0...v0.45.0) (2026-07-27)
 
 ### Features
