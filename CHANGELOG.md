@@ -1,3 +1,9 @@
+## [0.48.1](https://github.com/Thoomaastb/receiptly/compare/v0.48.0...v0.48.1) (2026-07-28)
+
+### Bug Fixes
+
+* **ui:** Icons (Weltkugel/GitHub) für Lizenz-Attribution-Links ergänzen ([6514773](https://github.com/Thoomaastb/receiptly/commit/65147734b7ac4364a874b7a00502ea6e970c9f89))
+
 ## [0.48.0](https://github.com/Thoomaastb/receiptly/compare/v0.47.4...v0.48.0) (2026-07-28)
 
 ### Features
