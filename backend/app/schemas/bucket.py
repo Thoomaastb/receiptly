@@ -10,6 +10,8 @@ class BucketResponse(BaseModel):
     visibility: str
     is_default: bool
     owner_id: uuid.UUID
+    # Effektiver Zugriffslevel des anfragenden Users — userabhängig, von der Route gesetzt.
+    access_level: str
 
     model_config = {"from_attributes": True}
 
