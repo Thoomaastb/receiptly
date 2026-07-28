@@ -1,3 +1,9 @@
+## [0.49.0](https://github.com/Thoomaastb/receiptly/compare/v0.48.2...v0.49.0) (2026-07-28)
+
+### Features
+
+* **buckets:** access_level pro Bucket im GET /buckets-Response ([4ae628e](https://github.com/Thoomaastb/receiptly/commit/4ae628e54fa75a224e48151e4937509ec309564b))
+
 ## [0.48.2](https://github.com/Thoomaastb/receiptly/compare/v0.48.1...v0.48.2) (2026-07-28)
 
 ### Bug Fixes
