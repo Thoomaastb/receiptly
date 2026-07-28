@@ -155,4 +155,7 @@ Vollständiges Konzept, Architektur, Datenmodell und Backlog: siehe Notion (Page
 
 ## Lizenz
 
-Noch nicht final festgelegt (Pre-`v1.0.0`).
+[GNU AGPL-3.0](LICENSE) mit einer Zusatzklausel nach §7(b): Wer eine Kopie oder
+modifizierte Version betreibt (auch als Netzwerkdienst), muss die
+Urheber-Attribution sowohl im Quellcode als auch sichtbar in der Oberfläche der
+Anwendung erhalten. Details siehe [LICENSE](LICENSE).
