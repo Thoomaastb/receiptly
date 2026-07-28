@@ -1,3 +1,9 @@
+## [0.48.0](https://github.com/Thoomaastb/receiptly/compare/v0.47.4...v0.48.0) (2026-07-28)
+
+### Features
+
+* **ui:** sichtbare Urheber-Attribution im Sidebar-Footer (AGPL §7(b)) ([c28ff89](https://github.com/Thoomaastb/receiptly/commit/c28ff896d535ebd6bd3a4dfbd78fb80a6fd5886c))
+
 ## [0.47.4](https://github.com/Thoomaastb/receiptly/compare/v0.47.3...v0.47.4) (2026-07-27)
 
 ### Bug Fixes
