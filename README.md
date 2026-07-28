@@ -129,6 +129,117 @@ optionalen Bausteine:
 - **E-Mail (Passwort-Reset)** — ohne `SMTP_HOST` bleibt der Versand aus (Antwort bleibt
   bewusst immer erfolgreich, verhindert User-Enumeration).
 
+## Backup & Restore
+
+**Was gesichert werden muss:**
+
+Drei benannte Docker-Volumes (aus `docker-compose.yml`) + die `.env`-Datei:
+
+- `db-data` — PostgreSQL-Datenbankverzeichnis
+- `storage-originals` — hochgeladene Originalbilder und PDFs
+- `storage-thumbs` — generierte Thumbnails (optional, siehe unten)
+- `.env` — Umgebungskonfiguration, **kritisch: `ENCRYPTION_KEY`, `SESSION_SECRET`, `POSTGRES_PASSWORD`, `REDIS_PASSWORD`**
+
+**Warum `.env` zusammen mit der DB sichern:** Der `ENCRYPTION_KEY` (Fernet, siehe `backend/app/services/crypto.py`) verschlüsselt sicherheitskritische Daten in der Postgres-DB:
+
+- TOTP-Secrets für 2FA (`backend/app/models/user.py`)
+- KI-Provider-API-Keys (`backend/app/api/settings.py`)
+- SMTP-Passwort (`backend/app/api/smtp_settings.py`)
+
+Ein reiner DB-Dump ohne korrespondierenden `ENCRYPTION_KEY` ist wertlos für diese Felder — nach einem Restore mit anderem/fehlendem Key sind TOTP-Secrets dauerhaft nicht entschlüsselbar (sperrt ggf. Admin-Accounts aus, da TOTP für Admins Pflicht ist) und AI-/SMTP-Zugangsdaten müssten neu hinterlegt werden. **Beide müssen immer zusammen gesichert werden.**
+
+**Was optional ist:**
+
+- `storage-thumbs` — kann bei Bedarf weggelassen werden. Thumbnails werden per Lazy-Backfill aus `storage-originals` neu generiert, wenn sie fehlen (`GET /receipts/{id}/thumb`). Datenverlust entsteht dadurch keiner, nur ein einmaliger Performance-Hit beim ersten Zugriff je Beleg nach dem Restore.
+
+**Was NICHT gesichert werden muss:**
+
+- Redis — hat kein Volume in `docker-compose.yml`. Rein Cache/Session-State/Rate-Limit-Counter, laut Architektur bewusst flüchtig. Kein Datenverlust-Risiko bei Neustart.
+
+### Postgres-Dump
+
+Konsistenter Dump im Binary-Format (`.dump`), empfohlen für Restores auf derselben oder neueren PostgreSQL-Version:
+
+```bash
+docker compose exec db pg_dump -U receiptly -Fc receiptly > backup.dump
+```
+
+`-U receiptly` entspricht `POSTGRES_USER` aus `.env`, `-Fc` erzeugt Custom-Format (kompakt, schneller restore als SQL-Text).
+
+Zur Kontrolle: die Datei sollte ca. einige MB groß sein (abhängig von OCR-Text-Umfang + Upload-Menge). Manuell testen:
+
+```bash
+docker compose exec db pg_restore -U receiptly -d receiptly --list backup.dump | head -20
+```
+
+### Volume-Backup
+
+Über einen Wegwerf-Container mit `tar`:
+
+```bash
+# storage-originals
+docker run --rm -v receiptly_storage-originals:/data -v $(pwd):/backup \
+  alpine tar czf /backup/storage-originals.tar.gz -C /data .
+
+# storage-thumbs (optional)
+docker run --rm -v receiptly_storage-thumbs:/data -v $(pwd):/backup \
+  alpine tar czf /backup/storage-thumbs.tar.gz -C /data .
+```
+
+Volume-Namen bekommen von Docker Compose automatisch den **Projektnamen** vorangestellt — das ist NICHT `INSTANCE_NAME` (das steuert nur `container_name`), sondern der Verzeichnisname, in dem `docker-compose.yml` liegt, bzw. `COMPOSE_PROJECT_NAME`/`-p`, falls explizit gesetzt. Bei einem Standard-Checkout in einem `receiptly`-Verzeichnis also `receiptly_storage-originals`, `receiptly_storage-thumbs` — bei mehreren Instanzen auf demselben Host (z.B. Test-/Staging-Stack in einem anders benannten Verzeichnis) unterscheidet sich der Präfix entsprechend. Vor dem Backup/Restore immer mit `docker volume ls` gegenchecken, welcher Präfix zur gewünschten Instanz gehört.
+
+### Restore-Ablauf
+
+**1. Volumes wiederherstellen:**
+
+```bash
+# originals
+docker run --rm -v receiptly_storage-originals:/data -v $(pwd):/backup \
+  alpine tar xzf /backup/storage-originals.tar.gz -C /data
+
+# thumbs (falls Backup vorhanden)
+docker run --rm -v receiptly_storage-thumbs:/data -v $(pwd):/backup \
+  alpine tar xzf /backup/storage-thumbs.tar.gz -C /data
+```
+
+**2. `.env`-Datei mit gesicherten Secrets einspielen** (mit demselben `ENCRYPTION_KEY`, `SESSION_SECRET` etc. wie zum Zeitpunkt des Backups).
+
+**3. Nur `db` + `redis` starten (noch NICHT `app`):**
+
+```bash
+docker compose up -d db redis
+```
+
+Wichtig: `app` darf hier noch nicht laufen — sonst hält die App bereits Verbindungen zur DB, und `DROP DATABASE` im nächsten Schritt schlägt mit "database is being accessed by other users" fehl.
+
+**4. Datenbank-Dump einspielen:**
+
+```bash
+# Ggf. bestehende DB löschen (nur bei komplettem Restore empfohlen)
+docker compose exec db psql -U receiptly -d postgres -c "DROP DATABASE IF EXISTS receiptly;"
+docker compose exec db psql -U receiptly -d postgres -c "CREATE DATABASE receiptly;"
+
+# Dump wiederherstellen
+cat backup.dump | docker compose exec -T db pg_restore -U receiptly -d receiptly
+```
+
+**5. App starten:**
+
+```bash
+docker compose up -d app
+```
+
+**6. Ggf. Schema-Migrationen catch-up (falls das Backup älter als die aktuelle App-Version ist):**
+
+```bash
+docker compose exec app alembic upgrade head
+```
+
+**7. Bestätigung:**
+
+- Login testen — TOTP/Passkeys sollten funktionieren (falls der `ENCRYPTION_KEY` korrekt ist).
+- Ein Beleg mit Thumbnail aufrufen — sollte ohne 500-Fehler laden.
+
 ## Versionierung & Contributing
 
 Conventional Commits, durchgesetzt via `commitlint.config.js`, gesteuert über
