@@ -77,6 +77,13 @@
 	let releaseUrl = '';
 	let updateAvailable = false;
 
+	// Lizenz-Attribution im Sidebar-Footer (AGPL-3.0 + Zusatzklausel §7(b) der LICENSE,
+	// erfordert eine sichtbare Urheber-Attribution in der UI jeder laufenden Instanz).
+	// Jahr dynamisch statt hartkodiert, damit der Hinweis nicht jährlich manuell gepflegt
+	// werden muss.
+	const attributionYear = new Date().getFullYear();
+	$: attributionCopyright = m.attribution.copyright.replace('{year}', String(attributionYear));
+
 	let userMenuOpen = false;
 	let userMenuEl: HTMLDivElement;
 
@@ -634,6 +641,28 @@
 				{#if appVersion}
 					<div class="px-3 pt-2 text-[11px] text-hifi-text-faint">Version {appVersion}</div>
 				{/if}
+				<!-- Lizenz-Attribution (AGPL-3.0 + Zusatzklausel §7(b), siehe LICENSE) -- ganz unten,
+				     bewusst noch dezenter als die Versionszeile darüber (kleinere Schrift), damit sie
+				     als Impressum-artiger Hinweis liest statt die Sidebar-Optik zu dominieren. -->
+				<div class="flex flex-wrap items-center gap-x-2 gap-y-0.5 px-3 pt-1.5 text-[10px] leading-tight text-hifi-text-faint">
+					<span>{attributionCopyright}</span>
+					<a
+						href="https://thomasbuss.net"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="underline decoration-dotted underline-offset-2 transition-colors hover:text-hifi-text-muted"
+					>
+						{m.attribution.websiteLink}
+					</a>
+					<a
+						href="https://github.com/Thoomaastb/receiptly"
+						target="_blank"
+						rel="noopener noreferrer"
+						class="underline decoration-dotted underline-offset-2 transition-colors hover:text-hifi-text-muted"
+					>
+						{m.attribution.repoLink}
+					</a>
+				</div>
 			</div>
 		</aside>
 
@@ -644,6 +673,32 @@
 				     (SettingsNav variant="desktop" oben im <aside>) ab lg dieselbe Aufgabe übernimmt. -->
 				<div class="-mx-4 -mt-6 mb-6 border-b border-hifi-border bg-hifi-surface p-4 sm:-mx-6 sm:-mt-8 lg:hidden">
 					<SettingsNav {isAdmin} variant="mobile" />
+					<!-- Lizenz-Attribution (AGPL-3.0 + Zusatzklausel §7(b), siehe LICENSE) -- unter lg
+					     hat die Sidebar (und damit der Attribution-Hinweis dort) keine Entsprechung,
+					     da sie komplett hinter lg:flex versteckt ist (siehe <aside> unten). Dieser
+					     Block hier ist zentral im Layout (nicht pro Settings-Unterseite dupliziert)
+					     und damit auf JEDER /settings/*-Route ohne Scrollen sichtbar, sobald der
+					     "Einstellungen"-Tab der Bottom-Nav angetippt wird -- die zuverlässigste
+					     Mobile-Stelle, die nicht in einem selten geöffneten Untermenü verschwindet. -->
+					<div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] leading-tight text-hifi-text-faint">
+						<span>{attributionCopyright}</span>
+						<a
+							href="https://thomasbuss.net"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="underline decoration-dotted underline-offset-2 transition-colors hover:text-hifi-text-muted"
+						>
+							{m.attribution.websiteLink}
+						</a>
+						<a
+							href="https://github.com/Thoomaastb/receiptly"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="underline decoration-dotted underline-offset-2 transition-colors hover:text-hifi-text-muted"
+						>
+							{m.attribution.repoLink}
+						</a>
+					</div>
 				</div>
 			{/if}
 			<slot />

@@ -385,6 +385,15 @@ export const de = {
 
 	// Tags-Feature (Zuweisung/Anlegen in ReceiptDetailView, Filter auf /receipts, siehe
 	// $lib/tags.ts + TagPicker.svelte + TagColorSwatchPicker.svelte)
+	// Sidebar-Footer-Attribution (AGPL-3.0 + Zusatzklausel §7(b) der LICENSE: Urheber-
+	// Attribution muss sichtbar in der UI jeder laufenden Instanz erhalten bleiben, nicht
+	// nur im Quellcode).
+	attribution: {
+		copyright: '© {year} Thomas Buß',
+		websiteLink: 'Website',
+		repoLink: 'GitHub'
+	},
+
 	tags: {
 		colorPicker: {
 			groupLabel: 'Farbe wählen',
