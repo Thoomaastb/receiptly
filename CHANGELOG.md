@@ -1,3 +1,9 @@
+## [0.49.2](https://github.com/Thoomaastb/receiptly/compare/v0.49.1...v0.49.2) (2026-07-29)
+
+### Bug Fixes
+
+* **services:** effektive SMTP-Werte vollständig an Frontend durchreichen ([66040d8](https://github.com/Thoomaastb/receiptly/commit/66040d8cac08d66a5f7881052be49550644f4d34))
+
 ## [0.49.1](https://github.com/Thoomaastb/receiptly/compare/v0.49.0...v0.49.1) (2026-07-29)
 
 ### Bug Fixes
