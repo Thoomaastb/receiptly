@@ -1,3 +1,10 @@
+## [0.49.6-rc.1](https://github.com/Thoomaastb/receiptly/compare/v0.49.5...v0.49.6-rc.1) (2026-07-29)
+
+### Bug Fixes
+
+* **receipts:** Versand/Rabatt/Steuer in Reconciliation-Abgleich einbeziehen ([e2b23f3](https://github.com/Thoomaastb/receiptly/commit/e2b23f30d78e924dd3007657b6b4585f6d74f8f0))
+* **services:** Anthropic-Default-Modell auf claude-haiku-4-5 aktualisiert ([068bc4d](https://github.com/Thoomaastb/receiptly/commit/068bc4d29b1ddfd7daa4d3bd6e31b59d4e37beda))
+
 ## [0.49.5](https://github.com/Thoomaastb/receiptly/compare/v0.49.4...v0.49.5) (2026-07-29)
 
 ### Bug Fixes
