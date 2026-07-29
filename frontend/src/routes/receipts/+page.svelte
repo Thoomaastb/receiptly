@@ -43,6 +43,9 @@
 		warranty_months: number | null;
 		warranty_expires_at: string | null;
 		custom_fields: Record<string, unknown> | null;
+		shipping_cost: number | null;
+		discount_amount: number | null;
+		tax_amount: number | null;
 		items: ItemRow[];
 		ai_suggested_merchant_name: string | null;
 		ai_suggested_category: string | null;
@@ -353,6 +356,9 @@
 		receiptId={openReceipt.id}
 		receiptDate={openReceipt.receipt_date}
 		totalAmount={openReceipt.total_amount}
+		shippingCost={openReceipt.shipping_cost}
+		discountAmount={openReceipt.discount_amount}
+		taxAmount={openReceipt.tax_amount}
 		currency={openReceipt.currency}
 		status={openReceipt.status}
 		merchantName={openReceipt.merchant_name}

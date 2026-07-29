@@ -21,6 +21,9 @@
 	export let receiptId: string;
 	export let receiptDate: string | null;
 	export let totalAmount: number | null;
+	export let shippingCost: number | null = null;
+	export let discountAmount: number | null = null;
+	export let taxAmount: number | null = null;
 	export let currency: string;
 	export let status: string;
 	export let merchantName: string | null = null;
@@ -94,8 +97,16 @@
 	// optionale Detailtiefe. Statt die Summe aus Artikeln zu erzwingen, nur ein Hinweis
 	// bei Abweichung, damit sichtbar ist, ob der Bon vollständig "aufgeschlüsselt" ist.
 	$: itemsSum = items.reduce((sum, item) => sum + item.total_price, 0);
-	$: itemsSumDiff = totalAmount !== null ? Math.round((totalAmount - itemsSum) * 100) / 100 : null;
+	// Versand/separat ausgewiesene Steuer heben den Bon-Betrag über die reine Artikelsumme
+	// hinaus (von der Differenz abgezogen), ein Rabatt/Gutschein senkt ihn (zurückaddiert).
+	$: itemsSumDiff =
+		totalAmount !== null
+			? Math.round(
+					(totalAmount - itemsSum - (shippingCost ?? 0) - (taxAmount ?? 0) + (discountAmount ?? 0)) * 100
+				) / 100
+			: null;
 	$: itemsIncomplete = items.length > 0 && itemsSumDiff !== null && Math.abs(itemsSumDiff) > 0.004;
+	$: hasAdjustments = shippingCost !== null || discountAmount !== null || taxAmount !== null;
 
 	// --- Kernfelder bearbeiten (Datum/Betrag/Händler/Hochwertig/Garantie) ---
 	// Manuelle Bearbeitung, solange die KI-Struktur-Extraktion aus dem OCR-Text noch
@@ -105,6 +116,9 @@
 	let saveError = '';
 	let draftDate = '';
 	let draftAmount = '';
+	let draftShippingCost = '';
+	let draftDiscountAmount = '';
+	let draftTaxAmount = '';
 	let draftCurrency = '';
 	let draftMerchant = '';
 	let draftHighValue = false;
@@ -124,6 +138,9 @@
 	function startEdit() {
 		draftDate = receiptDate ?? '';
 		draftAmount = totalAmount !== null ? String(totalAmount) : '';
+		draftShippingCost = shippingCost !== null ? String(shippingCost) : '';
+		draftDiscountAmount = discountAmount !== null ? String(discountAmount) : '';
+		draftTaxAmount = taxAmount !== null ? String(taxAmount) : '';
 		draftCurrency = currency;
 		draftMerchant = merchantName ?? '';
 		draftHighValue = isHighValue;
@@ -144,6 +161,9 @@
 	function applyDetail(detail: {
 		receipt_date: string | null;
 		total_amount: number | null;
+		shipping_cost?: number | null;
+		discount_amount?: number | null;
+		tax_amount?: number | null;
 		merchant_name: string | null;
 		category: string | null;
 		tags?: Tag[];
@@ -164,6 +184,9 @@
 	}) {
 		receiptDate = detail.receipt_date;
 		totalAmount = detail.total_amount;
+		if (detail.shipping_cost !== undefined) shippingCost = detail.shipping_cost;
+		if (detail.discount_amount !== undefined) discountAmount = detail.discount_amount;
+		if (detail.tax_amount !== undefined) taxAmount = detail.tax_amount;
 		merchantName = detail.merchant_name;
 		category = detail.category;
 		if (detail.tags !== undefined) tags = detail.tags;
@@ -282,6 +305,9 @@
 				body: JSON.stringify({
 					receipt_date: draftDate || null,
 					total_amount: draftAmount ? Number(draftAmount) : null,
+					shipping_cost: draftShippingCost ? Number(draftShippingCost) : null,
+					discount_amount: draftDiscountAmount ? Number(draftDiscountAmount) : null,
+					tax_amount: draftTaxAmount ? Number(draftTaxAmount) : null,
 					currency: draftCurrency.trim().toUpperCase() || null,
 					merchant_name: draftMerchant.trim() || null,
 					is_high_value: draftHighValue,
@@ -551,6 +577,36 @@
 								class="w-full rounded border border-hifi-border bg-hifi-surface p-2 text-sm uppercase"
 							/>
 						</label>
+						<label class="text-xs">
+							<span class="mb-1 block text-hifi-text-muted">Versand</span>
+							<input
+								type="number"
+								step="0.01"
+								min="0"
+								bind:value={draftShippingCost}
+								class="w-full rounded border border-hifi-border bg-hifi-surface p-2 text-sm"
+							/>
+						</label>
+						<label class="text-xs">
+							<span class="mb-1 block text-hifi-text-muted">Rabatt</span>
+							<input
+								type="number"
+								step="0.01"
+								min="0"
+								bind:value={draftDiscountAmount}
+								class="w-full rounded border border-hifi-border bg-hifi-surface p-2 text-sm"
+							/>
+						</label>
+						<label class="text-xs">
+							<span class="mb-1 block text-hifi-text-muted">Steuer</span>
+							<input
+								type="number"
+								step="0.01"
+								min="0"
+								bind:value={draftTaxAmount}
+								class="w-full rounded border border-hifi-border bg-hifi-surface p-2 text-sm"
+							/>
+						</label>
 					</div>
 					<label class="flex items-center gap-2 text-xs">
 						<input type="checkbox" bind:checked={draftHighValue} />
@@ -703,6 +759,9 @@
 							Noch {itemsSumDiff.toFixed(2)} {currency} nicht auf Artikel aufgeteilt.
 						{:else}
 							Artikel-Summe liegt {Math.abs(itemsSumDiff).toFixed(2)} {currency} über dem Bon-Betrag.
+						{/if}
+						{#if hasAdjustments}
+							<span class="text-hifi-text-muted"> (Versand/Rabatt/Steuer bereits berücksichtigt)</span>
 						{/if}
 					</div>
 				{/if}

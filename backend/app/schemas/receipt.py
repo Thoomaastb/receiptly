@@ -96,6 +96,9 @@ class ReceiptDetail(ReceiptListItem):
     warranty_months: int | None
     warranty_expires_at: date | None
     custom_fields: dict[str, Any] | None
+    shipping_cost: float | None
+    discount_amount: float | None
+    tax_amount: float | None
     items: list[ItemResponse]
     # KI-Struktur-Extraktions-Vorschläge (siehe app/services/ai_extraction.py) — Vorschlag,
     # bis der Nutzer ihn per PATCH übernimmt oder verwirft (dismiss_ai_suggestion).
@@ -116,6 +119,9 @@ class ReceiptUpdate(BaseModel):
 
     receipt_date: date | None = None
     total_amount: float | None = Field(default=None, ge=0)
+    shipping_cost: float | None = Field(default=None, ge=0)
+    discount_amount: float | None = Field(default=None, ge=0)
+    tax_amount: float | None = Field(default=None, ge=0)
     # ISO-4217-Code, z.B. "EUR" — None heißt "nicht mitschicken" (unverändert lassen),
     # konsistent mit den übrigen optionalen Feldern hier (siehe update_receipt).
     currency: str | None = Field(default=None, min_length=3, max_length=3)

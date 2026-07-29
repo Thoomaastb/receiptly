@@ -45,6 +45,21 @@ _JSON_SCHEMA = {
             "type": ["number", "null"],
             "description": "Gesamtbetrag des Belegs als Zahl, oder null wenn nicht erkennbar.",
         },
+        "shipping_cost": {
+            "type": ["number", "null"],
+            "description": "Separat ausgewiesene Versandkosten als Zahl, oder null wenn keine erkennbar.",
+        },
+        "discount_amount": {
+            "type": ["number", "null"],
+            "description": "Summe von Rabatten/Gutscheinen als positive Zahl, oder null wenn keine erkennbar.",
+        },
+        "tax_amount": {
+            "type": ["number", "null"],
+            "description": (
+                "Separat ausgewiesene Steuer als Zahl, nur falls nicht bereits im "
+                "Gesamtbetrag enthalten — sonst null."
+            ),
+        },
         "currency": {
             "type": ["string", "null"],
             "description": "3-stelliger ISO-Währungscode (z.B. EUR), oder null.",
@@ -77,7 +92,17 @@ _JSON_SCHEMA = {
             },
         },
     },
-    "required": ["receipt_date", "total_amount", "currency", "merchant_name", "category", "items"],
+    "required": [
+        "receipt_date",
+        "total_amount",
+        "shipping_cost",
+        "discount_amount",
+        "tax_amount",
+        "currency",
+        "merchant_name",
+        "category",
+        "items",
+    ],
     "additionalProperties": False,
 }
 
@@ -275,6 +300,20 @@ async def _apply_extraction_result(db: AsyncSession, receipt: Receipt, data: dic
             receipt.ai_suggested_total_amount = total_amount
     else:
         notes.append("Kein Gesamtbetrag erkannt")
+
+    # Kein ai_suggested_*-Pendant für diese drei Felder (siehe Receipt-Modell) — es gibt noch
+    # kein "vom Nutzer bestätigt"-Signal zu schützen, daher reicht "nur füllen, wenn noch leer".
+    shipping_cost = _parse_non_negative(data.get("shipping_cost"))
+    if shipping_cost is not None and receipt.shipping_cost is None:
+        receipt.shipping_cost = shipping_cost
+
+    discount_amount = _parse_non_negative(data.get("discount_amount"))
+    if discount_amount is not None and receipt.discount_amount is None:
+        receipt.discount_amount = discount_amount
+
+    tax_amount = _parse_non_negative(data.get("tax_amount"))
+    if tax_amount is not None and receipt.tax_amount is None:
+        receipt.tax_amount = tax_amount
 
     currency = data.get("currency")
     if (
