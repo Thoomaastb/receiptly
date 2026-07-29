@@ -1,3 +1,9 @@
+## [0.49.5](https://github.com/Thoomaastb/receiptly/compare/v0.49.4...v0.49.5) (2026-07-29)
+
+### Bug Fixes
+
+* **ui:** SMTP-Einstellungen zeigen bei Server-Lock die wirksamen effective_*-Werte ([19e66ad](https://github.com/Thoomaastb/receiptly/commit/19e66addf6a06298386f99fc09f0f1a37d7da8af))
+
 ## [0.49.4](https://github.com/Thoomaastb/receiptly/compare/v0.49.3...v0.49.4) (2026-07-29)
 
 ### Bug Fixes
