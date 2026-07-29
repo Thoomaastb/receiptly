@@ -15,6 +15,10 @@
 		encryption: Encryption;
 		locked_by_server: boolean;
 		effective_host: string | null;
+		effective_port: number | null;
+		effective_username: string | null;
+		effective_from_email: string | null;
+		effective_encryption: Encryption | null;
 	}
 
 	interface User {
@@ -55,11 +59,12 @@
 
 	function applySettings(next: SmtpSettings) {
 		settings = next;
-		hostValue = next.host ?? '';
-		portValue = next.port ?? 587;
-		usernameValue = next.username ?? '';
-		fromEmailValue = next.from_email ?? '';
-		encryptionValue = next.encryption ?? 'starttls';
+		const locked = next.locked_by_server;
+		hostValue = (locked ? next.effective_host : next.host) ?? '';
+		portValue = (locked ? next.effective_port : next.port) ?? 587;
+		usernameValue = (locked ? next.effective_username : next.username) ?? '';
+		fromEmailValue = (locked ? next.effective_from_email : next.from_email) ?? '';
+		encryptionValue = (locked ? next.effective_encryption : next.encryption) ?? 'starttls';
 		passwordValue = '';
 		passwordEditing = !next.password_set;
 	}
