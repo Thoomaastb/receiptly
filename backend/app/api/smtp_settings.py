@@ -75,6 +75,10 @@ async def get_smtp_settings(
         encryption=settings.encryption,
         locked_by_server=locked,
         effective_host=effective.host if locked else None,
+        effective_port=effective.port if locked else None,
+        effective_username=effective.username if locked else None,
+        effective_from_email=effective.from_email if locked else None,
+        effective_encryption=effective.encryption if locked else None,
     )
 
 

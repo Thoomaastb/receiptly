@@ -13,9 +13,14 @@ class SmtpSettingsResponse(BaseModel):
     # erzwingt — siehe app/services/smtp_resolution.py. Der gespeicherte DB-Wert bleibt
     # dann zwar erhalten, ist aber ohne Wirkung.
     locked_by_server: bool
-    # Nur gesetzt, wenn locked_by_server=True — der tatsächlich wirksame Host für die
-    # read-only-Anzeige im Frontend, unabhängig vom gespeicherten DB-Wert.
+    # Nur gesetzt, wenn locked_by_server=True — die tatsächlich wirksamen Werte für die
+    # read-only-Anzeige im Frontend, unabhängig vom gespeicherten DB-Wert (der im reinen
+    # .env-Lock-Fall nie befüllt wurde).
     effective_host: str | None = None
+    effective_port: int | None = None
+    effective_username: str | None = None
+    effective_from_email: str | None = None
+    effective_encryption: str | None = None
 
 
 class SmtpSettingsUpdate(BaseModel):
