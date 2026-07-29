@@ -16,6 +16,7 @@ class AISettingsResponse(BaseModel):
     # read-only-Anzeige im Frontend, unabhängig vom gespeicherten Haushalts-Wert.
     effective_provider: str | None = None
     effective_model: str | None = None
+    effective_endpoint_url: str | None = None
 
 
 class AISettingsUpdate(BaseModel):

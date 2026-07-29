@@ -103,6 +103,7 @@ async def get_ai_provider(
         locked_by_server=locked,
         effective_provider=effective.provider.value if locked else None,
         effective_model=effective.model_name if locked else None,
+        effective_endpoint_url=effective.endpoint if locked else None,
     )
 
 
