@@ -1,3 +1,9 @@
+## [0.49.1](https://github.com/Thoomaastb/receiptly/compare/v0.49.0...v0.49.1) (2026-07-29)
+
+### Bug Fixes
+
+* **buckets:** Nur-Ansicht-Label anhand des tatsächlichen access_level statt visibility/owner_id ([7ec58e2](https://github.com/Thoomaastb/receiptly/commit/7ec58e247f30e4240e2831f3a695f4ee9f271658))
+
 ## [0.49.0](https://github.com/Thoomaastb/receiptly/compare/v0.48.2...v0.49.0) (2026-07-28)
 
 ### Features
