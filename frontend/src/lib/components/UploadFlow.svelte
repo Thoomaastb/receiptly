@@ -15,6 +15,7 @@
 		type: string;
 		visibility: string;
 		is_default: boolean;
+		access_level: 'owner' | 'edit' | 'view';
 	}
 
 	let selectedFile: File | null = null;
@@ -24,6 +25,7 @@
 	let errorMessage = '';
 
 	let buckets: Bucket[] = [];
+	let hasReadOnlyBuckets = false;
 	let selectedBucketId = '';
 	let bucketsLoading = true;
 
@@ -31,7 +33,12 @@
 		try {
 			const res = await fetch('/api/buckets', { credentials: 'include' });
 			if (!res.ok) throw new Error(`Buckets konnten nicht geladen werden (${res.status})`);
-			buckets = await res.json();
+			const allBuckets: Bucket[] = await res.json();
+			// Nur Buckets mit Schreibrecht anbieten — sonst würde der Upload erst nach
+			// OCR/Fortschrittsanzeige mit einem generischen 403 scheitern (siehe
+			// backend/app/api/receipts.py, access_level-Prüfung).
+			buckets = allBuckets.filter((b) => b.access_level !== 'view');
+			hasReadOnlyBuckets = buckets.length < allBuckets.length;
 			selectedBucketId = buckets[0]?.id ?? '';
 		} catch (err) {
 			errorMessage = err instanceof Error ? err.message : 'Buckets konnten nicht geladen werden.';
@@ -162,7 +169,11 @@
 	{:else if buckets.length === 1}
 		<p class="mb-4 text-sm text-hifi-text-muted">Bucket: {buckets[0].name}</p>
 	{:else if !errorMessage}
-		<p class="mb-4 text-sm text-danger">Kein Bucket verfügbar — bitte einloggen.</p>
+		<p class="mb-4 text-sm text-danger">
+			{hasReadOnlyBuckets
+				? 'Kein Bucket mit Schreibrecht verfügbar — du hast auf alle sichtbaren Buckets nur Lesezugriff.'
+				: 'Kein Bucket verfügbar — bitte einloggen.'}
+		</p>
 	{/if}
 
 	{#if isNativeApp && captureMode === 'camera'}

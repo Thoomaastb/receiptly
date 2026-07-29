@@ -9,6 +9,9 @@
 		visibility: string;
 		is_default: boolean;
 		owner_id: string;
+		// Effektiver Zugriffslevel des aktuellen Users auf diesen Bucket (vom Backend
+		// userabhängig berechnet, siehe backend/app/api/buckets.py list_buckets).
+		access_level: 'owner' | 'edit' | 'view';
 	}
 
 	interface Member {
@@ -304,7 +307,7 @@
 							></span>
 							<span class="flex-1">
 								<span class="block text-[13.5px] font-bold text-hifi-text">{bucket.name}</span>
-								{#if bucket.visibility === 'private' && bucket.owner_id !== currentUserId}
+								{#if bucket.access_level === 'view'}
 									<span class="block text-[12px] text-hifi-text-muted">Nur Ansicht</span>
 								{/if}
 							</span>
