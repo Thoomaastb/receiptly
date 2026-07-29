@@ -11,6 +11,7 @@
 		locked_by_server: boolean;
 		effective_provider: string | null;
 		effective_model: string | null;
+		effective_endpoint_url: string | null;
 	}
 
 	interface User {
@@ -59,7 +60,9 @@
 			if (!res.ok) throw new Error(`Einstellungen konnten nicht geladen werden (${res.status})`);
 			settings = await res.json();
 			provider = settings!.provider ?? 'ollama';
-			endpointUrl = settings!.endpoint_url ?? '';
+			endpointUrl = settings!.locked_by_server
+				? (settings!.effective_endpoint_url ?? '')
+				: (settings!.endpoint_url ?? '');
 			modelName = settings!.model_name ?? '';
 			apiKeyEditing = !settings!.has_api_key;
 		} catch (err) {
@@ -123,7 +126,8 @@
 			{#if settings?.locked_by_server}
 				<div class="mb-4 rounded-[14px] border border-status-warning-border bg-status-warning-bg p-3 text-sm">
 					Der KI-Anbieter ist serverseitig fest konfiguriert: {providerLabels[settings.effective_provider ?? ''] ?? settings.effective_provider}{#if settings.effective_model}
-						· {settings.effective_model}{/if}
+						· {settings.effective_model}{/if}{#if settings.effective_endpoint_url}
+						· {settings.effective_endpoint_url}{/if}
 				</div>
 			{/if}
 
