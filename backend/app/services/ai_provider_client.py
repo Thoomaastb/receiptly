@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 _DEFAULT_MODELS: dict[AIProviderType, str] = {
     AIProviderType.OLLAMA: "llama3.1",
     AIProviderType.OPENAI: "gpt-4o-mini",
-    AIProviderType.ANTHROPIC: "claude-3-5-haiku-20241022",
+    AIProviderType.ANTHROPIC: "claude-haiku-4-5",
     AIProviderType.GOOGLE: "gemini-2.5-flash",
 }
 

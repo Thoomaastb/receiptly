@@ -5,20 +5,16 @@ from decimal import Decimal
 # Modelle, die hier fehlen (z.B. individuell konfigurierte Custom-Modelle), liefern
 # estimated_cost_usd=None statt eines falschen Werts.
 #
-# Quellen (abgerufen 2026-07-17):
+# Quellen (abgerufen 2026-07-29):
 # - gpt-4o-mini: platform.openai.com/docs/pricing (weiterhin aktiv, kein Deprecation-Datum;
 #   nicht mehr auf der Haupt-Preistabelle gelistet, dort stehen nur noch GPT-5.x-Modelle).
-# - claude-3-5-haiku-20241022: platform.claude.com/docs/en/about-claude/pricing. ACHTUNG:
-#   dieses Modell wurde am 19.02.2026 aus der First-Party-Anthropic-API zurückgezogen und
-#   ist nur noch über Bedrock/Vertex mit diesen Konditionen erreichbar — der Preis ist real,
-#   aber der Default in _DEFAULT_MODELS (ai_provider_client.py) ruft ihn ggf. gar nicht mehr
-#   erfolgreich auf. Nicht Teil dieses Tickets, beim nächsten Provider-Review aufgreifen.
+# - claude-haiku-4-5: platform.claude.com/docs/en/about-claude/pricing.
 # - gemini-2.5-flash: ai.google.dev/gemini-api/docs/pricing, Standard-Tier (Text/Bild/Video-
 #   Input), Output-Preis gilt einheitlich inkl. Thinking-Tokens.
 _PRICING_USD_PER_1M_TOKENS: dict[str, tuple[Decimal, Decimal]] = {
     # model_name: (price_per_1M_prompt_tokens, price_per_1M_completion_tokens)
     "gpt-4o-mini": (Decimal("0.15"), Decimal("0.60")),
-    "claude-3-5-haiku-20241022": (Decimal("0.80"), Decimal("4.00")),
+    "claude-haiku-4-5": (Decimal("1.00"), Decimal("5.00")),
     "gemini-2.5-flash": (Decimal("0.30"), Decimal("2.50")),
     # Ollama: selbst gehostet, keine API-Kosten
     "llama3.1": (Decimal("0"), Decimal("0")),

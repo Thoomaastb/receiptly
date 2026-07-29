@@ -44,7 +44,7 @@
 	const modelPlaceholders: Record<string, string> = {
 		ollama: 'llama3.1',
 		openai: 'gpt-4o-mini',
-		anthropic: 'claude-3-5-haiku',
+		anthropic: 'claude-haiku-4-5',
 		google: 'gemini-2.5-flash'
 	};
 
