@@ -1,3 +1,9 @@
+## [0.49.3](https://github.com/Thoomaastb/receiptly/compare/v0.49.2...v0.49.3) (2026-07-29)
+
+### Bug Fixes
+
+* **services:** effektive Ollama-Host-URL vollständig an Frontend durchreichen ([2866ccb](https://github.com/Thoomaastb/receiptly/commit/2866ccb8b95ed69e0b9df56edb10b6bb0b1d169f))
+
 ## [0.49.2](https://github.com/Thoomaastb/receiptly/compare/v0.49.1...v0.49.2) (2026-07-29)
 
 ### Bug Fixes
