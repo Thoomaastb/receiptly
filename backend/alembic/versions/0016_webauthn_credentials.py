@@ -4,11 +4,8 @@ Revision ID: 0016
 Revises: 0015
 Create Date: 2026-07-22
 
-Teil von Phase 3 des Security-Hardening-Plans (Passkeys/WebAuthn, siehe
-concepts/security-hardening.md Abschnitt 4.3). 1:n zu `users` — ein User kann mehrere
-Passkeys registrieren (Konzept fordert das ausdrücklich als Backup-Redundanz, z.B.
-Zweitgerät/Security-Key, besonders relevant sobald der spätere Passkey-Exklusiv-Login
-aktiv ist).
+1:n zu `users` — ein User kann mehrere Passkeys registrieren (Backup-Redundanz, z.B.
+Zweitgerät/Security-Key, besonders relevant sobald Passkey-Exklusiv-Login aktiv ist).
 
 `public_key` ist die erste BYTEA-Spalte im Projekt (roher COSE-Public-Key, wie ihn
 py_webauthn bei der Registrierung liefert — keine Textkodierung). `credential_id`

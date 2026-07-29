@@ -1,24 +1,16 @@
 <script lang="ts">
-	// Wiederverwendbares Eingabefeld für Secrets, deren gespeicherter Wert nie im Klartext
-	// vom Backend zurückkommt (API-Keys, SMTP-Passwort o.ä. — nur ein `isSet`-Flag). Siehe
-	// CLAUDE.md → "Design-Konvention: Secrets/nicht einsehbare Felder": kein natives
-	// type="password"-Punkte-Placeholder für den "bereits hinterlegt"-Zustand, sondern ein
-	// geblurrter Fake-Platzhalter mit explizitem "Ändern"-Auslöser. Gilt NICHT für aktive
-	// Passwort-Eingabefelder (Login/Registrierung/Passwort-Ändern) — dort bleibt natives
-	// type="password" Standard.
+	// Wiederverwendbares Eingabefeld für Secrets ohne Klartext-Rückgabe vom Backend (API-Keys,
+	// SMTP-Passwort — nur ein `isSet`-Flag). Siehe CLAUDE.md → "Design-Konvention: Secrets/
+	// nicht einsehbare Felder": kein natives type="password"-Punkte-Placeholder, sondern ein
+	// geblurrter Fake-Platzhalter mit "Ändern"-Auslöser. Gilt NICHT für aktive Passwort-
+	// Eingabefelder (Login/Registrierung) — dort bleibt natives type="password" Standard.
 	//
-	// Label wird bewusst NICHT von dieser Komponente gerendert (analog zu CustomSelect) —
-	// die aufrufende Seite rendert das <span id="…"> selbst und reicht die id über
-	// `labelledBy` durch, damit Hinweistexte ("bereits hinterlegt — leer lassen, um ihn zu
-	// behalten") pro Anwendungsfall frei formuliert werden können.
+	// Label wird bewusst nicht von dieser Komponente gerendert (analog zu CustomSelect) — die
+	// aufrufende Seite rendert es selbst und reicht die id über `labelledBy` durch.
 
-	// Fixer Fake-String für den geblurrten Platzhalter — bewusst ohne echten Aussagewert
-	// und projektweit identisch, damit das Muster überall gleich aussieht. Zufällig
-	// wirkendes Zeichen-Gemisch statt eines lesbaren Wortes, damit der Blur-Effekt auch
-	// bei nur leichter Unschärfe (kleine Displays, Zoom) nicht versehentlich als echter
-	// Klartext-Wert lesbar wird. aria-hidden im Markup, da er nichts Sinnvolles zum
-	// Vorlesen beiträgt (der Hinweistext im Label übernimmt die Screenreader-
-	// Kommunikation "bereits hinterlegt").
+	// Fixer, projektweit identischer Fake-String für den Blur-Platzhalter — bewusst kein
+	// lesbares Wort, damit er auch bei nur leichter Unschärfe nicht als echter Wert lesbar
+	// wird. aria-hidden, da der Hinweistext im Label die Screenreader-Kommunikation übernimmt.
 	const FAKE_PLACEHOLDER = 'x7K$mQ9p&Zv2#wL8nR4tYc¤fG6';
 
 	// Ob bereits ein Wert hinterlegt ist (entspricht has_api_key / password_set etc.).

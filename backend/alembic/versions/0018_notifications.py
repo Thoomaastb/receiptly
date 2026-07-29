@@ -4,39 +4,22 @@ Revision ID: 0018
 Revises: 0017
 Create Date: 2026-07-22
 
-Teil des Benachrichtigungssystem-Plans (Roadmap-Priorität 2, siehe
-concepts/benachrichtigungssystem.md). Speichert pro Empfänger eine eigene Zeile — auch
-bei haushaltsweiten Ereignissen (z.B. Passkey-Exklusiv-Login-Toggle) wird für jedes
-Haushaltsmitglied ein eigener Datensatz erzeugt, keine gemeinsame Zeile mit Auflösung zur
-Laufzeit.
+Eine Zeile pro Empfänger, auch bei haushaltsweiten Ereignissen — keine gemeinsame Zeile mit
+Auflösung zur Laufzeit.
 
-Anders als `audit_log` (siehe `0012_audit_log.py` und `app/models/audit_log.py`) ist
-diese Tabelle bewusst NICHT immutable — es gibt hier keinen Immutability-Trigger. Zwei
-Gründe, beide strukturell, nicht Nachlässigkeit:
-  1. `read_at` wird von der Anwendung mutiert, sobald ein Nutzer eine Benachrichtigung
-     liest (`POST /notifications/{id}/read`) — ein UPDATE ist der Kernzweck der Spalte.
-  2. Ein Retention-Cleanup-Job (`scripts/cleanup_notifications.py`) muss gelesene,
-     abgelaufene Zeilen per DELETE entfernen (90-Tage-Grenze, Q9) — auch das ist
-     erwartetes Verhalten, kein Bug, den ein Trigger verhindern müsste.
-`audit_log` ist als Beweismittel für "was ist tatsächlich passiert" bewusst
-unveränderlich; `notifications` ist reiner Nutzer-UI-Zustand und folgt deshalb dem
-Standard-Muster (keine Trigger, wie die meisten anderen Tabellen im Projekt).
+Anders als `audit_log` bewusst NICHT immutable (kein Trigger): `read_at` wird von der App
+mutiert (`POST /notifications/{id}/read`), und ein Retention-Cleanup-Job löscht gelesene,
+abgelaufene Zeilen (90-Tage-Grenze) — beides normales Verhalten für reinen UI-Zustand,
+anders als bei `audit_log` als unveränderliches Beweismittel.
 
-`category`/`type` sind bewusst plain `String`, kein Postgres-Enum — dieselbe Begründung
-wie bei `audit_log.event_type`: neue Werte sollen ohne `ALTER TYPE ... ADD VALUE` bzw.
-Migration möglich sein. Die v1-Werteliste wird nur in Python
-(`app/services/notifications.py`) als Konstante geführt.
+`category`/`type` sind plain `String`, kein Postgres-Enum — neue Werte sollen ohne
+Migration möglich sein (Werteliste lebt in `app/services/notifications.py`).
 
-`uq_notifications_user_id_dedup_key` ist die Idempotenz-Basis für das ganze Feature: ein
-scheduled Job (Garantie-Scan) und der Audit-Log-Hook (Sicherheitshinweise) inserten beide
-via `ON CONFLICT (user_id, dedup_key) DO NOTHING`. Postgres behandelt NULL in
-Unique-Indizes als paarweise verschieden — das betrifft hier keine Zeile, da jeder
-v1-Notification-Typ immer einen `dedup_key` setzt.
+`uq_notifications_user_id_dedup_key` ist die Idempotenz-Basis: sowohl der scheduled
+Garantie-Scan als auch der Audit-Log-Hook inserten via `ON CONFLICT ... DO NOTHING`.
 
-Die beiden weiteren Indizes bedienen die beiden Haupt-Lesepfade: die paginierte
-"Alle"-Liste (`user_id, created_at`) und den Ungelesen-Zähler global wie pro Kategorie
-(`user_id, category, read_at`) — Letzterer deckt sowohl `WHERE user_id=? AND read_at IS
-NULL` als auch dieselbe Query mit zusätzlichem `category`-Gleichheitsfilter ab.
+Die beiden weiteren Indizes bedienen die paginierte "Alle"-Liste (`user_id, created_at`)
+und den Ungelesen-Zähler global/pro Kategorie (`user_id, category, read_at`).
 """
 from typing import Sequence, Union
 

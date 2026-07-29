@@ -4,43 +4,28 @@ Revision ID: 0020
 Revises: 0019
 Create Date: 2026-07-23
 
-Teil des Beleg-Teilen-Plans (Roadmap-Priorität 3, siehe
-concepts/beleg-teilen.md). Ein Haushaltsmitglied kann für einen einzelnen Beleg einen
-anonymen Freigabe-Link erzeugen (z.B. für Versicherung/Handel bei Reklamation), ohne dem
-Empfänger einen Account einzuräumen.
+Ein Haushaltsmitglied kann für einen einzelnen Beleg einen anonymen Freigabe-Link erzeugen
+(z.B. für Versicherung/Handel bei Reklamation), ohne dem Empfänger einen Account einzuräumen.
 
-`token_hash` ist SHA-256 (hex, immer genau 64 Zeichen), NICHT Argon2id wie bei
-Recovery-Codes/Passwörtern (`app/auth/security.py`). Das ist bewusst und keine
-Inkonsistenz: Argon2id salzt pro Aufruf, ein Lookup "gegeben nur der Token, finde die
-Zeile" (der einzige Zugriffspfad hier — anders als Login/Recovery-Code, wo gegen eine
-bereits bekannte Zeile verglichen wird) wäre damit strukturell unmöglich, ohne über die
-gesamte Tabelle zu scannen. SHA-256 ist deterministisch und damit per Unique-Index in
-O(log n) lookupbar. Der Token selbst hat 256 Bit Entropie (`secrets.token_urlsafe(32)`),
-Argon2s Langsamkeit brächte hier keinen Sicherheitsgewinn, nur unnötige CPU-Last auf
-einem öffentlichen, unauthentifizierten Endpoint. Ein künftiger Maintainer, der das aus
-Konsistenzgründen zu Argon2 "korrigieren" möchte: bitte nicht — das würde den
-Hot-Path-Lookup brechen.
+`token_hash` ist SHA-256, NICHT Argon2id wie bei Passwörtern/Recovery-Codes: der einzige
+Zugriffspfad hier ist "gegeben nur der Token, finde die Zeile" — mit Argon2ids Salt wäre
+das ohne Volltabellen-Scan unmöglich. SHA-256 ist deterministisch und per Unique-Index in
+O(log n) lookupbar; der Token selbst hat 256 Bit Entropie (`secrets.token_urlsafe(32)`),
+Argon2s Langsamkeit brächte auf diesem öffentlichen Endpoint nur unnötige CPU-Last.
 
-`household_id` wird bei Erstellung denormalisiert aus dem Beleg/Bucket übernommen statt
-über `receipt_id` nachgeschlagen zu werden — spart einen Join beim Schreiben des
-anonymen `share_link_accessed`-Audit-Events, das (da es keinen eingeloggten Nutzer gibt)
-sonst keinen anderen Weg zur `household_id` hätte.
+`household_id` wird bei Erstellung denormalisiert aus dem Beleg übernommen — spart einen
+Join beim Schreiben des anonymen `share_link_accessed`-Audit-Events (kein eingeloggter
+Nutzer, sonst kein anderer Weg zur household_id).
 
-`created_by ON DELETE CASCADE` analog zum Präzedenzfall `Notification.user_id`
-(`0018_notifications.py`) — ein gelöschter User nimmt seine erstellten Freigabe-Links
-mit, statt sie verwaist zurückzulassen.
+`created_by ON DELETE CASCADE`: ein gelöschter User nimmt seine Freigabe-Links mit, statt
+sie verwaist zurückzulassen.
 
-Anders als `audit_log` gibt es hier KEINEN Immutability-Trigger — `revoked_at`,
-`accessed_at` und `access_count` sind gezielt von der Anwendungslogik mutierte Felder
-(Widerruf, Verbrauchs-Tracking), kein Beweismittel-Log. Das ist eine ganz normale
-veränderliche Tabelle, wie die meisten anderen im Projekt. Nur `created_at` existiert
-als Zeitstempel (kein `updated_at`) — `revoked_at`/`accessed_at` sind eigene, gezielt
-gesetzte Zeitpunkte, kein generisches "zuletzt geändert".
+Kein Immutability-Trigger wie bei `audit_log` — `revoked_at`/`accessed_at`/`access_count`
+sind gezielt von der Anwendungslogik mutierte Felder, kein Beweismittel-Log.
 
-Indizes: Unique auf `token_hash` (Hot-Path-Lookup für `GET /share/{token}` und
-`.../file`, beide unauthentifiziert und damit besonders latenzsensitiv), Index auf
-`receipt_id` (bedient die "aktive Links für diesen Beleg"-Liste, die 10-Links-Cap-
-Zählung pro Beleg und ein effizientes `ON DELETE CASCADE` von `receipts`).
+Indizes: Unique auf `token_hash` (Hot-Path-Lookup für `GET /share/{token}` und `.../file`,
+beide unauthentifiziert und latenzsensitiv), Index auf `receipt_id` (aktive-Links-Liste,
+10-Links-Cap-Zählung, effizientes ON DELETE CASCADE).
 """
 from typing import Sequence, Union
 

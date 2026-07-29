@@ -52,11 +52,9 @@ class Receipt(Base, UpdatableTimestampMixin):
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="EUR")
 
     # Anpassungszeilen, die die KI-Struktur-Extraktion nicht als items[] abbilden kann
-    # (Item.total_price verlangt >= 0, siehe app/schemas/receipt.py) — bewusst dedizierte
-    # Spalten statt Pseudo-Artikel. Alle drei nullable: NULL = "nicht erfasst", nicht "0".
-    # tax_amount ist nur die *separat ausgewiesene* Steuer, sofern nicht bereits in
-    # total_amount enthalten (siehe Migration 0011). Befüllung/Abgleichslogik folgt
-    # separat, ist bewusst nicht Teil dieser Spalten-Definition.
+    # (Item.total_price verlangt >= 0) — dedizierte Spalten statt Pseudo-Artikel. Alle
+    # drei nullable: NULL = "nicht erfasst". tax_amount nur die separat ausgewiesene
+    # Steuer, sofern nicht bereits in total_amount enthalten.
     shipping_cost: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     discount_amount: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     tax_amount: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
@@ -94,16 +92,11 @@ class Receipt(Base, UpdatableTimestampMixin):
     # nie selbst einen Merchant an).
     ai_suggested_merchant_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     ai_suggested_category: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    # Herkunfts-Tracking (siehe Konzept "Lokale Heuristik-Vorbefüllung"): diese drei Spalten
-    # sind die alleinige Quelle der Wahrheit dafür, ob receipt_date/total_amount/currency
-    # noch eine unbestätigte Schätzung sind. ai_suggested_X is not None → X gilt als von
-    # Heuristik oder KI geschätzt und darf automatisch überschrieben werden (erneuter
-    # KI-Lauf, künftige PDF-Heuristik). ai_suggested_X is None → X gilt als vom Nutzer
-    # bestätigt (oder nie gesetzt bei receipt_date/total_amount) und darf NIE mehr
-    # automatisch überschrieben werden (siehe update_receipt/_apply_extraction_result).
-    # Sonderfall currency: die Spalte ist NOT NULL DEFAULT 'EUR', kann "nie gesetzt" also
-    # nicht über None abbilden — ai_suggested_currency wird deshalb beim Upload (separater
-    # Schritt) IMMER gesetzt, das ist dort die einzige Bestätigt-Signalquelle.
+    # Herkunfts-Tracking: ai_suggested_X is not None → X ist eine unbestätigte Schätzung
+    # (Heuristik/KI), darf automatisch überschrieben werden. ai_suggested_X is None → X gilt
+    # als vom Nutzer bestätigt und wird nie mehr automatisch überschrieben (siehe
+    # update_receipt/_apply_extraction_result). Sonderfall currency: Spalte ist NOT NULL
+    # DEFAULT 'EUR', daher wird ai_suggested_currency beim Upload immer gesetzt.
     ai_suggested_receipt_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     ai_suggested_total_amount: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     ai_suggested_currency: Mapped[str | None] = mapped_column(String(3), nullable=True)

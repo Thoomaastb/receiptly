@@ -38,19 +38,15 @@
 	$: userInitial = (currentUser?.username?.[0] ?? '?').toUpperCase();
 	$: isAdmin = currentUser?.role === 'admin';
 
-	// KRITISCH (Security-Hardening Phase 2): Admins ohne abgeschlossene TOTP-Einrichtung
-	// bekommen serverseitig bewusst trotzdem eine volle Session (kein Lockout-Risiko beim
-	// initialen Login) — das Frontend ist hier die einzige Durchsetzung der Admin-Pflicht,
-	// bis Phase 3/4 (Passkeys) das serverseitig nachschärfen. Muss auf jedem
-	// authentifizierten Seitenaufruf greifen, nicht nur direkt nach der Registrierung.
+	// Admins ohne abgeschlossene TOTP-Einrichtung bekommen serverseitig bewusst trotzdem
+	// eine volle Session (kein Lockout-Risiko beim initialen Login) — das Frontend ist hier
+	// die einzige Durchsetzung der Admin-Pflicht. Muss auf jedem authentifizierten
+	// Seitenaufruf greifen, nicht nur direkt nach der Registrierung.
 	$: totpSetupRequired = currentUser?.role === 'admin' && currentUser?.totp_enabled === false;
 
-	// KRITISCH (Security-Hardening Phase 3, Baustein 3): analog zum TOTP-Gate oben, aber
-	// für normale (Nicht-Admin-)User ohne registrierten Passkey — betrifft auch bestehende
-	// Accounts nach diesem Deploy, nicht nur frische Registrierungen. Serverseitig liefert
-	// /auth/me passkey_setup_required bereits ausschließlich für diese Zielgruppe (nie für
-	// Admins), die Bedingung hier prüft es trotzdem nicht exklusiv gegen totpSetupRequired,
-	// da beide Gates unterschiedliche Rollen betreffen und sich so nie überschneiden.
+	// Analog zum TOTP-Gate oben, aber für normale User ohne registrierten Passkey — betrifft
+	// auch bestehende Accounts nach diesem Deploy. /auth/me liefert passkey_setup_required
+	// nur für diese Zielgruppe (nie für Admins), daher überschneiden sich beide Gates nie.
 	$: passkeySetupRequired = currentUser?.passkey_setup_required === true;
 
 	// Benachrichtigungs-Polling startet erst, sobald die App-Shell tatsächlich sichtbar wird
@@ -214,8 +210,7 @@
 	$: isSettingsRoute = $page.url.pathname.startsWith('/settings');
 
 	async function refreshCurrentUser() {
-		// Security first (Nutzervorgabe 2026-07-23, nach dem Migrations-Vorfall): JEDER
-		// nicht-erfolgreiche Ausgang (auch ein unerwarteter 5xx, auch ein Netzwerkfehler)
+		// JEDER nicht-erfolgreiche Ausgang (auch ein unerwarteter 5xx, auch ein Netzwerkfehler)
 		// muss zu einem sichtbaren Grund + Redirect zum Login führen — nie zu einer
 		// stillschweigend degradierten Oberfläche mit veraltetem/leerem currentUser. Lieber
 		// einmal zu oft neu anmelden als einmal zu wenig.

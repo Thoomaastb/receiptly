@@ -25,9 +25,7 @@ Reihenfolge pro User (Konzept 3.2 Stufe B):
 
 Letztes Haushaltsmitglied: kompletten Storage-Baum des Haushalts löschen, dann den
 Haushalt selbst (kaskadiert alles). KEIN `account_deleted`-Event in diesem Fall — es
-würde durch die Household-Kaskade sofort mitgelöscht, niemand könnte es mehr einsehen
-(bewusste, im genehmigten Plan festgehaltene Abweichung von einer wörtlichen Lesart des
-Konzepts).
+würde durch die Household-Kaskade sofort mitgelöscht, niemand könnte es mehr einsehen.
 
 Jeder User läuft in einer EIGENEN Transaktion — ein Fehlschlag darf andere fällige
 Haushalte nicht blockieren.
@@ -257,9 +255,8 @@ async def _dissolve_household(db: AsyncSession, user: User, household: Household
     await asyncio.to_thread(shutil.rmtree, ORIGINALS_DIR / str(household.id), True)
     await asyncio.to_thread(shutil.rmtree, THUMBS_DIR / str(household.id), True)
 
-    # Kein account_deleted-Event hier (bewusste, im genehmigten Plan festgehaltene
-    # Abweichung von einer wörtlichen Lesart des Konzepts) — es würde durch die
-    # Household-CASCADE sofort mitgelöscht, niemand könnte es mehr einsehen.
+    # Kein account_deleted-Event hier — es würde durch die Household-CASCADE sofort
+    # mitgelöscht, niemand könnte es mehr einsehen.
     await db.delete(household)
 
 

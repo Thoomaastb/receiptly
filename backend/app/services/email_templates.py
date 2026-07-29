@@ -11,12 +11,12 @@ render_*()-Funktionen füllen nur den Karteninhalt. Weitere Mail-Typen (z.B. Ein
 ergänzen künftig eine eigene render_*()-Funktion über dieselbe Hülle.
 
 **Jede** von send_email() verschickte Mail MUSS über eine render_*()-Funktion hier laufen
-(kein text_body-only-Versand) — 2026-07-22 wurde die Benachrichtigungs-Mail als Lücke
-gemeldet (lief nur als Plain-Text), seitdem verbindliche Regel statt Einzelfall-Fix.
+(kein text_body-only-Versand) — verhindert, dass eine Mail unbemerkt nur als Plain-Text
+rausgeht.
 
 Jede Karte trägt ein Eyebrow-Badge (_eyebrow()) mit Severity-Farbe (`kind`): info=blau,
-warnung=orange, fehler/sicherheit=rot (Nutzer-Vorgabe 2026-07-22) — als Indikator für die
-Mail-Art auf einen Blick, nicht nur Text-Label.
+warnung=orange, fehler/sicherheit=rot — als Indikator für die Mail-Art auf einen Blick,
+nicht nur Text-Label.
 """
 
 from __future__ import annotations
@@ -34,8 +34,8 @@ _C = {
     "accent": "#7D5EE0",  # --color-accent-hifi (Button-Fläche)
     "accent_tint": "#EAE8FF",  # --color-accent-tint (Akzent-Hintergrund)
     "accent_text": "#5A34B4",  # --color-accent-text (6.76:1 auf accent-tint)
-    # Severity-Indikator fürs Eyebrow-Badge (Nutzer-Vorgabe 2026-07-22): info=blau,
-    # warnung=orange, fehler/sicherheit=rot. Orange/Rot sind exakte Umrechnungen der
+    # Severity-Indikator fürs Eyebrow-Badge: info=blau, warnung=orange, fehler/
+    # sicherheit=rot. Orange/Rot sind exakte Umrechnungen der
     # bestehenden --color-status-warning/--color-danger-Tokens (app.css); "info" gibt es
     # als App-Design-Token bisher nicht — hier neu mit demselben L/C-Profil wie warning,
     # nur Hue 235 (klares Blau, komplementär zur Akzent-Hue 280), damit es sich ins
@@ -254,9 +254,9 @@ Falls du das nicht angefordert hast, kannst du diese E-Mail ignorieren &mdash; d
 
 
 # category (Notification.category, siehe app/models/notification.py) -> Eyebrow-Label +
-# Severity-Kind. Nutzer-Vorgabe 2026-07-22: info=blau, warnung=orange, fehler/sicherheit=rot.
+# Severity-Kind: info=blau, warnung=orange, fehler/sicherheit=rot.
 # "garantie" ist eine Fristerinnerung (noch nichts falsch, aber Aufmerksamkeit nötig) ->
-# warning/orange. "sicherheit" faellt unter die "sicherheit"-rot-Regel des Nutzers direkt.
+# warning/orange. "sicherheit" faellt direkt unter die sicherheit=rot-Regel.
 # Unbekannte Kategorien (zukünftige Typen) fallen auf "info"/blau zurück statt zu crashen.
 _CATEGORY_EYEBROW: dict[str, tuple[str, str]] = {
     "garantie": ("Garantie", "warning"),

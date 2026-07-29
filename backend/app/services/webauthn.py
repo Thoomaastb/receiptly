@@ -156,8 +156,8 @@ def fake_allow_credential_ids(username: str) -> list[str]:
     """
     Deterministische Pseudo-Credential-ID für /authenticate/options bei unbekanntem
     Username ODER einem bekannten User ganz ohne registrierten Passkey (Enumeration-
-    Schutz-Nachbesserung, Security-Review Phase 3). Ohne das wäre eine leere
-    allow_credentials-Liste ein zuverlässiges "dieser Account existiert nicht"-Signal,
+    Schutz). Ohne das wäre eine leere allow_credentials-Liste ein zuverlässiges
+    "dieser Account existiert nicht"-Signal,
     weil normale User zur Passkey-Registrierung gezwungen sind (passkey_setup_required-
     Gate, app/api/auth.py) — praktisch jeder echte Account hat also mindestens einen
     Passkey, eine nicht-leere Liste würde die Existenz verraten.

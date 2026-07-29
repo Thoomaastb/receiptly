@@ -4,15 +4,14 @@ Revision ID: 0014
 Revises: 0013
 Create Date: 2026-07-21
 
-Teil von Phase 2 des Security-Hardening-Plans. Steuert die TOTP-Pflicht auf
-Haushaltsebene (`totp_required_for_household`), die Audit-Log-Retention
-(`audit_retention_days`) und ob fehlgeschlagene Logins mit unbekanntem Username den
-versuchten Usernamen mitloggen (`log_attempted_username`, Datenschutz-Schalter).
+Steuert die TOTP-Pflicht auf Haushaltsebene (`totp_required_for_household`), die
+Audit-Log-Retention (`audit_retention_days`) und ob fehlgeschlagene Logins mit
+unbekanntem Username den versuchten Usernamen mitloggen (`log_attempted_username`,
+Datenschutz-Schalter).
 
-Bewusst OHNE `passkey_exclusive_login`-Spalte — kommt erst in einer späteren Phase, wenn
-tatsächlich Logik dahintersteht (Lehre aus `users.totp_secret`, das jahrelang ungenutzt
-existierte, bevor jetzt in Phase 2 endlich Logik dazukommt — dieses Muster nicht
-wiederholen).
+Bewusst OHNE `passkey_exclusive_login`-Spalte — kommt erst dazu, wenn tatsächlich Logik
+dahintersteht (siehe `users.totp_secret`, das jahrelang ungenutzt existierte, bevor Logik
+dazukam — dieses Muster nicht wiederholen).
 
 id folgt hier keiner eigenen Sequenz: `household_id` ist selbst der Primary Key
 (1:1-Beziehung zu `households`, analog zu `ai_settings`), kein separates `id`-Surrogat.

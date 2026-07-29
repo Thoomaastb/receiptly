@@ -278,23 +278,10 @@ async def login(
         raise
 
     if user is not None:
-        # Passkey-Exklusiv-Login (Security-Hardening Phase 4, Konzept 4.1): sperrt den
-        # Passwort-Login haushaltsweit. Bewusst VOR verify_password geprüft (gleicher
-        # Grund wie beim Rate-Limit oben — spart Argon2id-Rechenzeit für einen ohnehin
-        # zum Scheitern verurteilten Login) und nur, wenn ein echter User aufgelöst wurde
-        # (sonst gäbe es keinen Haushalt für den Settings-Lookup, analog zu den anderen
-        # audit_log.household_id-NOT-NULL-Stellen in dieser Funktion).
-        #
-        # Bewusste Abweichung vom Enumeration-Schutz-Muster dieser Funktion: anders als
-        # bei unbekanntem User/falschem Passwort (identische 401-Meldung) liefert dieser
-        # Zweig einen eigenen 403 mit klartextlicher Begründung, wie vom Konzept
-        # gefordert ("Passwort-Login ist für diesen Haushalt deaktiviert"). Das ist ein
-        # bewusster Trade-off: für Haushalte mit aktivem Exklusiv-Schalter lässt sich
-        # dadurch per Statuscode unterscheiden "Username existiert und Haushalt ist im
-        # Exklusiv-Modus" von "falsches Passwort"/"unbekannter Username" (beide weiterhin
-        # 401). Für das Zielsetting (2-Personen-Haushalt, nicht-öffentlich beworbene
-        # Domain) wird das als akzeptabel bewertet — explizit im Bericht der Hauptinstanz
-        # benannt, damit ein Security-Review das bei Bedarf gegenprüfen kann.
+        # Passkey-Exklusiv-Login sperrt Passwort-Login haushaltsweit. Vor verify_password
+        # geprüft (spart Argon2id-Rechenzeit für einen ohnehin zum Scheitern verurteilten
+        # Login). Antwortet bewusst mit 403 + Klartext statt der generischen 401-Meldung
+        # unten — Enumeration-Trade-off, für den 2-Personen-Haushalt-Kontext akzeptabel.
         security_settings = await get_or_create_security_settings(db, user.household_id)
         if security_settings.passkey_exclusive_login:
             await record_event(
@@ -312,17 +299,9 @@ async def login(
 
     if user is None or not verify_password(payload.password, user.password_hash):
         # Bewusst identische Fehlermeldung für unbekannten User und falsches Passwort
-        # (Enumeration-Schutz).
-        #
-        # Bewusste Abweichung vom Plan-Wortlaut: dort sollte JEDER fehlgeschlagene Login
-        # (inkl. unbekanntem Username) als "login_failed" mit attempted_username auditiert
-        # werden. audit_log.household_id ist aber NOT NULL, und bei unbekanntem Username
-        # gibt es keinen User und damit keinen Haushalt, an den sich das Event hängen
-        # ließe. household_id nachträglich auf nullable umzustellen hätte bedeutet, die
-        # bereits gemergte/getestete Migration 0012 zu ändern — ausdrücklich nicht
-        # gewünscht. Stattdessen: nur fehlgeschlagene Logins mit bekanntem User (falsches
-        # Passwort) werden auditiert; unbekannte Usernamen erzeugen keinen audit_log-
-        # Eintrag (sie bleiben aber weiterhin über die Rate-Limits oben gedeckelt).
+        # (Enumeration-Schutz). Auditiert wird nur bei bekanntem User — audit_log.household_id
+        # ist NOT NULL, für unbekannte Usernamen gibt es keinen Haushalt-Bezug (bleiben aber
+        # weiterhin über die Rate-Limits oben gedeckelt).
         if user is not None:
             await record_event(
                 db,
@@ -355,24 +334,15 @@ async def login_with_totp(
     pending_cookie: str | None = Cookie(default=None, alias=PENDING_2FA_COOKIE_NAME),
 ) -> UserResponse | RequiresReactivationResponse:
     """
-    Zweiter Schritt des zweistufigen Logins (siehe login() oben). Der primäre Fehlversuchs-
-    Zähler ist strikt an den Pending-Token selbst gebunden (app/auth/pending_2fa.py) — nach
-    5 Fehlversuchen wird der Pre-Auth-State komplett verworfen; ein neuer Versuch muss
-    wieder bei /auth/login beginnen (samt dessen eigenen IP-/Username-Rate-Limits).
+    Zweiter Schritt des zweistufigen Logins (siehe login() oben). Der Fehlversuchs-Zähler
+    ist an den Pending-Token gebunden (app/auth/pending_2fa.py) — 5 Fehlversuche verwerfen
+    den Pre-Auth-State, ein neuer Versuch beginnt wieder bei /auth/login. Zusätzlich ein
+    unabhängiges IP-Limit (10/15min) über `rate_limit()`, das nicht am Token hängt — deckt
+    Brute-Force ab, falls der Token-Zähler durch wiederholtes Neu-Anfordern eines
+    Pending-Tokens umgangen würde.
 
-    Zusätzlich (Security-Hardening-Nachbesserung) ein unabhängiges, zeitfensterbasiertes
-    IP-Limit über `rate_limit()` (10 Versuche/15min) — nicht an den Pending-Token gebunden,
-    sondern rein an die Client-IP. Deckt den Fall ab, dass der Pending-Token-Zähler selbst
-    umgangen würde (z.B. wiederholt frische Pending-Tokens über /auth/login erzeugen und
-    den 5er-Zähler so jedes Mal auf 0 zurücksetzen) — Brute-Force des 6-stelligen Codes
-    bliebe dann trotzdem durch dieses Limit gedeckelt. Bewusst kein IP+Pending-Token-
-    kombinierter Key: der Pending-Token wechselt ohnehin bei jedem /auth/login, ein
-    kombinierter Key wäre pro Login-Versuch immer wieder bei 0 und liefe damit faktisch
-    leer.
-
-    `payload.code` nimmt sowohl den 6-stelligen TOTP-Code als auch einen Recovery-Code
-    entgegen — die Unterscheidung erfolgt rein anhand des Formats (6 Ziffern vs. alles
-    andere), kein separates Feld nötig.
+    `payload.code` nimmt sowohl TOTP-Code als auch Recovery-Code entgegen, Unterscheidung
+    anhand des Formats (6 Ziffern vs. alles andere).
     """
     user_id = await get_pending_user_id(pending_cookie)
     if user_id is None:
@@ -418,10 +388,8 @@ async def login_with_totp(
                 break
 
     if not verified:
-        # Bewusste Ergänzung über den Auftrags-Wortlaut hinaus (dort nur "Fehlversuch
-        # zählen" gefordert): ein Audit-Event pro Fehlversuch, weil genau das laut
-        # concepts/security-hardening.md Abschnitt 4.6 als sicherheitsrelevantes
-        # "2FA-Event" gilt und household_id/user_id hier ohnehin schon geladen sind.
+        # Audit-Event auch bei Fehlversuch, nicht nur bei Erfolg — sicherheitsrelevantes
+        # 2FA-Event, household_id/user_id sind hier ohnehin schon geladen.
         discarded = await register_failed_attempt(pending_cookie)
         await record_event(
             db,

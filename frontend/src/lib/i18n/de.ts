@@ -1,15 +1,11 @@
-// Message-Katalog (Deutsch) für die im TOTP/Security-Policy-Paket neu eingeführten
-// UI-Texte. Das Projekt hat aktuell keine i18n-Bibliothek eingebunden und liefert nur
-// Deutsch aus — dieser Katalog hält aber schon strukturell fest, dass neue Texte nicht
-// direkt im Markup hartkodiert werden, sondern über Message-Keys laufen, damit eine
-// spätere Mehrsprachigkeit ohne Nacharbeit an diesen Stellen möglich ist. Bestehende,
-// bereits vor diesem Paket hartkodierte Texte an anderer Stelle im Projekt wurden bewusst
-// NICHT rückwirkend migriert (außerhalb des Auftragsumfangs).
+// Message-Katalog (Deutsch). Das Projekt hat aktuell keine i18n-Bibliothek eingebunden und
+// liefert nur Deutsch aus — dieser Katalog hält aber strukturell fest, dass neue Texte über
+// Message-Keys statt hartkodiert laufen, damit spätere Mehrsprachigkeit ohne Nacharbeit
+// möglich ist. Bestehende, andernorts hartkodierte Texte wurden nicht rückwirkend migriert.
 //
-// Bei echtem Mehrsprachigkeits-Bedarf: dieses Modul um z.B. `en.ts` erweitern und in
-// `index.ts` je nach gewählter Locale auflösen — dafür wäre dann auch eine echte
-// i18n-Bibliothek (z.B. svelte-i18n) sinnvoll; das wurde hier bewusst nicht eingeführt,
-// siehe Abschlussbericht.
+// Bei echtem Mehrsprachigkeits-Bedarf: um z.B. `en.ts` erweitern und in `index.ts` je nach
+// gewählter Locale auflösen — dafür wäre dann eine echte i18n-Bibliothek (z.B. svelte-i18n)
+// sinnvoll.
 
 export const de = {
 	common: {

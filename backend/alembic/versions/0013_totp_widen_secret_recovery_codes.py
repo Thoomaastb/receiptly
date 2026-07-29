@@ -4,7 +4,7 @@ Revision ID: 0013
 Revises: 0012
 Create Date: 2026-07-21
 
-Teil von Phase 2 des Security-Hardening-Plans (TOTP/2FA). `users.totp_secret` war bisher
+`users.totp_secret` war bisher
 auf String(64) ausgelegt (Klartext-Base32-Secret, wie `pyotp` es erzeugt) — das Backend
 verschlüsselt das Secret jedoch über Fernet (analoges Muster zu
 `ai_settings.encrypted_api_key`), dessen Ciphertext länger als der Klartext ist. Reine

@@ -1,14 +1,13 @@
-// Theme-Präferenz-Verwaltung (Dark Mode, v0.28.0, siehe concepts/dark-mode.md).
-// localStorage ist bewusst der einzige Speicherort (Q2 im Konzept) — Theme ist
-// gerätegebunden, kein Server-Roundtrip, kein FOUC-Risiko durch Warten auf die API.
+// Theme-Präferenz-Verwaltung (Dark Mode). localStorage ist bewusst der einzige
+// Speicherort — Theme ist gerätegebunden, kein Server-Roundtrip, kein FOUC-Risiko durch
+// Warten auf die API.
 //
-// WICHTIG: STORAGE_KEY muss mit dem inline-Anti-FOUC-Script in app.html
-// synchron bleiben — app.html kann dieses Modul nicht importieren (kein Build-Step
-// für inline-<script>-Inhalte), daher ist der Key dort als Literal dupliziert.
+// WICHTIG: STORAGE_KEY muss mit dem inline-Anti-FOUC-Script in app.html synchron bleiben
+// — app.html kann dieses Modul nicht importieren (kein Build-Step für inline-<script>-
+// Inhalte), daher ist der Key dort als Literal dupliziert.
 //
-// Zustand liegt in Svelte-Stores (nicht in lokalem Komponenten-State), damit jede
-// Stelle, die das Theme anzeigt oder ändert (Topbar-Toggle, ggf. weitere UI),
-// automatisch synchron bleibt — unabhängig davon, wo die Änderung ausgelöst wurde.
+// Zustand liegt in Svelte-Stores statt lokalem Komponenten-State, damit jede Stelle, die
+// das Theme anzeigt oder ändert, automatisch synchron bleibt.
 
 import { derived, writable, type Readable } from 'svelte/store';
 

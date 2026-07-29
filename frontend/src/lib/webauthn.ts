@@ -25,16 +25,14 @@ export interface PasskeyAssertionResult {
 	options_id: string;
 }
 
-// Konto-übergreifender WebAuthn-Assertion-Helper (v0.36.0, Konto-Löschung): extrahiert die
-// Options→startAuthentication-Sequenz aus login/+page.svelte::handlePasskeyLogin, die sonst
-// ein zweites Mal für die Löschbestätigung dupliziert werden müsste. Macht bewusst NUR die
-// Options-Anfrage + die Browser-Ceremony — der Verify-Request bleibt beim jeweiligen
-// Aufrufer, weil sich der Endpoint (Login vs. Konto-Löschung) unterscheidet und
-// aufrufer-spezifische Fehlerbehandlung (z.B. der Login-Sonderfall "unbekannter Username
-// darf nicht von falschem Passkey unterscheidbar sein") hier nicht pauschalisiert werden
-// soll. Wirft bei einem fehlgeschlagenen Options-Request einen undekorierten technischen
-// Error (kein i18n-Text) — Lokalisierung der Fehlermeldung bleibt bewusst beim Aufrufer,
-// damit dieselbe Helper-Funktion nicht an eine bestimmte Aufrufer-Textwahl gekoppelt wird.
+// Konto-übergreifender WebAuthn-Assertion-Helper: extrahiert die Options→
+// startAuthentication-Sequenz aus login/+page.svelte::handlePasskeyLogin, die sonst für
+// die Löschbestätigung dupliziert werden müsste. Macht bewusst NUR die Options-Anfrage +
+// die Browser-Ceremony — der Verify-Request bleibt beim jeweiligen Aufrufer, weil sich der
+// Endpoint (Login vs. Konto-Löschung) und die Fehlerbehandlung unterscheiden (z.B. der
+// Login-Sonderfall "unbekannter Username darf nicht von falschem Passkey unterscheidbar
+// sein"). Wirft bei fehlgeschlagenem Options-Request einen undekorierten technischen Error
+// — Lokalisierung bleibt beim Aufrufer.
 export async function runPasskeyAssertion(
 	optionsEndpoint: string,
 	optionsBody: object = {}

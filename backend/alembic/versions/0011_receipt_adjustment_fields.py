@@ -4,20 +4,16 @@ Revision ID: 0011
 Revises: 0010
 Create Date: 2026-07-20
 
-Hintergrund: Die KI-Struktur-Extraktion füllt bislang nur items[], aber keine
-Anpassungszeilen wie Versandkosten, Gutscheine/Rabatte oder separat ausgewiesene Steuer.
-Item.total_price verlangt >= 0 (siehe app/schemas/receipt.py, Field(ge=0)), ein Gutschein
-als negativer Pseudo-Artikel wäre also ungültig — daher dedizierte, nullable Felder auf
-Receipt statt Pseudo-Artikel. Alle drei Spalten bewusst nullable (kein Default/Backfill
-nötig): sie beschreiben "diese Anpassung ist bekannt/erfasst", NULL heißt "nicht erfasst",
-nicht "0". Typisierung (Numeric(10, 2)) analog zu Receipt.total_amount.
+Die KI-Struktur-Extraktion füllt items[], aber ursprünglich keine Anpassungszeilen wie
+Versandkosten, Gutscheine/Rabatte oder separat ausgewiesene Steuer. Item.total_price
+verlangt >= 0 (Field(ge=0)), ein Gutschein als negativer Pseudo-Artikel wäre also
+ungültig — daher dedizierte, nullable Felder auf Receipt statt Pseudo-Artikel. NULL heißt
+"nicht erfasst", nicht "0". Typisierung (Numeric(10, 2)) analog zu Receipt.total_amount.
 
 tax_amount ist ausdrücklich die *separat ausgewiesene* Steuer für Belege, bei denen sie
-nicht bereits in total_amount enthalten ist (z.B. wenn ein Händler Netto- und Steuerbetrag
-getrennt ausweist) — total_amount bleibt weiterhin der Brutto-/Gesamtbetrag. Die Logik, wie
-tax_amount beim Abgleich (items vs. total_amount) berücksichtigt wird, ist bewusst nicht
-Teil dieser Migration (siehe Scope-Grenze im Auftrag) und folgt separat in
-Backend-Abgleichslogik/Pydantic-Schemas/Frontend-Banner.
+nicht bereits in total_amount enthalten ist — total_amount bleibt der Brutto-/
+Gesamtbetrag. Verdrahtung (KI-Extraktion, Schema/API, Abgleichslogik im Frontend) folgt
+in einer späteren Migration/Änderung, nicht Teil dieser reinen Spalten-Migration.
 
 Reine additive Schema-Änderung (nullable ADD COLUMN) — kein Backfill, kein Lock-Risiko.
 """

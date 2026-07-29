@@ -4,11 +4,10 @@ Revision ID: 0019
 Revises: 0018
 Create Date: 2026-07-22
 
-Teil des Benachrichtigungssystem-Plans (siehe `0018_notifications.py` für die
-zugehörige `notifications`-Tabelle). Speichert pro User die Liste der `type`-Werte
-(siehe `app/models/notification.py::Notification.type`), für die zusätzlich zur
+Speichert pro User die Liste der `type`-Werte (siehe
+`app/models/notification.py::Notification.type`), für die zusätzlich zur
 In-App-Benachrichtigung eine E-Mail zugestellt werden soll — Opt-in pro Typ, Default
-leer (= konservativ, kein Typ standardmäßig per E-Mail, Konzept Q5).
+leer (kein Typ standardmäßig per E-Mail).
 
 Eigene Migration statt Bündelung in 0018: sie ändert eine andere, bereits bestehende
 Tabelle (`users`) statt die neue `notifications`-Tabelle anzulegen — entspricht der im

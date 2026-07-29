@@ -198,8 +198,8 @@ async def delete_credential(
     danach). Ohne aktiven Schalter bleibt das Löschen des letzten Passkeys weiterhin
     uneingeschränkt möglich — Passwort (+ ggf. TOTP) bleibt dann ein vollwertiger Rückweg.
 
-    lock_household_security() muss vor der Zählung stehen (Security-Review Phase 4, M1):
-    sonst lesen zwei parallele Löschungen der letzten zwei Passkeys beide noch "2 Stück"
+    lock_household_security() muss vor der Zählung stehen: sonst lesen zwei parallele
+    Löschungen der letzten zwei Passkeys beide noch "2 Stück"
     unter READ COMMITTED, bevor die jeweils andere committet, und beide löschen durch.
     """
     await lock_household_security(db, user.household_id)
@@ -213,10 +213,9 @@ async def delete_credential(
             .where(WebauthnCredential.user_id == user.id)
         )
         if remaining_result.scalar_one() <= 1:
-            # Bewusste Ergänzung über den Auftrags-Wortlaut hinaus (dort nur "409
-            # ablehnen" gefordert): ein Audit-Event, weil ein abgelehnter Löschversuch des
-            # letzten Passkeys bei aktivem Exklusiv-Modus dasselbe sicherheitsrelevante
-            # Gewicht hat wie die anderen bereits auditierten Passkey-Events in dieser Datei.
+            # Audit-Event auch hier: ein abgelehnter Löschversuch des letzten Passkeys bei
+            # aktivem Exklusiv-Modus hat dasselbe sicherheitsrelevante Gewicht wie die
+            # anderen bereits auditierten Passkey-Events in dieser Datei.
             await record_event(
                 db,
                 household_id=user.household_id,

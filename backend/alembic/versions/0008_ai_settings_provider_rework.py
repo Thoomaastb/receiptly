@@ -5,27 +5,22 @@ Revision ID: 0008
 Revises: 0007
 Create Date: 2026-07-15
 
-custom_endpoint deckte bisher zwei verschiedene Bedürfnisse ab (haushaltseigene
-Ollama-Instanz vs. beliebiger OpenAI-kompatibler Drittanbieter). Der generische
-Custom-Provider entfällt ersatzlos, die Spalte wird zu endpoint_url (nur noch für die
-Ollama/Lokal-Auswahl relevant). provider verliert NOT NULL + Default "ollama": NULL
-bedeutet ab jetzt explizit "kein Haushalts-Provider konfiguriert" (Prioritätskette mit
-server-weiter .env-Konfiguration, siehe app/services/ai_provider_resolution.py).
+custom_endpoint deckte bisher zwei Bedürfnisse ab (haushaltseigene Ollama-Instanz vs.
+beliebiger OpenAI-kompatibler Drittanbieter). Der generische Custom-Provider entfällt
+ersatzlos, die Spalte wird zu endpoint_url (nur noch für Ollama/Lokal relevant). provider
+verliert NOT NULL + Default "ollama": NULL bedeutet ab jetzt explizit "kein
+Haushalts-Provider konfiguriert" (Prioritätskette mit server-weiter .env-Konfiguration,
+siehe app/services/ai_provider_resolution.py).
 
-Postgres kann Enum-Werte nicht direkt entfernen (nur ADD VALUE ist nativ unterstützt,
-nicht DROP VALUE) — daher Typ-Neuanlage: neuen Typ mit der Ziel-Wertemenge anlegen, Spalte
-per USING-Cast umhängen, alten Typ droppen, neuen umbenennen. Der DEFAULT-Ausdruck der
-Spalte (server_default='ollama' auf dem alten Typ) muss VOR dem TYPE-Wechsel entfernt
-werden — Postgres versucht sonst, den bestehenden Default-Ausdruck auf den neuen Typ zu
-casten, was zwischen zwei eigenständigen Enum-Typen ohne expliziten Cast fehlschlägt
-("default for column ... cannot be cast automatically to type ...").
+Postgres kann Enum-Werte nicht direkt entfernen (nur ADD VALUE, kein DROP VALUE) — daher
+Typ-Neuanlage: neuen Typ anlegen, Spalte per USING-Cast umhängen, alten Typ droppen, neuen
+umbenennen. Der DEFAULT-Ausdruck muss VOR dem TYPE-Wechsel entfernt werden, sonst versucht
+Postgres ihn auf den neuen Typ zu casten und scheitert.
 
 Downgrade-Hinweis: Zeilen mit provider='google' können beim Downgrade nicht auf den alten
-Enum-Typ (ohne 'google') zurückgecastet werden und lassen die Migration mit einem
-Postgres-Fehler scheitern ("invalid input value for enum ai_provider_type: google"). In
-der Praxis unkritisch, da ein Downgrade dieses Pakets nur unmittelbar nach einem
-fehlgeschlagenen Deploy gefahren würde, bevor irgendwelche Google-Konfigurationen
-existieren — trotzdem hier vermerkt, falls doch mal danach downgegradet wird.
+Enum-Typ zurückgecastet werden und lassen die Migration scheitern — in der Praxis
+unkritisch, da ein Downgrade nur unmittelbar nach einem fehlgeschlagenen Deploy gefahren
+würde, bevor Google-Konfigurationen existieren.
 """
 from typing import Sequence, Union
 

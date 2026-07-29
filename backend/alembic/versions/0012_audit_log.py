@@ -4,29 +4,21 @@ Revision ID: 0012
 Revises: 0011
 Create Date: 2026-07-20
 
-Teil von Phase 1 des Security-Hardening-Plans (Rate-Limiting + Audit-Log). Protokolliert
-sicherheitsrelevante Ereignisse (Login-Erfolg/-Fehlschlag, Passwortänderung, Session-
-Beendigung, Rate-Limit-Treffer, ...) pro Haushalt.
+Protokolliert sicherheitsrelevante Ereignisse (Login-Erfolg/-Fehlschlag, Passwortänderung,
+Session-Beendigung, Rate-Limit-Treffer, ...) pro Haushalt.
 
-Immutability via Trigger mit Session-GUC-Bypass statt hartem Verbot ohne Ausweg: ein
-reines "verbiete jedes UPDATE/DELETE" hätte keinen Weg für eine spätere, policy-
-gesteuerte Retention-Löschung (kommt in Phase 2, `cleanup_audit_log.py`). Stattdessen
-prüft der Trigger die Session-GUC `audit.allow_delete` — nur wenn sie in der aktuellen
-Transaktion explizit auf 'true' gesetzt wurde, lässt der Trigger die Operation durch.
-Normale API-Request-DB-Sessions setzen diese GUC nie und sind damit strukturell unfähig,
-audit_log-Zeilen zu ändern/löschen, selbst bei einem Bug im App-Code.
+Immutability via Trigger mit Session-GUC-Bypass statt hartem Verbot ohne Ausweg: eine
+spätere policy-gesteuerte Retention-Löschung braucht einen Weg daran vorbei. Der Trigger
+prüft die Session-GUC `audit.allow_delete` — nur wenn sie in der aktuellen Transaktion
+explizit auf 'true' gesetzt wurde, lässt er UPDATE/DELETE durch. Normale API-Request-
+Sessions setzen diese GUC nie.
 
-WICHTIG für künftige Migrationen, die audit_log-Zeilen selbst anfassen müssen (z.B. ein
-Rename von event_type-Werten): sie müssen in ihrer eigenen Transaktion selbst
-`SET LOCAL audit.allow_delete = 'true'` setzen — dieselbe GUC gilt für UPDATE und DELETE
-(siehe Trigger-Funktion unten, `COALESCE(NEW, OLD)`), sonst schlagen sie am eigenen
-Trigger fehl. Beispiel:
+Künftige Migrationen, die audit_log-Zeilen selbst anfassen müssen, brauchen deshalb:
     op.execute(sa.text("SET LOCAL audit.allow_delete = 'true'"))
     op.execute(sa.text("UPDATE audit_log SET ..."))
 
-id folgt der Projekt-Konvention aus allen anderen Tabellen (siehe z.B. app/models/user.py,
-app/models/receipt.py): Python-seitiges `default=uuid.uuid4` statt server_default
-gen_random_uuid() — kein Precedent im Projekt für Postgres-seitige UUID-Generierung.
+id folgt der Projekt-Konvention (Python-seitiges `default=uuid.uuid4` statt server_default
+gen_random_uuid()).
 """
 from typing import Sequence, Union
 

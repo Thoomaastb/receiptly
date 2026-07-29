@@ -39,13 +39,12 @@ async def get_or_create_security_settings(
 
 async def lock_household_security(db: AsyncSession, household_id: uuid.UUID) -> None:
     """
-    Serialisiert die drei zusammengehörigen Security-Hardening-Operationen auf einen
-    Haushalt (Aktivierungs-PUT für passkey_exclusive_login, Invite-Guard, Löschprüfung
-    des letzten Passkeys) gegeneinander — siehe Security-Review Phase 4 (M1/M2). Ohne
-    diesen Lock liest ein zweiter, parallel laufender Request unter READ COMMITTED
-    denselben Vorher-Zustand, bevor der erste committet hat (TOCTOU): zwei parallele
-    Löschungen der letzten zwei Passkeys sehen beide noch "2 Stück" und lassen beide
-    durch; ein Invite kurz vor dem Aktivierungs-Commit sieht den Schalter noch als aus.
+    Serialisiert drei zusammengehörige Operationen auf einen Haushalt (Aktivierungs-PUT
+    für passkey_exclusive_login, Invite-Guard, Löschprüfung des letzten Passkeys)
+    gegeneinander. Ohne diesen Lock liest ein zweiter, parallel laufender Request unter
+    READ COMMITTED denselben Vorher-Zustand, bevor der erste committet hat (TOCTOU): zwei
+    parallele Löschungen der letzten zwei Passkeys sehen beide noch "2 Stück" und lassen
+    beide durch; ein Invite kurz vor dem Aktivierungs-Commit sieht den Schalter noch als aus.
 
     Postgres-Advisory-Transaction-Lock statt `SELECT ... FOR UPDATE` auf
     `household_security_settings`, weil diese Zeile für einen Haushalt noch gar nicht

@@ -4,26 +4,21 @@
 	import { m } from '$lib/i18n';
 	import { runPasskeyAssertion } from '$lib/webauthn';
 
-	// Erstes "Tipp-Bestätigung"-Modal im Projekt (Konzept 3.3/Q11) — Modal-Chrome nach dem
-	// Muster von ReauthDialog.svelte (Backdrop, role=dialog, Escape-Handling,
-	// Fokus-Management). Re-Auth-Faktor-Wahl UND Tipp-Bestätigung sind bewusst EIN
-	// zusammenhängendes Formular in einem einzigen Dialog (kein verschachteltes zweites
-	// Modal) — daher wird ReauthDialog hier NICHT eingebettet, sondern die Faktor-Auswahl
-	// direkt inline nachgebaut. Ein struktureller Grund kommt hinzu: anders als bei
-	// ReauthDialog (Passwort ODER TOTP als Alternativen) verlangt der Backend-Vertrag für
-	// die Löschung Passwort ODER Passkey ALS PRIMÄRFAKTOR, PLUS zusätzlich TOTP, falls der
-	// User es aktiv hat (app/services/account_deletion.py::verify_active_login_factor) —
-	// beide Faktoren gleichzeitig, nicht alternativ. Das passt nicht in ReauthDialogs
+	// Erstes "Tipp-Bestätigung"-Modal im Projekt — Modal-Chrome nach dem Muster von
+	// ReauthDialog.svelte (Backdrop, role=dialog, Escape-Handling, Fokus-Management).
+	// ReauthDialog wird hier NICHT eingebettet: Re-Auth-Faktor-Wahl und Tipp-Bestätigung
+	// sind ein zusammenhängendes Formular, kein verschachteltes zweites Modal. Zusätzlich
+	// verlangt der Backend-Vertrag für die Löschung Passwort ODER Passkey ALS PRIMÄRFAKTOR,
+	// PLUS TOTP falls aktiv (app/services/account_deletion.py::verify_active_login_factor)
+	// — beide Faktoren gleichzeitig statt alternativ, das passt nicht in ReauthDialogs
 	// 2/3-Wege-Tab-Modell.
 	export let onClose: () => void;
 	export let onDeleted: () => void;
 	// Best-effort vom Aufrufer übergeben (z.B. aus GET /settings/security-policy) — dieser
-	// Endpoint ist aber `require_admin`-geschützt, ein normaler Haushalts-Mitglied kann also
-	// serverseitig NICHT im Voraus erfahren, ob passkey_exclusive_login aktiv ist. Für
-	// Nicht-Admins bleibt der Prop entsprechend `false` (unbekannt) — siehe der adaptive
-	// Fallback in handleDelete() weiter unten, der auf die serverseitige Ablehnung reagiert,
-	// statt sich auf eine Vorab-Kenntnis zu verlassen, die es für diese User schlicht nicht
-	// geben kann, ohne das Backend zu ändern (außerhalb des Auftragsumfangs).
+	// Endpoint ist `require_admin`-geschützt, ein normales Haushaltsmitglied kann also
+	// serverseitig nicht vorab wissen, ob passkey_exclusive_login aktiv ist. Für Nicht-
+	// Admins bleibt der Prop entsprechend `false`; handleDelete() reagiert stattdessen
+	// adaptiv auf die serverseitige Ablehnung.
 	export let passkeyExclusiveActive = false;
 
 	type Method = 'password' | 'passkey';

@@ -9,11 +9,10 @@ from app.models.mixins import UpdatableTimestampMixin
 
 class HouseholdSecuritySettings(Base, UpdatableTimestampMixin):
     """
-    Haushaltsweite Sicherheitsrichtlinien (Phase 2 des Security-Hardening-Plans):
-    TOTP-Pflicht für alle Haushaltsmitglieder, Audit-Log-Retention und ob fehlgeschlagene
-    Logins mit unbekanntem Username den versuchten Usernamen mitloggen (Datenschutz-
-    Schalter). `passkey_exclusive_login` kam erst in Phase 4 dazu (Begründung siehe
-    Migration 0017 — Lehre aus `users.totp_secret`, s.o.).
+    Haushaltsweite Sicherheitsrichtlinien: TOTP-Pflicht für alle Haushaltsmitglieder,
+    Audit-Log-Retention und ob fehlgeschlagene Logins mit unbekanntem Username den
+    versuchten Usernamen mitloggen (Datenschutz-Schalter). `passkey_exclusive_login` kam
+    erst später dazu (Begründung siehe Migration 0017).
     """
 
     __tablename__ = "household_security_settings"
