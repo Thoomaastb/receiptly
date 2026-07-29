@@ -1,3 +1,9 @@
+## [0.49.4](https://github.com/Thoomaastb/receiptly/compare/v0.49.3...v0.49.4) (2026-07-29)
+
+### Bug Fixes
+
+* **ui:** effektiven Ollama-Host im gesperrten KI-Provider-Formular anzeigen ([f4449a6](https://github.com/Thoomaastb/receiptly/commit/f4449a6ffe906ebed6db806685a14e228bbbb000))
+
 ## [0.49.3](https://github.com/Thoomaastb/receiptly/compare/v0.49.2...v0.49.3) (2026-07-29)
 
 ### Bug Fixes
