@@ -328,7 +328,10 @@ async def _apply_extraction_result(db: AsyncSession, receipt: Receipt, data: dic
     if isinstance(merchant_name, str) and merchant_name.strip():
         # Ausschließlich der Vorschlagsspalte zugewiesen — die KI legt nie selbst einen
         # Merchant an, das passiert erst, wenn der Nutzer den Vorschlag über PATCH übernimmt.
-        receipt.ai_suggested_merchant_name = merchant_name.strip()[:255]
+        # Nur solange kein Merchant bestätigt ist (merchant_id is None) — sonst würde jedes
+        # "Neu analysieren" den längst bestätigten Händler erneut als offenen Vorschlag zeigen.
+        if receipt.merchant_id is None:
+            receipt.ai_suggested_merchant_name = merchant_name.strip()[:255]
     else:
         notes.append("Kein Händler erkannt")
 
@@ -350,7 +353,10 @@ async def _apply_extraction_result(db: AsyncSession, receipt: Receipt, data: dic
     success = (
         receipt.receipt_date is not None
         and receipt.total_amount is not None
-        and bool(receipt.ai_suggested_merchant_name)
+        # Händler gilt als bekannt, wenn entweder ein neuer Vorschlag vorliegt ODER bereits
+        # ein Merchant bestätigt ist — Letzteres bleibt bei einer Re-Analyse nach Bestätigung
+        # bewusst None (siehe Guard oben), zählt aber trotzdem als Erfolg.
+        and (bool(receipt.ai_suggested_merchant_name) or receipt.merchant_id is not None)
     )
     receipt.ai_extracted_at = datetime.now(timezone.utc)
     if success:
