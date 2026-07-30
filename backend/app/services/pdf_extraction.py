@@ -10,8 +10,10 @@ logger = logging.getLogger(__name__)
 
 # Heuristik-Wert, kein exakter Schwellenwert: darunter gilt eine Seite als "keine nutzbare
 # Text-Ebene" (z.B. nur Kopfzeile/Seitenzahl eingebettet) und wird stattdessen per OCR
-# gerendert.
-_MIN_TEXT_LAYER_CHARS = 40
+# gerendert. War zuvor 40 — zu niedrig, eine Seite mit nur Kopfzeile/Wasserzeichen/Metadaten
+# konnte die Schwelle knapp überschreiten, ohne brauchbaren Rechnungsinhalt zu enthalten, und
+# den OCR-Fallback fälschlich überspringen (siehe Bugs-Seite, "OCR-Autofill" 2026-07-30).
+_MIN_TEXT_LAYER_CHARS = 120
 
 # Kompromiss Qualität/Performance für Tesseract — höher bringt kaum bessere Trefferquote,
 # kostet aber überproportional mehr Rechenzeit pro Seite.

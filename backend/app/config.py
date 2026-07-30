@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     ai_key: str | None = None  # zugehöriger API-Key, direkt aus .env, nie in der DB
     ai_extraction_timeout_seconds: float = 25.0
     ai_extraction_max_ocr_chars: int = 4000
+    # Tesseract läuft synchron ohne eigenes Timeout (siehe pdf_extraction.py) — Obergrenze
+    # hier, damit ein hängender/sehr langsamer OCR-Lauf bei mehrseitigen Scans den
+    # Background-Task nicht unbegrenzt blockiert.
+    pdf_ocr_timeout_seconds: float = 60.0
 
     smtp_host: str = ""
     smtp_port: int = 587

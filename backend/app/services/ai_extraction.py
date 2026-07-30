@@ -173,7 +173,23 @@ async def _run(db: AsyncSession, receipt_id: uuid.UUID, household_id: uuid.UUID)
         # deshalb bewusst (siehe UploadFlow.svelte) — hier stattdessen serverseitig aus dem
         # PDF selbst extrahieren, bevor der Beleg vorschnell auf needs_review landet.
         if receipt.file_path.lower().endswith(".pdf"):
-            pdf_text = await asyncio.to_thread(extract_pdf_text, Path(receipt.file_path))
+            try:
+                pdf_text = await asyncio.wait_for(
+                    asyncio.to_thread(extract_pdf_text, Path(receipt.file_path)),
+                    timeout=settings.pdf_ocr_timeout_seconds,
+                )
+            except TimeoutError:
+                # asyncio.to_thread-Threads sind nicht abbrechbar — der Tesseract-Subprozess
+                # läuft im Hintergrund-Thread weiter, nur dieser wartende Task wird durch das
+                # Timeout freigegeben. Unkritisch, da Background-Task ohne offene
+                # HTTP-Verbindung. Früher Return statt Durchfallen, damit die generische
+                # "Kein OCR-Text vorhanden"-Meldung weiter unten die präzisere Diagnose nicht
+                # überschreibt.
+                logger.warning(
+                    "OCR-Zeitüberschreitung bei Beleg %s (>%.0fs)", receipt_id, settings.pdf_ocr_timeout_seconds
+                )
+                await _finish_needs_review(db, receipt, "OCR-Zeitüberschreitung")
+                return
             if pdf_text.strip():
                 receipt.ocr_raw_text = pdf_text
 
