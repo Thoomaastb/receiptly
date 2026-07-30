@@ -1,3 +1,11 @@
+## [0.49.6-rc.4](https://github.com/Thoomaastb/receiptly/compare/v0.49.6-rc.3...v0.49.6-rc.4) (2026-07-30)
+
+### Bug Fixes
+
+* **frontend:** Favicon und Tab-Titel ergänzen ([5077ef4](https://github.com/Thoomaastb/receiptly/commit/5077ef4970bb81ed813c97688e963043791cf574))
+* **receipts:** OCR-Fallback mit Timeout absichern und Text-Layer-Schwelle anheben ([24c0a05](https://github.com/Thoomaastb/receiptly/commit/24c0a0520aeb60daaca13f846f9e5846c166b174))
+* **update-check:** Pre-Release-Versionen korrekt vergleichen und dreistufigen Update-Hinweis einführen ([49fc63a](https://github.com/Thoomaastb/receiptly/commit/49fc63a4e0f9da3f9f60efd217af71ef223de3cf))
+
 ## [0.49.6-rc.3](https://github.com/Thoomaastb/receiptly/compare/v0.49.6-rc.2...v0.49.6-rc.3) (2026-07-30)
 
 ### Bug Fixes
