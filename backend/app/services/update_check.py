@@ -19,7 +19,12 @@ settings = get_settings()
 _redis = redis.from_url(settings.redis_url, decode_responses=True)
 
 _GITHUB_RELEASES_URL = "https://api.github.com/repos/Thoomaastb/receiptly/releases/latest"
+# Plural/Listen-Endpoint (im Gegensatz zu /releases/latest oben) — liefert auch Pre-Releases,
+# erster Eintrag ist der chronologisch neueste Release insgesamt (stable ODER pre-release).
+# GitHub liefert bereits korrekt chronologisch sortiert, kein eigenes Ranking nötig.
+_GITHUB_RELEASES_LIST_URL = "https://api.github.com/repos/Thoomaastb/receiptly/releases"
 _CACHE_KEY = "update:latest_release"
+_CACHE_KEY_OVERALL = "update:latest_overall"
 # TTL als Selbstheilungs-Netz, proportional zum 15-Minuten-Takt (siehe scheduler.py):
 # läuft der Job dauerhaft aus (Crash, Downtime), verschwindet der Hinweis nach 2h
 # von selbst (~8 verpasste Zyklen Toleranz) statt einen veralteten Stand unbegrenzt
@@ -46,30 +51,63 @@ async def check_for_update() -> None:
     """
     if not await _is_enabled():
         return
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        # Beide Calls getrennt abgesichert — ein Fehlschlag des einen (z.B. Rate-Limit auf
+        # genau diesem Endpoint) soll den zuvor gecachten Wert des anderen nicht wegwerfen.
+        try:
             response = await client.get(
                 _GITHUB_RELEASES_URL, headers={"Accept": "application/vnd.github+json"}
             )
             response.raise_for_status()
             data = response.json()
-        tag = data.get("tag_name")
-        url = data.get("html_url")
-        if isinstance(tag, str) and tag:
-            await _redis.set(_CACHE_KEY, f"{tag}|{url or ''}", ex=_CACHE_TTL_SECONDS)
-    except (httpx.HTTPError, ValueError) as exc:
-        # Nie den Scheduler-Job sterben lassen — GitHub down/Rate-Limit ist kein
-        # App-Fehler, alter Cache-Wert bleibt bis TTL-Ablauf gültig.
-        logger.info("Update-Check fehlgeschlagen (nicht kritisch): %s", exc)
+            tag = data.get("tag_name")
+            url = data.get("html_url")
+            if isinstance(tag, str) and tag:
+                await _redis.set(_CACHE_KEY, f"{tag}|{url or ''}", ex=_CACHE_TTL_SECONDS)
+        except (httpx.HTTPError, ValueError) as exc:
+            # Nie den Scheduler-Job sterben lassen — GitHub down/Rate-Limit ist kein
+            # App-Fehler, alter Cache-Wert bleibt bis TTL-Ablauf gültig.
+            logger.info("Update-Check (latest stable) fehlgeschlagen (nicht kritisch): %s", exc)
+
+        try:
+            response = await client.get(
+                _GITHUB_RELEASES_LIST_URL, headers={"Accept": "application/vnd.github+json"}
+            )
+            response.raise_for_status()
+            releases = response.json()
+            newest = releases[0] if isinstance(releases, list) and releases else None
+            tag = newest.get("tag_name") if newest else None
+            url = newest.get("html_url") if newest else None
+            prerelease = bool(newest.get("prerelease")) if newest else False
+            if isinstance(tag, str) and tag:
+                await _redis.set(
+                    _CACHE_KEY_OVERALL,
+                    f"{tag}|{url or ''}|{'1' if prerelease else '0'}",
+                    ex=_CACHE_TTL_SECONDS,
+                )
+        except (httpx.HTTPError, ValueError) as exc:
+            logger.info("Update-Check (latest overall) fehlgeschlagen (nicht kritisch): %s", exc)
 
 
 async def get_cached_update_info() -> tuple[str, str] | None:
-    """Liefert (tag, release_url) aus dem Cache, oder None wenn noch nie erfolgreich geprüft."""
+    """Liefert (tag, release_url) der neuesten STABLE-Version aus dem Cache, oder None wenn
+    noch nie erfolgreich geprüft."""
     raw = await _redis.get(_CACHE_KEY)
     if not raw:
         return None
     tag, _, url = raw.partition("|")
     return (tag, url) if tag else None
+
+
+async def get_cached_overall_info() -> tuple[str, str, bool] | None:
+    """Liefert (tag, release_url, prerelease) der chronologisch NEUESTEN Version insgesamt
+    (stable oder pre-release) aus dem Cache, oder None wenn noch nie erfolgreich geprüft."""
+    raw = await _redis.get(_CACHE_KEY_OVERALL)
+    if not raw:
+        return None
+    tag, _, rest = raw.partition("|")
+    url, _, prerelease_flag = rest.partition("|")
+    return (tag, url, prerelease_flag == "1") if tag else None
 
 
 async def is_update_check_enabled() -> bool:

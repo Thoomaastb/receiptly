@@ -239,7 +239,9 @@ export const de = {
 		title: 'Update verfügbar',
 		versionText: 'Version {version} ist verfügbar.',
 		releaseNotesLink: 'Versionshinweise ansehen',
-		dismissAriaLabel: 'Schließen'
+		dismissAriaLabel: 'Schließen',
+		mutedTitle: 'Neuere Version verfügbar',
+		mutedVersionText: 'Version {version} ist bereits veröffentlicht.'
 	},
 
 	// Glocken-Flyout in der Topbar (v0.25.0, Benachrichtigungssystem)
