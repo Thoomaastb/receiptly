@@ -50,6 +50,9 @@
 
 	const fileUrl = `/api/receipts/${receiptId}/file`;
 	$: isImageFile = /\.(jpe?g|png)$/i.test(filePath);
+	// GET /thumb liefert 404, wenn kein serverseitiges Thumbnail existiert (alte Belege,
+	// fehlgeschlagene Generierung) — analog zum Fallback-Muster in ReceiptRow.svelte.
+	let thumbFailed = false;
 
 	// Solange Datum/Betrag/Währung nur eine unbestätigte Heuristik-/KI-Schätzung sind
 	// (Backend liefert dann einen Wert statt null), dezenten Hinweis in Lese- und
@@ -107,6 +110,13 @@
 			: null;
 	$: itemsIncomplete = items.length > 0 && itemsSumDiff !== null && Math.abs(itemsSumDiff) > 0.004;
 	$: hasAdjustments = shippingCost !== null || discountAmount !== null || taxAmount !== null;
+	// Passive Anzeige in der Leseansicht, damit sichtbar ist, was KI/manuelle Eingabe erkannt
+	// haben, ohne extra ins Bearbeiten-Formular zu müssen (dort liegen die Rohwerte).
+	$: adjustmentParts = [
+		shippingCost !== null ? `Versand ${shippingCost.toFixed(2)} ${currency}` : null,
+		discountAmount !== null ? `Rabatt −${discountAmount.toFixed(2)} ${currency}` : null,
+		taxAmount !== null ? `Steuer ${taxAmount.toFixed(2)} ${currency}` : null
+	].filter((part): part is string => part !== null);
 
 	// --- Kernfelder bearbeiten (Datum/Betrag/Händler/Hochwertig/Garantie) ---
 	// Manuelle Bearbeitung, solange die KI-Struktur-Extraktion aus dem OCR-Text noch
@@ -483,12 +493,23 @@
 			{#if isImageFile}
 				<img src={fileUrl} alt="Beleg-Vorschau" class="h-full max-h-[520px] w-full object-contain" />
 			{:else}
-				<div class="flex flex-col items-center gap-2" style="background: repeating-linear-gradient(135deg, var(--color-stripe-doc-a) 0, var(--color-stripe-doc-a) 10px, var(--color-stripe-doc-b) 10px, var(--color-stripe-doc-b) 20px); position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;">
+				<!-- Serverseitiges Thumbnail (erste PDF-Seite, siehe app/services/storage.py) als
+				     Vorschau — mit demselben 404-Fallback-Muster wie ReceiptRow.svelte: schlägt es
+				     fehl (alte Belege ohne generiertes Thumbnail), bleibt nur die Öffnen-Kachel. -->
+				<div class="absolute inset-0 flex items-center justify-center" style={thumbFailed ? 'background: repeating-linear-gradient(135deg, var(--color-stripe-doc-a) 0, var(--color-stripe-doc-a) 10px, var(--color-stripe-doc-b) 10px, var(--color-stripe-doc-b) 20px);' : ''}>
+					{#if !thumbFailed}
+						<img
+							src={`/api/receipts/${receiptId}/thumb`}
+							alt="Beleg-Vorschau (erste Seite)"
+							class="h-full max-h-[520px] w-full object-contain"
+							on:error={() => (thumbFailed = true)}
+						/>
+					{/if}
 					<a
 						href={fileUrl}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="flex items-center gap-2 rounded-md bg-hifi-surface/80 px-3 py-1.5 font-mono text-xs font-semibold text-hifi-accent-text hover:bg-hifi-surface"
+						class="flex items-center gap-2 rounded-md bg-hifi-surface/80 px-3 py-1.5 font-mono text-xs font-semibold text-hifi-accent-text hover:bg-hifi-surface {thumbFailed ? '' : 'absolute bottom-3'}"
 					>
 						PDF-Dokument öffnen
 					</a>
@@ -699,6 +720,11 @@
 					<div class="text-2xl font-bold">
 						{totalAmount !== null ? `${totalAmount.toFixed(2)} ${currency}` : 'Betrag folgt (OCR/KI)'}{#if amountIsEstimate && totalAmount !== null}<span class="text-sm font-normal text-hifi-accent-text"> · geschätzt</span>{/if}
 					</div>
+					{#if adjustmentParts.length > 0}
+						<div class="mt-1 text-[12px] text-hifi-text-muted">
+							{adjustmentParts.join(' · ')}
+						</div>
+					{/if}
 				</div>
 				{#if customFields}
 					{#each categoryFields(category) as field (field.key)}
