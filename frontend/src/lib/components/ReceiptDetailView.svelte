@@ -1034,7 +1034,7 @@
 					</div>
 					{aiExtractionNote}
 				</div>
-			{:else}
+			{:else if !aiExtractedAt}
 				<div class="rounded-[14px] bg-hifi-accent-tint p-3.5">
 					<div class="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-hifi-accent-text">
 						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1043,6 +1043,16 @@
 						KI-Zusammenfassung
 					</div>
 					<div class="text-xs text-hifi-text-muted">Noch keine KI-Analyse für diesen Beleg.</div>
+				</div>
+			{:else}
+				<div class="rounded-[14px] bg-hifi-accent-tint p-3.5">
+					<div class="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-hifi-accent-text">
+						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
+						</svg>
+						KI-Zusammenfassung
+					</div>
+					<div class="text-xs text-hifi-text-muted">Beleg wurde von der KI geprüft — keine neuen Vorschläge.</div>
 				</div>
 			{/if}
 
