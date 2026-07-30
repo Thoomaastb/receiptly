@@ -65,13 +65,13 @@
 
 	let appVersion = '';
 
-	// Sidebar-Footer-Update-Hinweis (Schritt 4/5 des Konzept-Plans): nur befüllt, wenn der
-	// Update-Check serverseitig aktiv ist UND bereits ein Cache-Wert vorliegt -- GET
-	// /api/health liefert die drei Felder dann zusätzlich zu version. Rendering/Verdrahtung
-	// von UpdateBanner.svelte folgt erst in Schritt 5, hier nur die Datenbeschaffung.
-	let latestVersion = '';
-	let releaseUrl = '';
-	let updateAvailable = false;
+	// Sidebar-Footer-Update-Hinweis: nur befüllt, wenn der Update-Check serverseitig aktiv ist
+	// UND bereits ein Cache-Wert vorliegt -- GET /api/health liefert `update_info` dann
+	// zusätzlich zu version. 3-Stufen-Logik (none/prominent/muted) kommt bereits fertig
+	// berechnet vom Backend (siehe app/api/health.py), hier nur Datenbeschaffung.
+	let updateLevel: 'none' | 'prominent' | 'muted' = 'none';
+	let updateTargetVersion = '';
+	let updateReleaseUrl = '';
 
 	// Lizenz-Attribution im Sidebar-Footer (AGPL-3.0 + Zusatzklausel §7(b) der LICENSE,
 	// erfordert eine sichtbare Urheber-Attribution in der UI jeder laufenden Instanz).
@@ -254,9 +254,9 @@
 			if (healthRes.ok) {
 				const health = await healthRes.json();
 				appVersion = health.version ?? '';
-				latestVersion = health.latest_version ?? '';
-				releaseUrl = health.release_url ?? '';
-				updateAvailable = health.update_available ?? false;
+				updateLevel = health.update_info?.level ?? 'none';
+				updateTargetVersion = health.update_info?.target_version ?? '';
+				updateReleaseUrl = health.update_info?.release_url ?? '';
 			}
 		} catch {
 			// Versionsanzeige ist rein informativ — kein Fehler-UI nötig für dieses Detail
@@ -293,6 +293,10 @@
 		stopPolling();
 	});
 </script>
+
+<svelte:head>
+	<title>receiptly</title>
+</svelte:head>
 
 <svelte:window on:click={handleUserMenuClickOutside} on:keydown={handleUserMenuKeydown} />
 
@@ -627,8 +631,13 @@
 			</div>
 
 			<div class="flex-none pt-3">
-				{#if updateAvailable && latestVersion && releaseUrl}
-					<UpdateBanner {latestVersion} {releaseUrl} {isAdmin} />
+				{#if updateLevel !== 'none' && updateTargetVersion}
+					<UpdateBanner
+						level={updateLevel}
+						targetVersion={updateTargetVersion}
+						releaseUrl={updateReleaseUrl}
+						{isAdmin}
+					/>
 				{/if}
 				{#if isAdmin}
 					<AiUsageBadge />
