@@ -1,3 +1,9 @@
+## [0.49.6-rc.2](https://github.com/Thoomaastb/receiptly/compare/v0.49.6-rc.1...v0.49.6-rc.2) (2026-07-30)
+
+### Bug Fixes
+
+* **receipts:** erneuten Händler-Vorschlag nach Bestätigung unterbinden ([00c7dc6](https://github.com/Thoomaastb/receiptly/commit/00c7dc60618a2613b89e47fdb1ad1833ca83cef6))
+
 ## [0.49.6-rc.1](https://github.com/Thoomaastb/receiptly/compare/v0.49.5...v0.49.6-rc.1) (2026-07-29)
 
 ### Bug Fixes
