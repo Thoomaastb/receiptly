@@ -1,3 +1,9 @@
+## [0.49.6-rc.5](https://github.com/Thoomaastb/receiptly/compare/v0.49.6-rc.4...v0.49.6-rc.5) (2026-07-30)
+
+### Bug Fixes
+
+* **receipts:** irreführende KI-Zusammenfassung bei erfolgloser Neuanalyse korrigieren ([93e385a](https://github.com/Thoomaastb/receiptly/commit/93e385a2f721696ced2ce00394aff67696871e56))
+
 ## [0.49.6-rc.4](https://github.com/Thoomaastb/receiptly/compare/v0.49.6-rc.3...v0.49.6-rc.4) (2026-07-30)
 
 ### Bug Fixes
