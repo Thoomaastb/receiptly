@@ -45,6 +45,9 @@
 	export let aiSuggestedReceiptDate: string | null = null;
 	export let aiSuggestedTotalAmount: number | null = null;
 	export let aiSuggestedCurrency: string | null = null;
+	export let aiSuggestedShippingCost: number | null = null;
+	export let aiSuggestedDiscountAmount: number | null = null;
+	export let aiSuggestedTaxAmount: number | null = null;
 	export let onBack: () => void;
 	export let onUpdated: (() => void) | undefined = undefined;
 	export let onDeleted: (() => void) | undefined = undefined;
@@ -61,6 +64,9 @@
 	$: dateIsEstimate = aiSuggestedReceiptDate !== null;
 	$: amountIsEstimate = aiSuggestedTotalAmount !== null;
 	$: currencyIsEstimate = aiSuggestedCurrency !== null;
+	$: shippingIsEstimate = aiSuggestedShippingCost !== null;
+	$: discountIsEstimate = aiSuggestedDiscountAmount !== null;
+	$: taxIsEstimate = aiSuggestedTaxAmount !== null;
 
 	let deleting = false;
 	let shareModalOpen = false;
@@ -114,9 +120,15 @@
 	// Passive Anzeige in der Leseansicht, damit sichtbar ist, was KI/manuelle Eingabe erkannt
 	// haben, ohne extra ins Bearbeiten-Formular zu müssen (dort liegen die Rohwerte).
 	$: adjustmentParts = [
-		shippingCost !== null ? `Versand ${shippingCost.toFixed(2)} ${currency}` : null,
-		discountAmount !== null ? `Rabatt −${discountAmount.toFixed(2)} ${currency}` : null,
-		taxAmount !== null ? `Steuer ${taxAmount.toFixed(2)} ${currency}` : null
+		shippingCost !== null
+			? `Versand ${shippingCost.toFixed(2)} ${currency}${shippingIsEstimate ? ' · geschätzt' : ''}`
+			: null,
+		discountAmount !== null
+			? `Rabatt −${discountAmount.toFixed(2)} ${currency}${discountIsEstimate ? ' · geschätzt' : ''}`
+			: null,
+		taxAmount !== null
+			? `Steuer ${taxAmount.toFixed(2)} ${currency}${taxIsEstimate ? ' · geschätzt' : ''}`
+			: null
 	].filter((part): part is string => part !== null);
 
 	// --- Kernfelder bearbeiten (Datum/Betrag/Händler/Hochwertig/Garantie) ---
@@ -192,6 +204,9 @@
 		ai_suggested_receipt_date?: string | null;
 		ai_suggested_total_amount?: number | null;
 		ai_suggested_currency?: string | null;
+		ai_suggested_shipping_cost?: number | null;
+		ai_suggested_discount_amount?: number | null;
+		ai_suggested_tax_amount?: number | null;
 	}) {
 		receiptDate = detail.receipt_date;
 		totalAmount = detail.total_amount;
@@ -221,6 +236,13 @@
 			aiSuggestedTotalAmount = detail.ai_suggested_total_amount;
 		}
 		if (detail.ai_suggested_currency !== undefined) aiSuggestedCurrency = detail.ai_suggested_currency;
+		if (detail.ai_suggested_shipping_cost !== undefined) {
+			aiSuggestedShippingCost = detail.ai_suggested_shipping_cost;
+		}
+		if (detail.ai_suggested_discount_amount !== undefined) {
+			aiSuggestedDiscountAmount = detail.ai_suggested_discount_amount;
+		}
+		if (detail.ai_suggested_tax_amount !== undefined) aiSuggestedTaxAmount = detail.ai_suggested_tax_amount;
 	}
 
 	// --- KI-Struktur-Extraktions-Vorschlag (Übernehmen/Verwerfen/Neu analysieren) ---
@@ -485,20 +507,30 @@
 	}
 </script>
 
-<div>
-	<button on:click={onBack} class="mb-4 flex items-center gap-1.5 text-sm font-medium text-hifi-text-muted hover:text-hifi-text">
+<div class="flex flex-col sm:h-full sm:min-h-0">
+	<button on:click={onBack} class="mb-4 flex-none flex items-center gap-1.5 text-sm font-medium text-hifi-text-muted hover:text-hifi-text">
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 			<path d="M15 18l-6-6 6-6" />
 		</svg>
 		Zurück
 	</button>
 
-	<div class="grid grid-cols-1 gap-6 rounded-[20px] border border-hifi-border bg-hifi-surface p-2 sm:grid-cols-[1.1fr_0.9fr]">
+	<!-- Card ab sm: höhenbegrenzt (füllt den durch das h-screen-Flex-Layout in +layout.svelte
+	     ohnehin schon vorgegebenen verfügbaren Platz unterhalb der Topbar/oberhalb von main's
+	     Padding) statt zu versuchen, das Bild selbst exakt in eine unklare Höhe zu zwingen — die
+	     rechte Detail-Spalte scrollt bei Bedarf INNERHALB der Card (siehe dort). Unter sm bleibt
+	     alles gestapelt und folgt normalem Seiten-Scrolling (main ist bereits overflow-y-auto). -->
+	<div class="grid grid-cols-1 gap-6 rounded-[20px] border border-hifi-border bg-hifi-surface p-2 sm:min-h-0 sm:flex-1 sm:grid-cols-[1.1fr_0.9fr] sm:overflow-hidden">
 		<!-- Links: Vorschau-Panel — Bild direkt eingebettet, PDF als Kachel mit Öffnen-Link
-		     (kein <iframe>, um von PDF-Viewer-Eigenheiten je Browser unabhängig zu bleiben) -->
-		<div class="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-2xl bg-hifi-surface sm:min-h-[520px]">
+		     (kein <iframe>, um von PDF-Viewer-Eigenheiten je Browser unabhängig zu bleiben).
+		     Feste Höhe (statt nur min-height) ist nötig, damit h-full auf dem <img> überhaupt
+		     etwas zum Auflösen hat — eine reine min-height macht die Höhe des Containers für
+		     Prozent-Angaben nicht "bestimmt" (CSS-Spec-Quirk), das war Kern des Bugs. Ab sm
+		     übernimmt die durch das Grid gestreckte, von der Card-Höhenbegrenzung abgeleitete
+		     Höhe (sm:h-full) diese Rolle. -->
+		<div class="relative flex h-[320px] items-center justify-center overflow-hidden rounded-2xl bg-hifi-surface sm:h-full sm:min-h-0">
 			{#if isImageFile}
-				<img src={fileUrl} alt="Beleg-Vorschau" class="h-full max-h-[520px] w-full object-contain" />
+				<img src={fileUrl} alt="Beleg-Vorschau" class="h-full w-full object-contain" />
 			{:else}
 				<!-- Serverseitiges Thumbnail (erste PDF-Seite, siehe app/services/storage.py) als
 				     Vorschau — mit demselben 404-Fallback-Muster wie ReceiptRow.svelte: schlägt es
@@ -508,7 +540,7 @@
 						<img
 							src={`/api/receipts/${receiptId}/thumb`}
 							alt="Beleg-Vorschau (erste Seite)"
-							class="h-full max-h-[520px] w-full object-contain"
+							class="h-full w-full object-contain"
 							on:error={() => (thumbFailed = true)}
 						/>
 					{/if}
@@ -534,8 +566,10 @@
 			</a>
 		</div>
 
-		<!-- Rechts: Metadaten -->
-		<div class="flex flex-col gap-4 p-4 sm:p-2">
+		<!-- Rechts: Metadaten — scrollt ab sm eigenständig innerhalb der höhenbegrenzten Card
+		     (Lese- UND Bearbeiten-Modus, beide landen in diesem selben Wrapper), damit die
+		     Bild-Vorschau links immer komplett sichtbar bleibt statt mit hochzuscrollen. -->
+		<div class="flex flex-col gap-4 p-4 sm:h-full sm:min-h-0 sm:overflow-y-auto sm:p-2">
 			<div class="flex items-start justify-between gap-2">
 				<div class="flex flex-wrap gap-1.5">
 					<span class="rounded-full border border-hifi-border bg-hifi-surface px-2.5 py-0.5 text-xs font-medium text-hifi-text-muted">
@@ -606,7 +640,7 @@
 							/>
 						</label>
 						<label class="text-xs">
-							<span class="mb-1 block text-hifi-text-muted">Versand</span>
+							<span class="mb-1 block text-hifi-text-muted">Versand{shippingIsEstimate ? ' · geschätzt' : ''}</span>
 							<input
 								type="number"
 								step="0.01"
@@ -616,7 +650,7 @@
 							/>
 						</label>
 						<label class="text-xs">
-							<span class="mb-1 block text-hifi-text-muted">Rabatt</span>
+							<span class="mb-1 block text-hifi-text-muted">Rabatt{discountIsEstimate ? ' · geschätzt' : ''}</span>
 							<input
 								type="number"
 								step="0.01"
@@ -626,7 +660,7 @@
 							/>
 						</label>
 						<label class="text-xs">
-							<span class="mb-1 block text-hifi-text-muted">Steuer</span>
+							<span class="mb-1 block text-hifi-text-muted">Steuer{taxIsEstimate ? ' · geschätzt' : ''}</span>
 							<input
 								type="number"
 								step="0.01"
