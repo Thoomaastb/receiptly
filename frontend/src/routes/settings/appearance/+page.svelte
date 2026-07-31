@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { mosaicCompact, setMosaicCompact } from '$lib/mosaicDensity';
+	import { autoCropEnabled, setAutoCropEnabled } from '$lib/autoCrop';
 </script>
 
 <div class="flex max-w-2xl flex-col gap-6">
@@ -29,6 +30,40 @@
 			>
 				<span
 					class="absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform {$mosaicCompact
+						? 'translate-x-[22px]'
+						: 'translate-x-0.5'}"
+				></span>
+			</button>
+		</div>
+	</div>
+
+	<div class="rounded-[14px] border border-hifi-border bg-hifi-surface p-6">
+		<h2 class="mb-1 text-[13.5px] font-bold text-hifi-text">Aufnahme</h2>
+		<p class="mb-4 text-sm text-hifi-text-muted">
+			Einstellungen für den Beleg-Scan mit der Kamera.
+		</p>
+
+		<div class="flex items-center justify-between gap-4">
+			<div class="min-w-0">
+				<div class="text-sm font-semibold text-hifi-text">Automatische Kantenerkennung</div>
+				<div class="mt-0.5 text-[12.5px] leading-relaxed text-hifi-text-muted">
+					Erkennt nach dem Fotografieren automatisch die Ränder des Kassenbons und zeigt einen
+					Korrektur-Bildschirm, auf dem du den Zuschnitt vor dem Hochladen bestätigen oder per
+					Ziehen anpassen kannst.
+				</div>
+			</div>
+			<button
+				type="button"
+				role="switch"
+				aria-checked={$autoCropEnabled}
+				aria-label="Automatische Kantenerkennung"
+				on:click={() => setAutoCropEnabled(!$autoCropEnabled)}
+				class="relative h-6 w-11 flex-none rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-hifi-accent focus-visible:ring-offset-2 {$autoCropEnabled
+					? 'bg-hifi-accent'
+					: 'bg-hifi-border'}"
+			>
+				<span
+					class="absolute left-0 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform {$autoCropEnabled
 						? 'translate-x-[22px]'
 						: 'translate-x-0.5'}"
 				></span>
