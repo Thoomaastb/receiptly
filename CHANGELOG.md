@@ -1,3 +1,14 @@
+## [0.50.0-rc.3](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.2...v0.50.0-rc.3) (2026-07-31)
+
+### Features
+
+* **monitoring:** KI-Nutzungsverlauf als klickbares Modal ergänzen ([0750f63](https://github.com/Thoomaastb/receiptly/commit/0750f6317cb8a67dab931e8713c6efbcffb44e2f))
+* **receipts:** Bild-Zoom mit Pill-Menü, Kategorie-Navigation und Scroll-Verhalten in der Belegansicht verbessert ([f82c814](https://github.com/Thoomaastb/receiptly/commit/f82c8144f5ce6bfec94d0b23a5932db02f71b164))
+
+### Bug Fixes
+
+* **receipts:** tax_amount- und discount_amount-Fehlextraktion korrigieren ([6b7900b](https://github.com/Thoomaastb/receiptly/commit/6b7900b81cbe1840fe93c033f8bfe7e24b3f322f))
+
 ## [0.50.0-rc.2](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.1...v0.50.0-rc.2) (2026-07-31)
 
 ### Bug Fixes
