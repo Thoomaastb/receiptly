@@ -385,12 +385,37 @@
 		}, PENDING_POLL_INTERVAL_MS);
 	}
 
+	// Nachbar-Belege (nach Datum, im selben Bucket) für die Vor-/Zurück-Navigation in der
+	// Detailansicht (Pfeil-Buttons ab sm, Swipe unterhalb sm — siehe ReceiptDetailView). Wird
+	// bei jedem Öffnen/Wechsel neu geladen; null vor dem ersten Ergebnis bzw. bei Fehlern
+	// (Buttons/Swipe bleiben dann inaktiv, kein Blocker für den Rest der Ansicht).
+	let adjacentIds: { newer_id: string | null; older_id: string | null } | null = null;
+	// Sperrt Pfeile/Swipe in ReceiptDetailView während ein Wechsel-Request läuft, damit ein
+	// Doppel-Klick/Doppel-Swipe nicht zwei Requests gleichzeitig auslöst (siehe navigateReceipt).
+	let navigatingReceipt = false;
+
+	async function fetchAdjacent(receiptId: string, bucketId: string) {
+		try {
+			const res = await fetch(
+				`/api/receipts/${receiptId}/adjacent?bucket_id=${bucketId}`,
+				{ credentials: 'include' }
+			);
+			adjacentIds = res.ok ? await res.json() : null;
+		} catch {
+			adjacentIds = null;
+		}
+	}
+
 	async function openDetail(id: string) {
+		// Alte Nachbar-IDs sofort verwerfen statt bis zur neuen Antwort stehen zu lassen -- sonst
+		// zeigen die Pfeile/die Swipe-Richtung kurzzeitig die Nachbarn des vorherigen Belegs.
+		adjacentIds = null;
 		const res = await fetch(`/api/receipts/${id}`, { credentials: 'include' });
 		if (!res.ok) return;
 		openReceipt = await res.json();
 		pollAttempts = 0;
 		schedulePendingPoll();
+		if (openReceipt) fetchAdjacent(openReceipt.id, openReceipt.bucket_id);
 	}
 
 	// Für manuelle Klicks aus der Liste (im Gegensatz zum Deep-Link-Effect in onMount) -
@@ -401,9 +426,25 @@
 		openDetail(id);
 	}
 
+	// Pfeil-Klick/Swipe in ReceiptDetailView -- lädt einfach den Nachbar-Beleg über den
+	// bestehenden openDetail-Pfad nach (inkl. dessen eigenem Nachbar-Refetch für den nächsten
+	// Schritt), das "Zurück"-Ziel (openedViaHomeDeeplink) bleibt dabei unverändert.
+	async function navigateReceipt(direction: 'newer' | 'older') {
+		if (!openReceipt || !adjacentIds || navigatingReceipt) return;
+		const targetId = direction === 'newer' ? adjacentIds.newer_id : adjacentIds.older_id;
+		if (!targetId) return;
+		navigatingReceipt = true;
+		try {
+			await openDetail(targetId);
+		} finally {
+			navigatingReceipt = false;
+		}
+	}
+
 	function backToList() {
 		clearTimeout(pollHandle);
 		openReceipt = null;
+		adjacentIds = null;
 		if (openedViaHomeDeeplink) {
 			openedViaHomeDeeplink = false;
 			goto('/');
@@ -414,6 +455,7 @@
 
 	function handleDeleted() {
 		openReceipt = null;
+		adjacentIds = null;
 		refreshReceipts();
 	}
 
@@ -428,9 +470,14 @@
 		if (!openReceipt) return;
 		const res = await fetch(`/api/receipts/${openReceipt.id}`, { credentials: 'include' });
 		if (!res.ok) return;
-		openReceipt = await res.json();
+		const updated: ReceiptDetail = await res.json();
+		openReceipt = updated;
 		pollAttempts = 0;
 		schedulePendingPoll();
+		// Eine Bearbeitung kann receipt_date ändern und damit die Nachbar-Reihenfolge im
+		// Bucket verschieben (Adjacent-Liste ist nach Datum sortiert) -- neu laden statt
+		// veraltete newer_id/older_id stehen zu lassen.
+		fetchAdjacent(updated.id, updated.bucket_id);
 	}
 </script>
 
@@ -469,6 +516,10 @@
 		onBack={backToList}
 		onUpdated={handleReceiptUpdated}
 		onDeleted={handleDeleted}
+		hasNewer={adjacentIds?.newer_id != null}
+		hasOlder={adjacentIds?.older_id != null}
+		navigating={navigatingReceipt}
+		onNavigate={navigateReceipt}
 	/>
 {:else}
 	<h1 class="mb-6 text-[26px] font-extrabold tracking-tight text-hifi-text">Suche &amp; Filter</h1>

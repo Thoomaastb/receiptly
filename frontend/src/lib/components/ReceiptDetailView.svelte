@@ -53,6 +53,18 @@
 	export let onBack: () => void;
 	export let onUpdated: (() => void) | undefined = undefined;
 	export let onDeleted: (() => void) | undefined = undefined;
+	// Vorheriger/nächster Beleg (nach Datum, im selben Bucket) — die Komponente bleibt
+	// presentational: sie kennt weder Bucket noch Nachbar-IDs, sondern meldet nur die
+	// gewünschte Richtung nach oben (analog zu onBack/onUpdated/onDeleted als Callback-Prop
+	// statt createEventDispatcher, das im Projekt bislang nirgends verwendet wird). Die
+	// Elternroute (+page.svelte) löst GET /adjacent auf, kennt also newer_id/older_id und
+	// reicht hier nur die daraus abgeleiteten Booleans für den disabled-Zustand rein.
+	export let hasNewer: boolean = false;
+	export let hasOlder: boolean = false;
+	// Während die Elternroute den Beleg-Wechsel lädt: Buttons/Swipe sperren, damit ein
+	// Doppel-Klick/Doppel-Swipe nicht zwei Requests gleichzeitig auslöst.
+	export let navigating: boolean = false;
+	export let onNavigate: ((direction: 'newer' | 'older') => void) | undefined = undefined;
 
 	const fileUrl = `/api/receipts/${receiptId}/file`;
 	$: isImageFile = /\.(jpe?g|png)$/i.test(filePath);
@@ -247,6 +259,58 @@
 	function handlePreviewPointerCancel() {
 		swipePointerId = null;
 		swipeDirection = null;
+	}
+
+	// Swipe-zum-Belegwechsel: bewusst eine SEPARATE Instanz desselben Erkennungsmusters
+	// (Richtungs-Lock nach SWIPE_DIRECTION_LOCK_PX, Auslöse-Schwelle SWIPE_CLOSE_PX) statt
+	// die Variablen/Handler oben wiederzuverwenden — beide Gesten dürfen sich nicht
+	// gegenseitig beeinflussen. Aktiv ist pro Pointer-Down immer nur EINE der beiden Gesten,
+	// da sich hier (maximized) und dort (!maximized) gegenseitig ausschließen, siehe Guard.
+	// Richtung folgt der üblichen Karussell-Konvention: nach links wischen (dx negativ) =
+	// vorwärts/"nächster" Beleg = älter (Liste ist neueste-zuerst sortiert, "älter" liegt in
+	// dieser Blickrichtung "weiter vorn"); nach rechts wischen (dx positiv) = zurück = neuer.
+	let navSwipePointerId: number | null = null;
+	let navSwipeStartX = 0;
+	let navSwipeStartY = 0;
+	let navSwipeDirection: 'horizontal' | 'vertical' | null = null;
+
+	function handleNavSwipePointerDown(e: PointerEvent) {
+		if (maximized || !isMobileViewport || navigating || e.pointerType === 'mouse') return;
+		navSwipePointerId = e.pointerId;
+		navSwipeStartX = e.clientX;
+		navSwipeStartY = e.clientY;
+		navSwipeDirection = null;
+	}
+	function handleNavSwipePointerMove(e: PointerEvent) {
+		if (navSwipePointerId === null || e.pointerId !== navSwipePointerId) return;
+		const dx = e.clientX - navSwipeStartX;
+		const dy = e.clientY - navSwipeStartY;
+		if (navSwipeDirection === null) {
+			if (Math.abs(dx) < SWIPE_DIRECTION_LOCK_PX && Math.abs(dy) < SWIPE_DIRECTION_LOCK_PX) return;
+			navSwipeDirection = Math.abs(dx) > Math.abs(dy) ? 'horizontal' : 'vertical';
+			if (navSwipeDirection === 'vertical') {
+				// Vertikale Geste gewinnt: normales Scrollen der Seite zulassen.
+				navSwipePointerId = null;
+				return;
+			}
+		}
+		e.preventDefault();
+	}
+	function handleNavSwipePointerUp(e: PointerEvent) {
+		if (navSwipePointerId === null || e.pointerId !== navSwipePointerId) return;
+		const dx = e.clientX - navSwipeStartX;
+		navSwipePointerId = null;
+		const wasHorizontalSwipe = navSwipeDirection === 'horizontal';
+		navSwipeDirection = null;
+		if (!wasHorizontalSwipe || Math.abs(dx) < SWIPE_CLOSE_PX || navigating) return;
+		const direction = dx < 0 ? 'older' : 'newer';
+		if (direction === 'older' && !hasOlder) return;
+		if (direction === 'newer' && !hasNewer) return;
+		onNavigate?.(direction);
+	}
+	function handleNavSwipePointerCancel() {
+		navSwipePointerId = null;
+		navSwipeDirection = null;
 	}
 
 	// Solange Datum/Betrag/Währung nur eine unbestätigte Heuristik-/KI-Schätzung sind
@@ -740,9 +804,9 @@
 	     verfügbare Rest — max-sm:overflow-y-auto auf der Card macht ihn erreichbar. -->
 	<div
 		bind:this={cardEl}
-		class="grid grid-cols-1 gap-6 rounded-[20px] border border-hifi-border bg-hifi-surface p-2 sm:min-h-0 sm:flex-1 sm:grid-cols-[1.1fr_0.9fr] sm:overflow-hidden {maximized
+		class="grid grid-cols-1 gap-6 rounded-[20px] border border-hifi-border bg-hifi-surface p-2 transition-opacity duration-200 motion-reduce:transition-none sm:min-h-0 sm:flex-1 sm:grid-cols-[1.1fr_0.9fr] sm:overflow-hidden {maximized
 			? 'fixed inset-2 z-50 shadow-popover max-sm:overflow-y-auto max-sm:scrollbar-hide sm:inset-8'
-			: 'relative'}"
+			: 'relative'} {navigating ? 'pointer-events-none opacity-50' : 'opacity-100'}"
 		role={maximized ? 'dialog' : undefined}
 		aria-modal={maximized ? 'true' : undefined}
 		aria-label={maximized ? 'Beleg-Detailansicht (maximiert)' : undefined}
@@ -773,6 +837,39 @@
 				? 'max-sm:h-[75vh]'
 				: ''}"
 		>
+			{#if !maximized}
+				<!-- Beleg-Wechsel ab sm ausschließlich über diese Pfeile (unterhalb sm übernimmt die
+				     Swipe-Geste auf demselben Panel, siehe handleNavSwipePointer*) — nur in der
+				     normalen, nicht-maximierten Ansicht, analog zur Swipe-Geste-Abgrenzung oben.
+				     "Neuer"/"Älter" statt "Zurück"/"Vor", weil links/rechts hier chronologische statt
+				     Verlaufs-Bedeutung hat (siehe Kommentar an handleNavSwipePointerUp).
+				     top-1/2 ist hier das laut CLAUDE.md verbindliche explizite Inset zur
+				     -translate-y-1/2-Zentrierung. -->
+				<button
+					type="button"
+					on:click={() => onNavigate?.('newer')}
+					disabled={!hasNewer || navigating}
+					aria-label="Neuerer Beleg"
+					title="Neuerer Beleg"
+					class="absolute left-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint/90 text-hifi-accent-text shadow-popover backdrop-blur-md hover:bg-hifi-accent hover:text-white disabled:pointer-events-none disabled:opacity-40 sm:flex"
+				>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M15 18l-6-6 6-6" />
+					</svg>
+				</button>
+				<button
+					type="button"
+					on:click={() => onNavigate?.('older')}
+					disabled={!hasOlder || navigating}
+					aria-label="Älterer Beleg"
+					title="Älterer Beleg"
+					class="absolute right-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint/90 text-hifi-accent-text shadow-popover backdrop-blur-md hover:bg-hifi-accent hover:text-white disabled:pointer-events-none disabled:opacity-40 sm:flex"
+				>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M9 18l6-6-6-6" />
+					</svg>
+				</button>
+			{/if}
 			{#if isImageFile}
 				<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 				<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
@@ -786,9 +883,13 @@
 					on:click={handlePreviewTap}
 					on:keydown={handlePreviewKeydown}
 					on:pointerdown={handlePreviewPointerDown}
+					on:pointerdown={handleNavSwipePointerDown}
 					on:pointermove={handlePreviewPointerMove}
+					on:pointermove={handleNavSwipePointerMove}
 					on:pointerup={handlePreviewPointerUp}
+					on:pointerup={handleNavSwipePointerUp}
 					on:pointercancel={handlePreviewPointerCancel}
+					on:pointercancel={handleNavSwipePointerCancel}
 				>
 					<img
 						src={fileUrl}
@@ -818,9 +919,13 @@
 							on:click={handlePreviewTap}
 							on:keydown={handlePreviewKeydown}
 							on:pointerdown={handlePreviewPointerDown}
+							on:pointerdown={handleNavSwipePointerDown}
 							on:pointermove={handlePreviewPointerMove}
+							on:pointermove={handleNavSwipePointerMove}
 							on:pointerup={handlePreviewPointerUp}
+							on:pointerup={handleNavSwipePointerUp}
 							on:pointercancel={handlePreviewPointerCancel}
+							on:pointercancel={handleNavSwipePointerCancel}
 						>
 							<img
 								src={`/api/receipts/${receiptId}/thumb`}
