@@ -1,3 +1,9 @@
+## [0.50.0-rc.6](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.5...v0.50.0-rc.6) (2026-07-31)
+
+### Features
+
+* **receipts:** automatische Kantenerkennung und Zuschnitt-Korrektur beim Beleg-Scannen ([7028426](https://github.com/Thoomaastb/receiptly/commit/70284268bec487b0eb71bd671b0f009e9c3450df))
+
 ## [0.50.0-rc.5](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.4...v0.50.0-rc.5) (2026-07-31)
 
 ### Features
