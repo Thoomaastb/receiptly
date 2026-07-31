@@ -14,6 +14,7 @@
 		unit: string | null;
 		unit_price: number | null;
 		total_price: number;
+		discount_amount: number | null;
 		pack_amount: number | null;
 		pack_unit: string | null;
 	}
@@ -351,6 +352,7 @@
 	let newItemUnitPrice = '';
 	let newItemTotalPrice = '';
 	let newItemTotalPriceTouched = false;
+	let newItemDiscountAmount = '';
 	let newItemPackAmount = '';
 	let newItemPackUnit = '';
 
@@ -361,6 +363,7 @@
 		newItemUnitPrice = '';
 		newItemTotalPrice = '';
 		newItemTotalPriceTouched = false;
+		newItemDiscountAmount = '';
 		newItemPackAmount = '';
 		newItemPackUnit = '';
 	}
@@ -393,6 +396,7 @@
 				unit: newItemUnit.trim() || null,
 				unit_price: newItemUnitPrice ? Number(newItemUnitPrice) : null,
 				total_price: Number(newItemTotalPrice),
+				discount_amount: newItemDiscountAmount ? Number(newItemDiscountAmount) : null,
 				pack_amount: newItemPackAmount ? Number(newItemPackAmount) : null,
 				pack_unit: newItemPackUnit.trim() || null
 			})
@@ -412,6 +416,7 @@
 	let editItemUnitPrice = '';
 	let editItemTotalPrice = '';
 	let editItemTotalPriceTouched = false;
+	let editItemDiscountAmount = '';
 	let editItemPackAmount = '';
 	let editItemPackUnit = '';
 
@@ -423,6 +428,7 @@
 		editItemUnitPrice = item.unit_price !== null ? String(item.unit_price) : '';
 		editItemTotalPrice = String(item.total_price);
 		editItemTotalPriceTouched = false;
+		editItemDiscountAmount = item.discount_amount !== null ? String(item.discount_amount) : '';
 		editItemPackAmount = item.pack_amount !== null ? String(item.pack_amount) : '';
 		editItemPackUnit = item.pack_unit ?? '';
 	}
@@ -454,6 +460,7 @@
 				quantity: editItemQuantity ? Number(editItemQuantity) : undefined,
 				unit: editItemUnit.trim() || null,
 				total_price: editItemTotalPrice ? Number(editItemTotalPrice) : undefined,
+				discount_amount: editItemDiscountAmount ? Number(editItemDiscountAmount) : null,
 				pack_amount: editItemPackAmount ? Number(editItemPackAmount) : null,
 				pack_unit: editItemPackUnit.trim() || null
 			})
@@ -840,6 +847,14 @@
 														class="rounded border border-hifi-border bg-hifi-surface p-1.5 text-xs"
 													/>
 												</div>
+												<input
+													type="number"
+													step="0.01"
+													min="0"
+													bind:value={editItemDiscountAmount}
+													placeholder="Rabatt €"
+													class="rounded border border-hifi-border bg-hifi-surface p-1.5 text-xs"
+												/>
 												<div class="grid grid-cols-2 gap-1.5">
 													<input
 														type="number"
@@ -881,6 +896,11 @@
 															? ` · ${item.pack_amount} ${item.pack_unit}/Stk = ${(item.quantity * item.pack_amount).toFixed(2)} ${item.pack_unit} gesamt`
 															: ''}
 													</div>
+													{#if item.discount_amount !== null}
+														<div class="text-[12px] text-hifi-text-muted">
+															Rabatt −{item.discount_amount.toFixed(2)} {currency}
+														</div>
+													{/if}
 												</div>
 												<div class="flex flex-none items-center gap-2">
 													<span class="font-mono text-sm">{item.total_price.toFixed(2)} €</span>
@@ -943,6 +963,14 @@
 										class="rounded border border-hifi-border bg-hifi-surface p-1.5 text-xs"
 									/>
 								</div>
+								<input
+									type="number"
+									step="0.01"
+									min="0"
+									bind:value={newItemDiscountAmount}
+									placeholder="Rabatt €"
+									class="rounded border border-hifi-border bg-hifi-surface p-1.5 text-xs"
+								/>
 								<div class="grid grid-cols-2 gap-1.5">
 									<input
 										type="number"

@@ -31,6 +31,7 @@
 		unit: string | null;
 		unit_price: number | null;
 		total_price: number;
+		discount_amount: number | null;
 		pack_amount: number | null;
 		pack_unit: string | null;
 	}

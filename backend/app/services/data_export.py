@@ -120,6 +120,7 @@ async def collect_receipts(
                         "unit": item.unit,
                         "unit_price": item.unit_price,
                         "total_price": item.total_price,
+                        "discount_amount": item.discount_amount,
                         "pack_amount": item.pack_amount,
                         "pack_unit": item.pack_unit,
                     }

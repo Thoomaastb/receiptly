@@ -31,7 +31,9 @@ _SYSTEM_PROMPT = (
     "Du extrahierst strukturierte Daten aus dem OCR-Text eines Kassenbelegs. Antworte "
     "ausschließlich mit den angeforderten Feldern im vorgegebenen JSON-Format. Erfinde "
     "keine Werte, die im Text nicht erkennbar sind — setze sie stattdessen auf null bzw. "
-    "lasse Artikel weg, wenn du dir unsicher bist."
+    "lasse Artikel weg, wenn du dir unsicher bist. Steht direkt unter einem Artikel eine "
+    "eigene Rabatt-/Gutschein-Zeile, gehört diese zu genau diesem Artikel: erfasse sie "
+    "NICHT als eigene Artikelzeile, sondern als deren discount_amount."
 )
 
 _JSON_SCHEMA = {
@@ -82,12 +84,19 @@ _JSON_SCHEMA = {
                     "quantity": {"type": ["number", "null"]},
                     "unit_price": {"type": ["number", "null"]},
                     "total_price": {"type": ["number", "null"]},
+                    "discount_amount": {
+                        "type": ["number", "null"],
+                        "description": (
+                            "Falls unter diesem Artikel eine eigene Rabatt-/Gutschein-Zeile "
+                            "steht: deren Betrag als positive Zahl. Sonst null."
+                        ),
+                    },
                 },
                 # OpenAI Structured Outputs (strict) verlangt additionalProperties:false UND
                 # jede Property in required (Pflicht schließt "optional" nicht aus — dafür
                 # steht null im type-Array, siehe oben) — sonst 400 "additionalProperties is
                 # required to be supplied and to be false".
-                "required": ["raw_name", "quantity", "unit_price", "total_price"],
+                "required": ["raw_name", "quantity", "unit_price", "total_price", "discount_amount"],
                 "additionalProperties": False,
             },
         },
@@ -397,6 +406,7 @@ def _apply_items(db: AsyncSession, receipt: Receipt, items_data: list) -> None:
             continue
         quantity = _parse_positive(raw_item.get("quantity")) or 1
         unit_price = _parse_non_negative(raw_item.get("unit_price"))
+        discount_amount = _parse_non_negative(raw_item.get("discount_amount"))
 
         db.add(
             Item(
@@ -405,6 +415,7 @@ def _apply_items(db: AsyncSession, receipt: Receipt, items_data: list) -> None:
                 quantity=quantity,
                 unit_price=unit_price,
                 total_price=total_price,
+                discount_amount=discount_amount,
             )
         )
 

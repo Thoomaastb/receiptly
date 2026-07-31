@@ -25,6 +25,7 @@ class Item(Base, TimestampMixin):
     unit: Mapped[str | None] = mapped_column(String(20), nullable=True)
     unit_price: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     total_price: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    discount_amount: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
 
     # Anzahl (quantity) vs. Menge pro Einheit: "6x Wasser à 1,5l" ist quantity=6,
     # pack_amount=1.5, pack_unit="l" — ergibt 9l Gesamtmenge. Getrennt von quantity/unit,

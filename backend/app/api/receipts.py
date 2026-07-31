@@ -575,6 +575,7 @@ async def add_item(
         unit=payload.unit,
         unit_price=payload.unit_price,
         total_price=payload.total_price,
+        discount_amount=payload.discount_amount,
         pack_amount=payload.pack_amount,
         pack_unit=payload.pack_unit,
     )
@@ -611,6 +612,8 @@ async def update_item(
         item.unit_price = payload.unit_price
     if payload.total_price is not None:
         item.total_price = payload.total_price
+    if payload.discount_amount is not None:
+        item.discount_amount = payload.discount_amount
     if payload.pack_amount is not None:
         item.pack_amount = payload.pack_amount
     if payload.pack_unit is not None:
