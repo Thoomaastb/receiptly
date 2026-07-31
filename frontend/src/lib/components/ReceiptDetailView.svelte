@@ -3,6 +3,7 @@
 	import { tagColorVar, type Tag } from '$lib/tags';
 	import { formatDate } from '$lib/formatDate';
 	import { m } from '$lib/i18n';
+	import { fade } from 'svelte/transition';
 	import ShareManagementModal from './ShareManagementModal.svelte';
 	import CustomSelect from './CustomSelect.svelte';
 	import TagPicker from './TagPicker.svelte';
@@ -57,6 +58,43 @@
 	// GET /thumb liefert 404, wenn kein serverseitiges Thumbnail existiert (alte Belege,
 	// fehlgeschlagene Generierung) — analog zum Fallback-Muster in ReceiptRow.svelte.
 	let thumbFailed = false;
+
+	// --- Bild-Zoom & Maximieren (nur ab sm, siehe Pill-Menü im Vorschau-Panel unten) ---
+	// Zoom wirkt über eine CSS-Custom-Property (--zoom) auf width/height des <img> (siehe
+	// Markup) statt über transform:scale — reines transform vergrößert nur visuell und
+	// vergrößert NICHT die Scroll-Fläche des umgebenden overflow-auto-Containers, das Bild
+	// wäre also im gezoomten Zustand nicht pannbar.
+	const ZOOM_MIN = 1;
+	const ZOOM_MAX = 3;
+	const ZOOM_STEP = 0.25;
+	let zoomLevel = 1;
+
+	// Ein anderer Beleg (receiptId wechselt) darf nicht den Zoom-Stand des vorherigen Belegs
+	// übernehmen — sonst öffnet sich der nächste Beleg überraschend schon gezoomt.
+	$: if (receiptId) {
+		zoomLevel = 1;
+	}
+
+	function zoomIn() {
+		zoomLevel = Math.min(ZOOM_MAX, Math.round((zoomLevel + ZOOM_STEP) * 100) / 100);
+	}
+	function zoomOut() {
+		zoomLevel = Math.max(ZOOM_MIN, Math.round((zoomLevel - ZOOM_STEP) * 100) / 100);
+	}
+
+	// Maximieren vergrößert die GESAMTE Card (nicht nur das Bild) auf ein Fixed-Overlay,
+	// Backdrop/Escape-Verhalten analog zu ShareManagementModal.svelte (einziger bestehender
+	// Modal-Präzedenzfall im Projekt) statt ein neues Overlay-Konzept zu erfinden.
+	let maximized = false;
+	function toggleMaximized() {
+		maximized = !maximized;
+	}
+	function closeMaximized() {
+		maximized = false;
+	}
+	function handleDetailKeydown(e: KeyboardEvent) {
+		if (e.key === 'Escape' && maximized) closeMaximized();
+	}
 
 	// Solange Datum/Betrag/Währung nur eine unbestätigte Heuristik-/KI-Schätzung sind
 	// (Backend liefert dann einen Wert statt null), dezenten Hinweis in Lese- und
@@ -507,20 +545,65 @@
 	}
 </script>
 
+<svelte:window on:keydown={handleDetailKeydown} />
+
 <div class="flex flex-col sm:h-full sm:min-h-0">
-	<button on:click={onBack} class="mb-4 flex-none flex items-center gap-1.5 text-sm font-medium text-hifi-text-muted hover:text-hifi-text">
-		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-			<path d="M15 18l-6-6 6-6" />
-		</svg>
-		Zurück
-	</button>
+	{#if !maximized}
+		<button on:click={onBack} class="mb-4 flex-none flex items-center gap-1.5 text-sm font-medium text-hifi-text-muted hover:text-hifi-text">
+			<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<path d="M15 18l-6-6 6-6" />
+			</svg>
+			Zurück
+		</button>
+	{/if}
+
+	{#if maximized}
+		<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+		<div
+			transition:fade={{ duration: 150 }}
+			class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+			on:click={closeMaximized}
+			role="presentation"
+		></div>
+	{/if}
 
 	<!-- Card ab sm: höhenbegrenzt (füllt den durch das h-screen-Flex-Layout in +layout.svelte
 	     ohnehin schon vorgegebenen verfügbaren Platz unterhalb der Topbar/oberhalb von main's
 	     Padding) statt zu versuchen, das Bild selbst exakt in eine unklare Höhe zu zwingen — die
-	     rechte Detail-Spalte scrollt bei Bedarf INNERHALB der Card (siehe dort). Unter sm bleibt
-	     alles gestapelt und folgt normalem Seiten-Scrolling (main ist bereits overflow-y-auto). -->
-	<div class="grid grid-cols-1 gap-6 rounded-[20px] border border-hifi-border bg-hifi-surface p-2 sm:min-h-0 sm:flex-1 sm:grid-cols-[1.1fr_0.9fr] sm:overflow-hidden">
+	     Artikel-Liste rechts scrollt bei Bedarf INNERHALB der Card (siehe dort), alles andere
+	     bleibt fix sichtbar. Unter sm bleibt alles gestapelt und folgt normalem
+	     Seiten-Scrolling (main ist bereits overflow-y-auto).
+	     Maximieren (nur ab sm, siehe Pill-Menü im Vorschau-Panel): dieselbe Card wird per
+	     position:fixed auf ~95% des Browserfensters vergrößert (top/bottom/left/right-8 =
+	     Tailwind-Spacing-8/32px Rand auf allen Seiten) statt sie zu duplizieren — vermeidet
+	     doppelten Markup-Unterhalt zwischen normaler und maximierter Ansicht. -->
+	<div
+		class="grid grid-cols-1 gap-6 rounded-[20px] border border-hifi-border bg-hifi-surface p-2 sm:min-h-0 sm:flex-1 sm:grid-cols-[1.1fr_0.9fr] sm:overflow-hidden"
+		class:relative={!maximized}
+		class:fixed={maximized}
+		class:z-50={maximized}
+		class:top-8={maximized}
+		class:bottom-8={maximized}
+		class:left-8={maximized}
+		class:right-8={maximized}
+		class:shadow-popover={maximized}
+		role={maximized ? 'dialog' : undefined}
+		aria-modal={maximized ? 'true' : undefined}
+		aria-label={maximized ? 'Beleg-Detailansicht (maximiert)' : undefined}
+	>
+		{#if maximized}
+			<button
+				type="button"
+				on:click={closeMaximized}
+				aria-label="Maximierte Ansicht schließen"
+				title="Maximierte Ansicht schließen"
+				class="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-hifi-accent-tint text-hifi-accent-text hover:bg-hifi-accent hover:text-white"
+			>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<path d="M6 6l12 12M18 6L6 18" />
+				</svg>
+			</button>
+		{/if}
 		<!-- Links: Vorschau-Panel — Bild direkt eingebettet, PDF als Kachel mit Öffnen-Link
 		     (kein <iframe>, um von PDF-Viewer-Eigenheiten je Browser unabhängig zu bleiben).
 		     Feste Höhe (statt nur min-height) ist nötig, damit h-full auf dem <img> überhaupt
@@ -530,28 +613,90 @@
 		     Höhe (sm:h-full) diese Rolle. -->
 		<div class="relative flex h-[320px] items-center justify-center overflow-hidden rounded-2xl bg-hifi-surface sm:h-full sm:min-h-0">
 			{#if isImageFile}
-				<img src={fileUrl} alt="Beleg-Vorschau" class="h-full w-full object-contain" />
+				<div class="h-full w-full sm:overflow-auto">
+					<img
+						src={fileUrl}
+						alt="Beleg-Vorschau"
+						class="block h-full w-full object-contain sm:h-[calc(var(--zoom)*100%)] sm:w-[calc(var(--zoom)*100%)]"
+						style="--zoom: {zoomLevel};"
+					/>
+				</div>
 			{:else}
 				<!-- Serverseitiges Thumbnail (erste PDF-Seite, siehe app/services/storage.py) als
 				     Vorschau — mit demselben 404-Fallback-Muster wie ReceiptRow.svelte: schlägt es
 				     fehl (alte Belege ohne generiertes Thumbnail), bleibt nur die Öffnen-Kachel. -->
 				<div class="absolute inset-0 flex items-center justify-center" style={thumbFailed ? 'background: repeating-linear-gradient(135deg, var(--color-stripe-doc-a) 0, var(--color-stripe-doc-a) 10px, var(--color-stripe-doc-b) 10px, var(--color-stripe-doc-b) 20px);' : ''}>
 					{#if !thumbFailed}
-						<img
-							src={`/api/receipts/${receiptId}/thumb`}
-							alt="Beleg-Vorschau (erste Seite)"
-							class="h-full w-full object-contain"
-							on:error={() => (thumbFailed = true)}
-						/>
+						<div class="h-full w-full sm:overflow-auto">
+							<img
+								src={`/api/receipts/${receiptId}/thumb`}
+								alt="Beleg-Vorschau (erste Seite)"
+								class="block h-full w-full object-contain sm:h-[calc(var(--zoom)*100%)] sm:w-[calc(var(--zoom)*100%)]"
+								style="--zoom: {zoomLevel};"
+								on:error={() => (thumbFailed = true)}
+							/>
+						</div>
 					{/if}
 					<a
 						href={fileUrl}
 						target="_blank"
 						rel="noopener noreferrer"
-						class="flex items-center gap-2 rounded-md bg-hifi-surface/80 px-3 py-1.5 font-mono text-xs font-semibold text-hifi-accent-text hover:bg-hifi-surface {thumbFailed ? '' : 'absolute bottom-3'}"
+						class="flex items-center gap-2 rounded-md bg-hifi-surface/80 px-3 py-1.5 font-mono text-xs font-semibold text-hifi-accent-text hover:bg-hifi-surface {thumbFailed ? '' : 'absolute left-1/2 top-3 -translate-x-1/2'}"
 					>
 						PDF-Dokument öffnen
 					</a>
+				</div>
+			{/if}
+			{#if isImageFile || !thumbFailed}
+				<!-- Zoom-/Maximieren-Pill: nur ab sm (Mobile bleibt bewusst beim einfachen
+				     Verhalten, siehe Kommentar bei maximized oben). left-1/2 ist hier das laut
+				     CLAUDE.md verbindliche explizite Inset zur -translate-x-1/2-Zentrierung. -->
+				<div class="absolute bottom-4 left-1/2 hidden -translate-x-1/2 items-center gap-1 rounded-full border border-hifi-border/60 bg-hifi-accent-tint/90 p-1.5 shadow-popover backdrop-blur-md sm:flex">
+					<button
+						type="button"
+						on:click={zoomOut}
+						disabled={zoomLevel <= ZOOM_MIN}
+						aria-label="Bild verkleinern"
+						title="Verkleinern"
+						class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-surface/70 disabled:opacity-40"
+					>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<path d="M5 12h14" />
+						</svg>
+					</button>
+					<span class="min-w-[2.75rem] text-center font-mono text-[11px] font-semibold text-hifi-accent-text" aria-hidden="true">
+						{Math.round(zoomLevel * 100)}%
+					</span>
+					<button
+						type="button"
+						on:click={zoomIn}
+						disabled={zoomLevel >= ZOOM_MAX}
+						aria-label="Bild vergrößern"
+						title="Vergrößern"
+						class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-surface/70 disabled:opacity-40"
+					>
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<path d="M12 5v14M5 12h14" />
+						</svg>
+					</button>
+					<div class="mx-0.5 h-5 w-px bg-hifi-border" aria-hidden="true"></div>
+					<button
+						type="button"
+						on:click={toggleMaximized}
+						aria-label={maximized ? 'Normalansicht wiederherstellen' : 'Beleg maximieren'}
+						title={maximized ? 'Normalansicht wiederherstellen' : 'Maximieren'}
+						class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-surface/70"
+					>
+						{#if maximized}
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+								<path d="M9 3v4a1 1 0 01-1 1H4M20 9h-4a1 1 0 01-1-1V4M15 21v-4a1 1 0 011-1h4M4 15h4a1 1 0 011 1v4" />
+							</svg>
+						{:else}
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+								<path d="M8 3H5a2 2 0 00-2 2v3M16 3h3a2 2 0 012 2v3M8 21H5a2 2 0 01-2-2v-3M16 21h3a2 2 0 002-2v-3" />
+							</svg>
+						{/if}
+					</button>
 				</div>
 			{/if}
 			<a
@@ -566,10 +711,12 @@
 			</a>
 		</div>
 
-		<!-- Rechts: Metadaten — scrollt ab sm eigenständig innerhalb der höhenbegrenzten Card
-		     (Lese- UND Bearbeiten-Modus, beide landen in diesem selben Wrapper), damit die
-		     Bild-Vorschau links immer komplett sichtbar bleibt statt mit hochzuscrollen. -->
-		<div class="flex flex-col gap-4 p-4 sm:h-full sm:min-h-0 sm:overflow-y-auto sm:p-2">
+		<!-- Rechts: Metadaten — die oberen Infobereiche (Badges, Händler/Datum/Betrag,
+		     Garantie-Tracking, Bearbeiten) bleiben fix sichtbar; NUR der aufklappbare
+		     Artikel-Abschnitt weiter unten bekommt seinen eigenen internen
+		     Scroll-Container (siehe dort) — dieser Wrapper hier scrollt daher selbst
+		     NICHT mehr. -->
+		<div class="flex flex-col gap-4 p-4 sm:h-full sm:min-h-0 sm:p-2">
 			<div class="flex items-start justify-between gap-2">
 				<div class="flex flex-wrap gap-1.5">
 					<span class="rounded-full border border-hifi-border bg-hifi-surface px-2.5 py-0.5 text-xs font-medium text-hifi-text-muted">
@@ -798,10 +945,12 @@
 				</div>
 			{/if}
 
-			<div class="rounded-[14px] border border-hifi-border">
+			<div
+				class="rounded-[14px] border border-hifi-border sm:flex sm:flex-1 sm:min-h-0 sm:flex-col"
+			>
 				<button
 					type="button"
-					class="flex w-full items-center justify-between px-3 py-2.5 text-left"
+					class="flex w-full flex-none items-center justify-between px-3 py-2.5 text-left"
 					on:click={() => (itemsExpanded = !itemsExpanded)}
 					aria-expanded={itemsExpanded}
 				>
@@ -821,7 +970,7 @@
 					</svg>
 				</button>
 				{#if itemsIncomplete && itemsSumDiff !== null}
-					<div class="border-t border-status-warning-border bg-status-warning-bg px-3 py-2 text-xs text-status-warning">
+					<div class="flex-none border-t border-status-warning-border bg-status-warning-bg px-3 py-2 text-xs text-status-warning">
 						{#if itemsSumDiff > 0}
 							Noch {itemsSumDiff.toFixed(2)} {currency} nicht auf Artikel aufgeteilt.
 						{:else}
@@ -833,7 +982,13 @@
 					</div>
 				{/if}
 				{#if itemsExpanded}
-					<div class="border-t border-hifi-border p-3">
+					<!-- Einziger Bereich der rechten Spalte, der noch eigenständig scrollt (siehe
+					     Kommentar an der äußeren Card oben) -- sm:overflow-y-auto zusammen mit
+					     sm:flex-1/sm:min-h-0 lässt diesen Abschnitt genau den Platz einnehmen, der
+					     nach den fix sichtbaren Geschwister-Elementen (Header-Button,
+					     Unvollständig-Hinweis, KI-Box, Erkannter-Text, Aktionsleiste) noch übrig
+					     bleibt. -->
+					<div class="border-t border-hifi-border p-3 sm:min-h-0 sm:flex-1 sm:overflow-y-auto">
 						{#if items.length === 0}
 							<p class="mb-3 text-xs text-hifi-text-muted">Noch keine Artikel erfasst.</p>
 						{:else}

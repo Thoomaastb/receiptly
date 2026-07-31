@@ -94,6 +94,16 @@
 	// true nur, wenn der aktuell offene Beleg über den Deep-Link von der Startseite
 	// ("Zuletzt hinzugefügt", ?open=<id>) geöffnet wurde -> steuert, wohin "Zurück" führt.
 	let openedViaHomeDeeplink = false;
+	// Schaltet den $:-Sync-Block unten (siehe dort) erst frei, NACHDEM onMount seine eigene
+	// initiale Deep-Link-Behandlung abgeschlossen hat -- sonst würde der Block bereits beim
+	// allerersten reaktiven Durchlauf (der schon vor onMount läuft) denselben ?open-Parameter
+	// ein zweites Mal verarbeiten (doppelter Fetch).
+	let openParamSyncActive = false;
+	// Wird unmittelbar vor dem goto(...) gesetzt, das den ?open-Parameter nach dem initialen
+	// Öffnen wieder aus der URL entfernt (siehe onMount) -- verhindert, dass dieser rein
+	// interne "Aufräum"-Navigationsschritt den gerade erst geöffneten Beleg sofort wieder
+	// schließt, wenn der $:-Block danach den jetzt leeren Parameter sieht.
+	let suppressNextOpenParamClose = false;
 
 	let searchQuery = '';
 	let activeType: string | null = null;
@@ -241,14 +251,43 @@
 			if (openId) {
 				openedViaHomeDeeplink = true;
 				await openDetail(openId);
+				suppressNextOpenParamClose = true;
 				goto('/receipts', { replaceState: true, keepFocus: true, noScroll: true });
 			}
 		} catch (err) {
 			errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler.';
 		} finally {
 			loading = false;
+			// Ab hier übernimmt der $:-Block unten die Kopplung an ?open (siehe dort) --
+			// bewusst erst NACH der obigen initialen Deep-Link-Behandlung aktiv, siehe Kommentar
+			// bei openParamSyncActive.
+			openParamSyncActive = true;
 		}
 	});
+
+	// Hält die Detailansicht mit dem ?open-Parameter der URL synchron, NACHDEM die initiale
+	// Deep-Link-Behandlung in onMount abgeschlossen ist (siehe openParamSyncActive). Behebt den
+	// Bug, dass ein Kategorie-Klick in der Sidebar (+layout.svelte, goto('/receipts?category=X'))
+	// den ?open-Parameter zwar aus der URL entfernt, die noch offene Detailansicht aber stehen
+	// ließ, weil openReceipt bis dahin nirgends reaktiv an die URL gekoppelt war. Läuft bei jeder
+	// $page-Änderung (nicht nur bei manuellen openDetailManual-Aufrufen, die die URL gar nicht
+	// anfassen), reagiert also automatisch auf JEDE Navigation, die den Parameter entfernt.
+	$: if (openParamSyncActive) {
+		const urlOpenId = $page.url.searchParams.get('open');
+		if (urlOpenId) {
+			if (!openReceipt || openReceipt.id !== urlOpenId) {
+				openedViaHomeDeeplink = true;
+				openDetail(urlOpenId);
+			}
+		} else if (openReceipt) {
+			if (suppressNextOpenParamClose) {
+				suppressNextOpenParamClose = false;
+			} else {
+				openReceipt = null;
+				openedViaHomeDeeplink = false;
+			}
+		}
+	}
 
 	function bucketFor(bucketId: string): Bucket | undefined {
 		return buckets.find((b) => b.id === bucketId);
