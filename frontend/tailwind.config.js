@@ -19,6 +19,7 @@ export default {
 				'hifi-text-faint': 'var(--color-text-faint)',
 				'hifi-accent': 'var(--color-accent-hifi)',
 				'hifi-accent-tint': 'var(--color-accent-tint)',
+				'hifi-accent-tint-strong': 'var(--color-accent-tint-strong)',
 				'hifi-accent-text': 'var(--color-accent-text)',
 				'cat-electronics': 'var(--color-cat-electronics)',
 				'cat-groceries': 'var(--color-cat-groceries)',

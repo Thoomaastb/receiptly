@@ -34,6 +34,14 @@
 	--color-accent-hifi: oklch(58% 0.19 290);
 	--color-accent-tint: oklch(94% 0.03 290);
 	--color-accent-text: oklch(45% 0.19 290);
+	/* Kräftigere Tint-Variante für Overlay-Chips über wechselndem Foto-Untergrund (Zoom-Pill,
+	   Nav-Pfeile im Beleg-Preview) — --color-accent-tint (94% L) ist dort auf überwiegend
+	   weißen Kassenbons kaum sichtbar (Kontrast zu Weiß ~1.2:1). Gleicher Wert in Light UND
+	   Dark (wie --color-accent-hifi oben), weil der Kontrastpartner hier das Fotomotiv ist,
+	   nicht die App-Oberfläche — ein App-Theme-Wechsel ändert die Beleg-Helligkeit nicht.
+	   82% L / 0.09 C liefert bei voller Deckkraft WCAG-AA (4.5:1) für --color-accent-text
+	   darüber UND deutlich sichtbaren Kontrast auf dunklen/Blitzlicht-Fotos (>10:1). */
+	--color-accent-tint-strong: oklch(82% 0.09 290);
 
 	--color-cat-electronics: oklch(58% 0.19 290);
 	--color-cat-groceries: oklch(60% 0.14 150);
@@ -145,6 +153,8 @@
 	--color-accent-hifi: oklch(58% 0.19 290);
 	--color-accent-tint: oklch(26% 0.04 290);
 	--color-accent-text: oklch(80% 0.12 290);
+	/* Bewusst identisch zu :root, siehe Kommentar dort. */
+	--color-accent-tint-strong: oklch(82% 0.09 290);
 
 	--color-cat-electronics: oklch(72% 0.15 290);
 	--color-cat-groceries: oklch(72% 0.13 150);

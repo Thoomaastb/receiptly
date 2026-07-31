@@ -817,7 +817,7 @@
 				on:click={closeMaximized}
 				aria-label="Maximierte Ansicht schließen"
 				title="Maximierte Ansicht schließen"
-				class="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint/90 text-hifi-accent-text shadow-popover backdrop-blur-md hover:bg-hifi-accent hover:text-white"
+				class="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong text-hifi-accent-text shadow-popover hover:bg-hifi-accent hover:text-white"
 			>
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					<path d="M6 6l12 12M18 6L6 18" />
@@ -851,7 +851,7 @@
 					disabled={!hasNewer || navigating}
 					aria-label="Neuerer Beleg"
 					title="Neuerer Beleg"
-					class="absolute left-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint/90 text-hifi-accent-text shadow-popover backdrop-blur-md hover:bg-hifi-accent hover:text-white disabled:pointer-events-none disabled:opacity-40 sm:flex"
+					class="absolute left-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong text-hifi-accent-text shadow-popover hover:bg-hifi-accent hover:text-white disabled:pointer-events-none disabled:opacity-40 sm:flex"
 				>
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 						<path d="M15 18l-6-6 6-6" />
@@ -863,7 +863,7 @@
 					disabled={!hasOlder || navigating}
 					aria-label="Älterer Beleg"
 					title="Älterer Beleg"
-					class="absolute right-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint/90 text-hifi-accent-text shadow-popover backdrop-blur-md hover:bg-hifi-accent hover:text-white disabled:pointer-events-none disabled:opacity-40 sm:flex"
+					class="absolute right-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong text-hifi-accent-text shadow-popover hover:bg-hifi-accent hover:text-white disabled:pointer-events-none disabled:opacity-40 sm:flex"
 				>
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 						<path d="M9 18l6-6-6-6" />
@@ -958,8 +958,17 @@
 			     ist. Liegt als Geschwister-Element außerhalb des Vorschaubild-Wrappers (siehe
 			     dort) — Klicks hier bubblen deshalb nicht in dessen Tap-Handler, kein
 			     stopPropagation nötig. left-1/2 ist hier das laut CLAUDE.md verbindliche
-			     explizite Inset zur -translate-x-1/2-Zentrierung. -->
-			<div class="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-hifi-border/60 bg-hifi-accent-tint/90 p-1.5 shadow-popover backdrop-blur-md">
+			     explizite Inset zur -translate-x-1/2-Zentrierung. bg-hifi-accent-tint-strong statt
+			     des schwächeren -tint (siehe app.css-Kommentar dort): auf überwiegend weißen
+			     Kassenbons war das Pill mit der alten, fast weißen Tint-Farbe + backdrop-blur kaum
+			     erkennbar. Bewusst OPAK (keine /NN-Deckkraft) statt nur eine dunklere transparente
+			     Variante, damit der Kontrast unabhängig vom fotografierten Untergrund (heller
+			     Bon-Scan vs. dunkles Blitzlicht-Foto) IMMER gleich bleibt, statt je nach
+			     durchscheinendem Bildinhalt zu schwanken. backdrop-blur-md dadurch bewusst entfernt
+			     (nicht nur hier reduziert) — bei praktisch deckendem Hintergrund ist darunter nichts
+			     mehr sichtbar, das der Blur weichzeichnen könnte; er wäre nur noch unnötiger
+			     Rendering-Aufwand ohne visuellen Effekt. -->
+			<div class="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong p-1.5 shadow-popover">
 				{#if isImageFile || !thumbFailed}
 					<div class="hidden items-center gap-1 sm:flex">
 						<button
