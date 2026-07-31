@@ -100,6 +100,11 @@ class Receipt(Base, UpdatableTimestampMixin):
     ai_suggested_receipt_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     ai_suggested_total_amount: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     ai_suggested_currency: Mapped[str | None] = mapped_column(String(3), nullable=True)
+    # Herkunfts-Tracking (analog) für die drei Anpassungsfelder aus Migration 0011 — schließt
+    # die dort bewusst offen gelassene Lücke, siehe Migration 0028.
+    ai_suggested_shipping_cost: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    ai_suggested_discount_amount: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    ai_suggested_tax_amount: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     # Menschenlesbarer Grund bei needs_review (z.B. "Kein KI-Anbieter konfiguriert")
     ai_extraction_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
     # Markiert "Extraktion wurde versucht" (Erfolg oder Fehlschlag), unabhängig vom Ergebnis
