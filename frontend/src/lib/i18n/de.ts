@@ -405,6 +405,30 @@ export const de = {
 		repoLink: 'GitHub'
 	},
 
+	// Automatische Kantenerkennung + Unschärfe-Warnung nach dem Fotografieren eines Belegs
+	// (UploadFlow.svelte, Steuerung über $lib/autoCrop). Nur die NEUEN Texte dieses Features
+	// laufen über den Katalog -- die übrigen, bereits bestehenden UploadFlow-Texte wurden
+	// nicht rückwirkend migriert (siehe Katalog-Kopfkommentar).
+	upload: {
+		detecting: 'Foto wird analysiert (Kantenerkennung, on-device) …',
+		cropDetectionUnavailable: 'Automatischer Zuschnitt war diesmal nicht möglich -- Foto wird unverändert verwendet.',
+		blurWarningMessage: 'Das Foto wirkt unscharf -- das kann die Texterkennung erschweren.',
+		blurRetakeButton: 'Neu aufnehmen',
+		blurUseAnywayButton: 'Trotzdem verwenden'
+	},
+
+	// Korrektur-Bildschirm für den automatischen Zuschnitt (ReceiptCropCorrector.svelte)
+	cropCorrector: {
+		loading: 'Bild wird vorbereitet …',
+		previewAlt: 'Foto des Belegs mit Zuschnitt-Ecken',
+		handleAriaLabel: 'Zuschnitt-Ecke {n}, mit Pfeiltasten verschiebbar',
+		confirmButton: 'Bestätigen',
+		confirmButtonLoading: 'Wird zugeschnitten …',
+		resetButton: 'Zurücksetzen',
+		skipButton: 'Ohne Zuschnitt verwenden',
+		errorGeneric: 'Zuschnitt fehlgeschlagen -- bitte erneut versuchen oder ohne Zuschnitt fortfahren.'
+	},
+
 	tags: {
 		colorPicker: {
 			groupLabel: 'Farbe wählen',

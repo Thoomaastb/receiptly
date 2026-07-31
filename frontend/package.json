@@ -22,6 +22,8 @@
     "@simplewebauthn/browser": "^13.3.0",
     "@sveltejs/adapter-static": "^3.0.10",
     "@tesseract.js-data/deu": "^1.0.0",
+    "@vitalyros/opencvjs-wasm-separate": "^4.5.2",
+    "jscanify": "^1.4.3",
     "tesseract.js": "^5.1.0"
   },
   "devDependencies": {
