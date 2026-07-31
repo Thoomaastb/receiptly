@@ -1,3 +1,9 @@
+## [0.50.0-rc.4](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.3...v0.50.0-rc.4) (2026-07-31)
+
+### Features
+
+* **receipts:** Bild-Zoom/Maximieren-Modus verfeinert und Kategorie-/Such-Navigation korrigiert ([1b6fd62](https://github.com/Thoomaastb/receiptly/commit/1b6fd6216fa588562a2880a41a2ae44c9824dcac))
+
 ## [0.50.0-rc.3](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.2...v0.50.0-rc.3) (2026-07-31)
 
 ### Features
