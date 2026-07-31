@@ -1,3 +1,13 @@
+## [0.50.0-rc.1](https://github.com/Thoomaastb/receiptly/compare/v0.49.6-rc.7...v0.50.0-rc.1) (2026-07-31)
+
+### Features
+
+* **receipts:** Provenance-Hinweis für Versand/Rabatt/Steuer-Schätzung ergänzen ([9509f3a](https://github.com/Thoomaastb/receiptly/commit/9509f3a07c23f2e9e9014357fe83c08937676207))
+
+### Bug Fixes
+
+* **receipts:** Bestätigt-Tracking auf shipping_cost/discount_amount/tax_amount erweitern ([0b81d3d](https://github.com/Thoomaastb/receiptly/commit/0b81d3df393767c3a13a109274f121aa3dd62aad))
+
 ## [0.49.6-rc.7](https://github.com/Thoomaastb/receiptly/compare/v0.49.6-rc.6...v0.49.6-rc.7) (2026-07-31)
 
 ### Bug Fixes
