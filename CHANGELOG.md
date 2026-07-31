@@ -1,3 +1,9 @@
+## [0.50.0-rc.2](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.1...v0.50.0-rc.2) (2026-07-31)
+
+### Bug Fixes
+
+* **receipts:** Bestätigt-Tracking für Versand/Rabatt/Steuer ergänzen ([8bb9c69](https://github.com/Thoomaastb/receiptly/commit/8bb9c69c20b8870aa0ed34b39f39a16d0f7e9169))
+
 ## [0.50.0-rc.1](https://github.com/Thoomaastb/receiptly/compare/v0.49.6-rc.7...v0.50.0-rc.1) (2026-07-31)
 
 ### Features
