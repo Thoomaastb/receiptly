@@ -1,3 +1,9 @@
+## [0.50.0-rc.5](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.4...v0.50.0-rc.5) (2026-07-31)
+
+### Features
+
+* **settings:** Einstellung für automatische Kantenerkennung beim Scannen ergänzen ([317196d](https://github.com/Thoomaastb/receiptly/commit/317196d6075e077d3c89dedf65c3b19e32080b86))
+
 ## [0.50.0-rc.4](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.3...v0.50.0-rc.4) (2026-07-31)
 
 ### Features
