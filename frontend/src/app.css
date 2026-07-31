@@ -222,6 +222,23 @@ body {
 	color: var(--color-text-hifi);
 }
 
+/* Scrollbar ausblenden, Scroll-Funktion bleibt erhalten (Tailwind 3.4 hat dafür keine
+   eingebaute Utility, kein "scrollbar-hide"/"scrollbar-none" im Core, kein Plugin
+   installiert) — projektweit wiederverwendbar statt je Komponente dupliziert.
+   In @layer utilities, damit Tailwinds JIT auch Varianten wie sm:scrollbar-hide oder
+   max-sm:scrollbar-hide daraus generiert (siehe Tailwind-Docs "Using variants with
+   custom CSS") — außerhalb von @layer würden Breakpoint-Präfixe auf dieser Klasse
+   stillschweigend ins Leere laufen. */
+@layer utilities {
+	.scrollbar-hide {
+		scrollbar-width: none; /* Firefox */
+		-ms-overflow-style: none; /* IE, alte Edge */
+	}
+	.scrollbar-hide::-webkit-scrollbar {
+		display: none; /* Chrome, Safari, neueres Edge */
+	}
+}
+
 ::selection {
 	background: var(--color-selection-bg);
 }

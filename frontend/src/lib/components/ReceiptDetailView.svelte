@@ -4,7 +4,7 @@
 	import { formatDate } from '$lib/formatDate';
 	import { m } from '$lib/i18n';
 	import { fade } from 'svelte/transition';
-	import { tick } from 'svelte';
+	import { tick, onMount } from 'svelte';
 	import ShareManagementModal from './ShareManagementModal.svelte';
 	import CustomSelect from './CustomSelect.svelte';
 	import TagPicker from './TagPicker.svelte';
@@ -165,6 +165,88 @@
 	}
 	function handleDetailKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && maximized) closeMaximized();
+	}
+
+	// --- Mobile: Tap-zum-Maximieren + Swipe-zum-Schließen (nur unterhalb sm — ab sm läuft
+	// Maximieren weiterhin ausschließlich über den expliziten Button im Zoom-Pill-Menü, siehe
+	// dortiger Kommentar). Reaktiv statt eines einmaligen matchMedia-Checks, da ein
+	// Orientierungswechsel/Resize (z.B. Tablet-Rotation um die sm-Schwelle herum) den
+	// Tap-Trigger sonst bis zum nächsten Komponenten-Mount hängen ließe.
+	let isMobileViewport = false;
+	onMount(() => {
+		const mql = window.matchMedia('(min-width: 640px)');
+		const update = () => (isMobileViewport = !mql.matches);
+		update();
+		mql.addEventListener('change', update);
+		return () => mql.removeEventListener('change', update);
+	});
+	// Tap zum Öffnen ist nur sinnvoll, solange noch nicht maximiert ist — im maximierten
+	// Zustand übernehmen ×-Button/Swipe/Escape das Schließen (siehe unten), ein Tap auf das
+	// Bild selbst soll dort nichts auslösen (Nutzer tippt beim Lesen versehentlich aufs Bild).
+	$: previewTappable = isMobileViewport && !maximized;
+
+	function handlePreviewTap() {
+		if (!previewTappable) return;
+		toggleMaximized();
+	}
+	function handlePreviewKeydown(e: KeyboardEvent) {
+		if (!previewTappable) return;
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			toggleMaximized();
+		}
+	}
+
+	// Swipe-zum-Schließen: die Richtung wird erst nach den ersten SWIPE_DIRECTION_LOCK_PX
+	// Bewegung entschieden (dominant horizontal → Swipe-Kandidat, dominant vertikal → normales
+	// Scrollen/Pannen zulassen und die Erkennung für diese Geste sofort abbrechen). Ein
+	// Mindest-Schwellwert (SWIPE_CLOSE_PX) verhindert, dass bloßes Antippen oder kleine
+	// Wischbewegungen beim Lesen des Bons versehentlich schließen. Reine Pointer-Events statt
+	// touchstart/touchmove — es gibt aktuell kein anderes Swipe-Muster im Projekt, das hier
+	// wiederverwendet werden könnte.
+	const SWIPE_DIRECTION_LOCK_PX = 16;
+	const SWIPE_CLOSE_PX = 80;
+	let swipePointerId: number | null = null;
+	let swipeStartX = 0;
+	let swipeStartY = 0;
+	let swipeDirection: 'horizontal' | 'vertical' | null = null;
+
+	function handlePreviewPointerDown(e: PointerEvent) {
+		if (!maximized || !isMobileViewport || e.pointerType === 'mouse') return;
+		swipePointerId = e.pointerId;
+		swipeStartX = e.clientX;
+		swipeStartY = e.clientY;
+		swipeDirection = null;
+	}
+	function handlePreviewPointerMove(e: PointerEvent) {
+		if (swipePointerId === null || e.pointerId !== swipePointerId) return;
+		const dx = e.clientX - swipeStartX;
+		const dy = e.clientY - swipeStartY;
+		if (swipeDirection === null) {
+			if (Math.abs(dx) < SWIPE_DIRECTION_LOCK_PX && Math.abs(dy) < SWIPE_DIRECTION_LOCK_PX) return;
+			swipeDirection = Math.abs(dx) > Math.abs(dy) ? 'horizontal' : 'vertical';
+			if (swipeDirection === 'vertical') {
+				// Vertikale Geste gewinnt: normales Scrollen/Pannen zulassen, für diesen
+				// Pointer keine Swipe-Erkennung mehr durchführen.
+				swipePointerId = null;
+				return;
+			}
+		}
+		// Horizontal dominant: eigenes Swipe-Handling übernimmt, natives Scrollen/Pannen in
+		// dieser Achse unterdrücken (kollidiert sonst mit dem waagerechten Pan bei gezoomtem Bild).
+		e.preventDefault();
+	}
+	function handlePreviewPointerUp(e: PointerEvent) {
+		if (swipePointerId === null || e.pointerId !== swipePointerId) return;
+		const dx = e.clientX - swipeStartX;
+		swipePointerId = null;
+		const wasHorizontalSwipe = swipeDirection === 'horizontal';
+		swipeDirection = null;
+		if (wasHorizontalSwipe && Math.abs(dx) >= SWIPE_CLOSE_PX) closeMaximized();
+	}
+	function handlePreviewPointerCancel() {
+		swipePointerId = null;
+		swipeDirection = null;
 	}
 
 	// Solange Datum/Betrag/Währung nur eine unbestätigte Heuristik-/KI-Schätzung sind
@@ -644,21 +726,23 @@
 	     Artikel-Liste rechts scrollt bei Bedarf INNERHALB der Card (siehe dort), alles andere
 	     bleibt fix sichtbar. Unter sm bleibt alles gestapelt und folgt normalem
 	     Seiten-Scrolling (main ist bereits overflow-y-auto).
-	     Maximieren (nur ab sm, siehe Pill-Menü im Vorschau-Panel): dieselbe Card wird per
-	     position:fixed auf ~95% des Browserfensters vergrößert (top/bottom/left/right-8 =
-	     Tailwind-Spacing-8/32px Rand auf allen Seiten) statt sie zu duplizieren — vermeidet
-	     doppelten Markup-Unterhalt zwischen normaler und maximierter Ansicht. -->
+	     Maximieren (Pill-Menü ab sm, Tap aufs Vorschaubild unterhalb sm, siehe dort): dieselbe
+	     Card wird per position:fixed vergrößert statt sie zu duplizieren — vermeidet doppelten
+	     Markup-Unterhalt zwischen normaler und maximierter Ansicht. Inset unterschiedlich je
+	     Breakpoint: ab sm 32px Rand (~95% des Fensters, wie bisher); unterhalb sm nur 8px
+	     (near-fullscreen) — auf einem kleinen Mobile-Screen zählt für die Lesbarkeit eines
+	     langen, schmalen Kassenbons jeder Pixel deutlich mehr als am Desktop. Unterhalb sm
+	     bleibt die Card (anders als ab sm) im normalen Grid-Fluss (grid-cols-1, kein
+	     grid-rows-Template) — das Vorschau-Panel bekommt dort im maximierten Zustand deshalb
+	     explizit max-sm:h-[75vh] (siehe dort) statt sich wie ab sm über sm:h-full an einer
+	     bereits bestimmten Zeilenhöhe zu orientieren (dieselbe CSS-Spec-Bestimmtheits-Falle wie
+	     beim <img> oben). Metadaten-Bereich darunter bleibt dadurch ggf. höher als der
+	     verfügbare Rest — max-sm:overflow-y-auto auf der Card macht ihn erreichbar. -->
 	<div
 		bind:this={cardEl}
-		class="grid grid-cols-1 gap-6 rounded-[20px] border border-hifi-border bg-hifi-surface p-2 sm:min-h-0 sm:flex-1 sm:grid-cols-[1.1fr_0.9fr] sm:overflow-hidden"
-		class:relative={!maximized}
-		class:fixed={maximized}
-		class:z-50={maximized}
-		class:top-8={maximized}
-		class:bottom-8={maximized}
-		class:left-8={maximized}
-		class:right-8={maximized}
-		class:shadow-popover={maximized}
+		class="grid grid-cols-1 gap-6 rounded-[20px] border border-hifi-border bg-hifi-surface p-2 sm:min-h-0 sm:flex-1 sm:grid-cols-[1.1fr_0.9fr] sm:overflow-hidden {maximized
+			? 'fixed inset-2 z-50 shadow-popover max-sm:overflow-y-auto max-sm:scrollbar-hide sm:inset-8'
+			: 'relative'}"
 		role={maximized ? 'dialog' : undefined}
 		aria-modal={maximized ? 'true' : undefined}
 		aria-label={maximized ? 'Beleg-Detailansicht (maximiert)' : undefined}
@@ -669,7 +753,7 @@
 				on:click={closeMaximized}
 				aria-label="Maximierte Ansicht schließen"
 				title="Maximierte Ansicht schließen"
-				class="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-hifi-accent-tint text-hifi-accent-text hover:bg-hifi-accent hover:text-white"
+				class="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint/90 text-hifi-accent-text shadow-popover backdrop-blur-md hover:bg-hifi-accent hover:text-white"
 			>
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					<path d="M6 6l12 12M18 6L6 18" />
@@ -683,13 +767,35 @@
 		     Prozent-Angaben nicht "bestimmt" (CSS-Spec-Quirk), das war Kern des Bugs. Ab sm
 		     übernimmt die durch das Grid gestreckte, von der Card-Höhenbegrenzung abgeleitete
 		     Höhe (sm:h-full) diese Rolle. -->
-		<div bind:this={previewPanelEl} class="relative flex h-[320px] items-center justify-center overflow-hidden rounded-2xl bg-hifi-surface sm:h-full sm:min-h-0">
+		<div
+			bind:this={previewPanelEl}
+			class="relative flex h-[320px] items-center justify-center overflow-hidden rounded-2xl bg-hifi-surface sm:h-full sm:min-h-0 {maximized
+				? 'max-sm:h-[75vh]'
+				: ''}"
+		>
 			{#if isImageFile}
-				<div class="h-full w-full sm:overflow-auto">
+				<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+				<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+				<div
+					class="h-full w-full sm:overflow-auto scrollbar-hide"
+					class:overflow-auto={maximized}
+					class:touch-pan-y={maximized}
+					role={previewTappable ? 'button' : undefined}
+					tabindex={previewTappable ? 0 : undefined}
+					aria-label={previewTappable ? 'Beleg-Vorschau vergrößern' : undefined}
+					on:click={handlePreviewTap}
+					on:keydown={handlePreviewKeydown}
+					on:pointerdown={handlePreviewPointerDown}
+					on:pointermove={handlePreviewPointerMove}
+					on:pointerup={handlePreviewPointerUp}
+					on:pointercancel={handlePreviewPointerCancel}
+				>
 					<img
 						src={fileUrl}
 						alt="Beleg-Vorschau"
-						class="block h-full w-full object-contain sm:h-[calc(var(--zoom)*100%)] sm:w-[calc(var(--zoom)*100%)]"
+						class="block object-contain {maximized
+							? 'h-[calc(var(--zoom)*100%)] w-[calc(var(--zoom)*100%)]'
+							: 'h-full w-full'} sm:h-[calc(var(--zoom)*100%)] sm:w-[calc(var(--zoom)*100%)]"
 						style="--zoom: {zoomLevel};"
 						on:load={applyNativeZoom}
 					/>
@@ -700,11 +806,28 @@
 				     fehl (alte Belege ohne generiertes Thumbnail), bleibt nur die Öffnen-Kachel. -->
 				<div class="absolute inset-0 flex items-center justify-center" style={thumbFailed ? 'background: repeating-linear-gradient(135deg, var(--color-stripe-doc-a) 0, var(--color-stripe-doc-a) 10px, var(--color-stripe-doc-b) 10px, var(--color-stripe-doc-b) 20px);' : ''}>
 					{#if !thumbFailed}
-						<div class="h-full w-full sm:overflow-auto">
+						<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+						<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+						<div
+							class="h-full w-full sm:overflow-auto scrollbar-hide"
+							class:overflow-auto={maximized}
+							class:touch-pan-y={maximized}
+							role={previewTappable ? 'button' : undefined}
+							tabindex={previewTappable ? 0 : undefined}
+							aria-label={previewTappable ? 'Beleg-Vorschau vergrößern' : undefined}
+							on:click={handlePreviewTap}
+							on:keydown={handlePreviewKeydown}
+							on:pointerdown={handlePreviewPointerDown}
+							on:pointermove={handlePreviewPointerMove}
+							on:pointerup={handlePreviewPointerUp}
+							on:pointercancel={handlePreviewPointerCancel}
+						>
 							<img
 								src={`/api/receipts/${receiptId}/thumb`}
 								alt="Beleg-Vorschau (erste Seite)"
-								class="block h-full w-full object-contain sm:h-[calc(var(--zoom)*100%)] sm:w-[calc(var(--zoom)*100%)]"
+								class="block object-contain {maximized
+									? 'h-[calc(var(--zoom)*100%)] w-[calc(var(--zoom)*100%)]'
+									: 'h-full w-full'} sm:h-[calc(var(--zoom)*100%)] sm:w-[calc(var(--zoom)*100%)]"
 								style="--zoom: {zoomLevel};"
 								on:error={() => (thumbFailed = true)}
 								on:load={applyNativeZoom}
@@ -721,12 +844,16 @@
 					</a>
 				</div>
 			{/if}
-			<!-- Pill-Menü: Zoom/Maximieren nur ab sm (Mobile bleibt bewusst beim einfachen
-			     Verhalten, siehe Kommentar bei maximized oben) — der Download-Button steckt aber
+			<!-- Pill-Menü: Zoom-Buttons (−/%/+) und der explizite Maximieren-Button nur ab sm —
+			     unterhalb sm läuft Maximieren stattdessen über Tap aufs Vorschaubild + Swipe zum
+			     Schließen (siehe previewTappable/handlePreviewTap/Pointer-Handler oben), ein
+			     zusätzlicher Button im Pill wäre dort redundant. Der Download-Button steckt aber
 			     mit im selben Pill und bleibt deshalb auch unter sm sichtbar, sonst gäbe es auf
 			     Mobile gar keinen Download-Zugriff mehr, seit der eigenständige Button entfallen
-			     ist. left-1/2 ist hier das laut CLAUDE.md verbindliche explizite Inset zur
-			     -translate-x-1/2-Zentrierung. -->
+			     ist. Liegt als Geschwister-Element außerhalb des Vorschaubild-Wrappers (siehe
+			     dort) — Klicks hier bubblen deshalb nicht in dessen Tap-Handler, kein
+			     stopPropagation nötig. left-1/2 ist hier das laut CLAUDE.md verbindliche
+			     explizite Inset zur -translate-x-1/2-Zentrierung. -->
 			<div class="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-hifi-border/60 bg-hifi-accent-tint/90 p-1.5 shadow-popover backdrop-blur-md">
 				{#if isImageFile || !thumbFailed}
 					<div class="hidden items-center gap-1 sm:flex">
@@ -1157,7 +1284,7 @@
 					     Unvollständig-Hinweis, Erkannter-Text [nur maximiert], Aktionsleiste) noch
 					     übrig bleibt. Der KI-Status-Chip sitzt seit der Verschlankung nicht mehr hier,
 					     sondern kompakt oben neben dem Betrag (siehe Datum/Betrag-Zeile). -->
-					<div class="border-t border-hifi-border p-3 sm:min-h-0 sm:flex-1 sm:overflow-y-auto">
+					<div class="border-t border-hifi-border p-3 sm:min-h-0 sm:flex-1 sm:overflow-y-auto sm:scrollbar-hide">
 						{#if items.length === 0}
 							<p class="mb-3 text-xs text-hifi-text-muted">Noch keine Artikel erfasst.</p>
 						{:else}
@@ -1397,7 +1524,7 @@
 						</svg>
 					</button>
 					{#if ocrTextExpanded}
-						<div class="max-h-40 overflow-auto border-t border-hifi-border bg-hifi-surface p-3 text-xs text-hifi-text-muted">
+						<div class="max-h-40 overflow-auto scrollbar-hide border-t border-hifi-border bg-hifi-surface p-3 text-xs text-hifi-text-muted">
 							{ocrRawText}
 						</div>
 					{/if}
