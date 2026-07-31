@@ -1,3 +1,9 @@
+## [0.50.0-rc.11](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.10...v0.50.0-rc.11) (2026-07-31)
+
+### Bug Fixes
+
+* **ui:** Glas-Look der Beleg-Vorschau-Buttons mit ausreichend Icon-Kontrast wiederherstellen ([0fd23d0](https://github.com/Thoomaastb/receiptly/commit/0fd23d0a327548d553e7db4aa13e287eb9b87c2a))
+
 ## [0.50.0-rc.10](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.9...v0.50.0-rc.10) (2026-07-31)
 
 ### Bug Fixes
