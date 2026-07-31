@@ -4,6 +4,7 @@
 	import { formatDate } from '$lib/formatDate';
 	import { m } from '$lib/i18n';
 	import { fade } from 'svelte/transition';
+	import { tick } from 'svelte';
 	import ShareManagementModal from './ShareManagementModal.svelte';
 	import CustomSelect from './CustomSelect.svelte';
 	import TagPicker from './TagPicker.svelte';
@@ -70,9 +71,36 @@
 	let zoomLevel = 1;
 
 	// Ein anderer Beleg (receiptId wechselt) darf nicht den Zoom-Stand des vorherigen Belegs
-	// übernehmen — sonst öffnet sich der nächste Beleg überraschend schon gezoomt.
+	// übernehmen — sonst öffnet sich der nächste Beleg überraschend schon gezoomt. Der
+	// dynamische Startzoom (siehe applyNativeZoom unten) wird dabei ebenfalls zurückgesetzt,
+	// damit er für den neuen Beleg aus dessen eigener nativer Auflösung neu berechnet wird.
 	$: if (receiptId) {
 		zoomLevel = 1;
+		zoomInitializedFor = null;
+	}
+
+	// Referenz auf das Vorschau-Panel (umschließt Bild + Pill-Menü) als Bezugsgröße für die
+	// "Container-Breite" bei der nativen Zoom-Berechnung unten.
+	let previewPanelEl: HTMLDivElement | undefined;
+	// Verhindert, dass ein erneutes load-Event desselben Belegs (z.B. Browser-Reload) den
+	// bereits manuell vom Nutzer gesetzten Zoom-Stand überschreibt — pro Beleg nur einmal.
+	let zoomInitializedFor: string | null = null;
+
+	// Initialer Zoom = native Bildauflösung statt fix 100%: ein langer, schmaler
+	// Kassenbon-Scan ist bei reinem "passt in die Box"-Zoom (100%) beim Öffnen unleserlich
+	// klein. 1 Bildpixel ≈ 1 CSS-Pixel bezogen auf die Container-Breite, siehe Kommentar am
+	// --zoom-System oben — das bestehende System bleibt unverändert, nur dieser Startwert
+	// wird jetzt dynamisch statt hartcodiert 1 berechnet. Nie über die native Auflösung
+	// hinaus hochzoomen (nur unscharfe Vergrößerung, kein Informationsgewinn) und nie unter
+	// die bisherige Fit-Container-Basis (100%) herunterzoomen.
+	function applyNativeZoom(event: Event) {
+		if (zoomInitializedFor === receiptId) return;
+		zoomInitializedFor = receiptId;
+		const img = event.currentTarget as HTMLImageElement;
+		const containerWidth = previewPanelEl?.clientWidth;
+		if (!containerWidth || !img.naturalWidth) return;
+		const nativeZoom = img.naturalWidth / containerWidth;
+		zoomLevel = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(nativeZoom * 100) / 100));
 	}
 
 	function zoomIn() {
@@ -86,11 +114,54 @@
 	// Backdrop/Escape-Verhalten analog zu ShareManagementModal.svelte (einziger bestehender
 	// Modal-Präzedenzfall im Projekt) statt ein neues Overlay-Konzept zu erfinden.
 	let maximized = false;
+	let cardEl: HTMLDivElement | undefined;
+
+	// Sanfter Übergang statt hartem Sprung auf die Zielgröße: manuelle FLIP-Technik
+	// (First/Last/Invert/Play). Sveltes eingebaute transition:-Direktiven (siehe fade
+	// oben) greifen nur beim Mounten/Unmounten eines #if-Blocks — hier bleibt dieselbe
+	// Card-Instanz erhalten und wechselt nur Klassen (relative→fixed), deshalb wird die
+	// Größen-/Positionsdifferenz manuell per getBoundingClientRect vor/nach dem
+	// Zustandswechsel ermittelt und als transform animiert. Animiert wird ausschließlich
+	// transform (Skalierung/Verschiebung), nie width/height/top/left direkt (Performance,
+	// siehe ui-ux-pro-max-Vorgabe). prefers-reduced-motion überspringt die Animation
+	// komplett und wechselt nur den Zustand.
+	async function setMaximized(value: boolean) {
+		if (value === maximized) return;
+		const el = cardEl;
+		const prefersReducedMotion =
+			typeof window !== 'undefined' &&
+			window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		if (!el || prefersReducedMotion) {
+			maximized = value;
+			return;
+		}
+		const first = el.getBoundingClientRect();
+		maximized = value;
+		await tick();
+		const last = el.getBoundingClientRect();
+		const dx = first.left - last.left;
+		const dy = first.top - last.top;
+		const scaleX = first.width / last.width;
+		const scaleY = first.height / last.height;
+		el.style.transformOrigin = 'top left';
+		el.style.transition = 'none';
+		el.style.transform = `translate(${dx}px, ${dy}px) scale(${scaleX}, ${scaleY})`;
+		requestAnimationFrame(() => {
+			el.style.transition = 'transform 320ms cubic-bezier(0.16, 1, 0.3, 1)';
+			el.style.transform = 'translate(0, 0) scale(1, 1)';
+		});
+		const onTransitionEnd = () => {
+			el.style.transition = '';
+			el.style.transform = '';
+			el.removeEventListener('transitionend', onTransitionEnd);
+		};
+		el.addEventListener('transitionend', onTransitionEnd);
+	}
 	function toggleMaximized() {
-		maximized = !maximized;
+		setMaximized(!maximized);
 	}
 	function closeMaximized() {
-		maximized = false;
+		setMaximized(false);
 	}
 	function handleDetailKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape' && maximized) closeMaximized();
@@ -578,6 +649,7 @@
 	     Tailwind-Spacing-8/32px Rand auf allen Seiten) statt sie zu duplizieren — vermeidet
 	     doppelten Markup-Unterhalt zwischen normaler und maximierter Ansicht. -->
 	<div
+		bind:this={cardEl}
 		class="grid grid-cols-1 gap-6 rounded-[20px] border border-hifi-border bg-hifi-surface p-2 sm:min-h-0 sm:flex-1 sm:grid-cols-[1.1fr_0.9fr] sm:overflow-hidden"
 		class:relative={!maximized}
 		class:fixed={maximized}
@@ -611,7 +683,7 @@
 		     Prozent-Angaben nicht "bestimmt" (CSS-Spec-Quirk), das war Kern des Bugs. Ab sm
 		     übernimmt die durch das Grid gestreckte, von der Card-Höhenbegrenzung abgeleitete
 		     Höhe (sm:h-full) diese Rolle. -->
-		<div class="relative flex h-[320px] items-center justify-center overflow-hidden rounded-2xl bg-hifi-surface sm:h-full sm:min-h-0">
+		<div bind:this={previewPanelEl} class="relative flex h-[320px] items-center justify-center overflow-hidden rounded-2xl bg-hifi-surface sm:h-full sm:min-h-0">
 			{#if isImageFile}
 				<div class="h-full w-full sm:overflow-auto">
 					<img
@@ -619,6 +691,7 @@
 						alt="Beleg-Vorschau"
 						class="block h-full w-full object-contain sm:h-[calc(var(--zoom)*100%)] sm:w-[calc(var(--zoom)*100%)]"
 						style="--zoom: {zoomLevel};"
+						on:load={applyNativeZoom}
 					/>
 				</div>
 			{:else}
@@ -634,6 +707,7 @@
 								class="block h-full w-full object-contain sm:h-[calc(var(--zoom)*100%)] sm:w-[calc(var(--zoom)*100%)]"
 								style="--zoom: {zoomLevel};"
 								on:error={() => (thumbFailed = true)}
+								on:load={applyNativeZoom}
 							/>
 						</div>
 					{/if}
@@ -647,76 +721,86 @@
 					</a>
 				</div>
 			{/if}
-			{#if isImageFile || !thumbFailed}
-				<!-- Zoom-/Maximieren-Pill: nur ab sm (Mobile bleibt bewusst beim einfachen
-				     Verhalten, siehe Kommentar bei maximized oben). left-1/2 ist hier das laut
-				     CLAUDE.md verbindliche explizite Inset zur -translate-x-1/2-Zentrierung. -->
-				<div class="absolute bottom-4 left-1/2 hidden -translate-x-1/2 items-center gap-1 rounded-full border border-hifi-border/60 bg-hifi-accent-tint/90 p-1.5 shadow-popover backdrop-blur-md sm:flex">
-					<button
-						type="button"
-						on:click={zoomOut}
-						disabled={zoomLevel <= ZOOM_MIN}
-						aria-label="Bild verkleinern"
-						title="Verkleinern"
-						class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-surface/70 disabled:opacity-40"
-					>
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-							<path d="M5 12h14" />
-						</svg>
-					</button>
-					<span class="min-w-[2.75rem] text-center font-mono text-[11px] font-semibold text-hifi-accent-text" aria-hidden="true">
-						{Math.round(zoomLevel * 100)}%
-					</span>
-					<button
-						type="button"
-						on:click={zoomIn}
-						disabled={zoomLevel >= ZOOM_MAX}
-						aria-label="Bild vergrößern"
-						title="Vergrößern"
-						class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-surface/70 disabled:opacity-40"
-					>
-						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-							<path d="M12 5v14M5 12h14" />
-						</svg>
-					</button>
-					<div class="mx-0.5 h-5 w-px bg-hifi-border" aria-hidden="true"></div>
-					<button
-						type="button"
-						on:click={toggleMaximized}
-						aria-label={maximized ? 'Normalansicht wiederherstellen' : 'Beleg maximieren'}
-						title={maximized ? 'Normalansicht wiederherstellen' : 'Maximieren'}
-						class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-surface/70"
-					>
-						{#if maximized}
+			<!-- Pill-Menü: Zoom/Maximieren nur ab sm (Mobile bleibt bewusst beim einfachen
+			     Verhalten, siehe Kommentar bei maximized oben) — der Download-Button steckt aber
+			     mit im selben Pill und bleibt deshalb auch unter sm sichtbar, sonst gäbe es auf
+			     Mobile gar keinen Download-Zugriff mehr, seit der eigenständige Button entfallen
+			     ist. left-1/2 ist hier das laut CLAUDE.md verbindliche explizite Inset zur
+			     -translate-x-1/2-Zentrierung. -->
+			<div class="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-hifi-border/60 bg-hifi-accent-tint/90 p-1.5 shadow-popover backdrop-blur-md">
+				{#if isImageFile || !thumbFailed}
+					<div class="hidden items-center gap-1 sm:flex">
+						<button
+							type="button"
+							on:click={zoomOut}
+							disabled={zoomLevel <= ZOOM_MIN}
+							aria-label="Bild verkleinern"
+							title="Verkleinern"
+							class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-surface/70 disabled:opacity-40"
+						>
 							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-								<path d="M9 3v4a1 1 0 01-1 1H4M20 9h-4a1 1 0 01-1-1V4M15 21v-4a1 1 0 011-1h4M4 15h4a1 1 0 011 1v4" />
+								<path d="M5 12h14" />
 							</svg>
-						{:else}
+						</button>
+						<span class="min-w-[2.75rem] text-center font-mono text-[11px] font-semibold text-hifi-accent-text" aria-hidden="true">
+							{Math.round(zoomLevel * 100)}%
+						</span>
+						<button
+							type="button"
+							on:click={zoomIn}
+							disabled={zoomLevel >= ZOOM_MAX}
+							aria-label="Bild vergrößern"
+							title="Vergrößern"
+							class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-surface/70 disabled:opacity-40"
+						>
 							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-								<path d="M8 3H5a2 2 0 00-2 2v3M16 3h3a2 2 0 012 2v3M8 21H5a2 2 0 01-2-2v-3M16 21h3a2 2 0 002-2v-3" />
+								<path d="M12 5v14M5 12h14" />
 							</svg>
-						{/if}
-					</button>
-				</div>
-			{/if}
-			<a
-				href={fileUrl}
-				download
-				class="absolute bottom-4 right-4 flex items-center gap-1.5 rounded-[10px] border border-hifi-border bg-hifi-surface px-3 py-2 text-xs font-medium hover:bg-hifi-accent-tint hover:text-hifi-accent-text"
-			>
-				<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-					<path d="M12 3v12M7 10l5 5 5-5" /><path d="M5 21h14" />
-				</svg>
-				Herunterladen
-			</a>
+						</button>
+						<div class="mx-0.5 h-5 w-px bg-hifi-border" aria-hidden="true"></div>
+						<button
+							type="button"
+							on:click={toggleMaximized}
+							aria-label={maximized ? 'Normalansicht wiederherstellen' : 'Beleg maximieren'}
+							title={maximized ? 'Normalansicht wiederherstellen' : 'Maximieren'}
+							class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-surface/70"
+						>
+							{#if maximized}
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<path d="M9 3v4a1 1 0 01-1 1H4M20 9h-4a1 1 0 01-1-1V4M15 21v-4a1 1 0 011-1h4M4 15h4a1 1 0 011 1v4" />
+								</svg>
+							{:else}
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+									<path d="M8 3H5a2 2 0 00-2 2v3M16 3h3a2 2 0 012 2v3M8 21H5a2 2 0 01-2-2v-3M16 21h3a2 2 0 002-2v-3" />
+								</svg>
+							{/if}
+						</button>
+						<div class="mx-0.5 h-5 w-px bg-hifi-border" aria-hidden="true"></div>
+					</div>
+				{/if}
+				<a
+					href={fileUrl}
+					download
+					aria-label="Beleg herunterladen"
+					title="Herunterladen"
+					class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-surface/70"
+				>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+						<path d="M12 3v12M7 10l5 5 5-5" /><path d="M5 21h14" />
+					</svg>
+				</a>
+			</div>
 		</div>
 
-		<!-- Rechts: Metadaten — die oberen Infobereiche (Badges, Händler/Datum/Betrag,
-		     Garantie-Tracking, Bearbeiten) bleiben fix sichtbar; NUR der aufklappbare
-		     Artikel-Abschnitt weiter unten bekommt seinen eigenen internen
+		<!-- Rechts: Metadaten — die oberen Infobereiche (Badges, Händler/Datum/Betrag inkl.
+		     KI-Status-Chip, Garantie-Tracking, Bearbeiten) bleiben fix sichtbar; NUR der
+		     aufklappbare Artikel-Abschnitt weiter unten bekommt seinen eigenen internen
 		     Scroll-Container (siehe dort) — dieser Wrapper hier scrollt daher selbst
-		     NICHT mehr. -->
-		<div class="flex flex-col gap-4 p-4 sm:h-full sm:min-h-0 sm:p-2">
+		     NICHT mehr. Im maximierten Zustand zusätzliches Top-Padding (pt-14 statt der
+		     regulären p-4/sm:p-2), damit die erste Zeile (Badges + Bearbeiten-Link) nicht
+		     mehr mit dem absolut positionierten ×-Schließen-Button (h-11 = 44px bei top-3)
+		     kollidiert — per Screenshot bestätigter Bug, siehe CLAUDE.md-Bugs-Historie. -->
+		<div class="flex flex-col gap-4 p-4 sm:h-full sm:min-h-0 sm:p-2 {maximized ? 'pt-14 sm:pt-14' : ''}">
 			<div class="flex items-start justify-between gap-2">
 				<div class="flex flex-wrap gap-1.5">
 					<span class="rounded-full border border-hifi-border bg-hifi-surface px-2.5 py-0.5 text-xs font-medium text-hifi-text-muted">
@@ -901,18 +985,102 @@
 				{#if merchantName}
 					<div class="text-[13.5px] font-bold text-hifi-text">{merchantName}</div>
 				{/if}
-				<div>
-					<div class="mb-1 text-[12px] text-hifi-text-muted">
-						{receiptDate ? formatDate(receiptDate) : 'Datum folgt (OCR/KI)'}{#if dateIsEstimate && receiptDate}<span class="text-hifi-accent-text"> · geschätzt</span>{/if}
-					</div>
-					<div class="text-2xl font-bold">
-						{totalAmount !== null ? `${totalAmount.toFixed(2)} ${currency}` : 'Betrag folgt (OCR/KI)'}{#if amountIsEstimate && totalAmount !== null}<span class="text-sm font-normal text-hifi-accent-text"> · geschätzt</span>{/if}
-					</div>
-					{#if adjustmentParts.length > 0}
-						<div class="mt-1 text-[12px] text-hifi-text-muted">
-							{adjustmentParts.join(' · ')}
+				<div class="flex items-start justify-between gap-3">
+					<div class="min-w-0">
+						<div class="mb-1 text-[12px] text-hifi-text-muted">
+							{receiptDate ? formatDate(receiptDate) : 'Datum folgt (OCR/KI)'}{#if dateIsEstimate && receiptDate}<span class="text-hifi-accent-text"> · geschätzt</span>{/if}
 						</div>
-					{/if}
+						<div class="text-2xl font-bold">
+							{totalAmount !== null ? `${totalAmount.toFixed(2)} ${currency}` : 'Betrag folgt (OCR/KI)'}{#if amountIsEstimate && totalAmount !== null}<span class="text-sm font-normal text-hifi-accent-text"> · geschätzt</span>{/if}
+						</div>
+						{#if adjustmentParts.length > 0}
+							<div class="mt-1 text-[12px] text-hifi-text-muted">
+								{adjustmentParts.join(' · ')}
+							</div>
+						{/if}
+					</div>
+					<!-- Kompakter KI-Status-Chip: ersetzt den früheren vollbreiten "KI-Zusammenfassung"-
+					     Block unterhalb der Artikel-Liste — direkt neben dem Betrag platziert, damit die
+					     Artikel-Liste darunter mehr vertikale Höhe zur Verfügung hat. Knapp beschriftet
+					     (Chip statt Absatz); der volle Text bleibt für Maus-Nutzer über title und für
+					     Screenreader über aria-label erreichbar, wo er über die Kurzbeschriftung
+					     hinausgeht (KI-Vorschlag/Prüfung-nötig-Fall). -->
+					<div class="flex-none">
+						{#if status === 'pending'}
+							<div
+								class="flex items-center gap-1 rounded-full bg-hifi-accent-tint px-2.5 py-1.5 text-[11px] font-semibold text-hifi-accent-text"
+								title="Wird analysiert …"
+							>
+								<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-none">
+									<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
+								</svg>
+								Wird analysiert …
+							</div>
+						{:else if hasSuggestion}
+							<div class="flex flex-col items-end gap-1.5 rounded-[12px] bg-hifi-accent-tint px-2.5 py-2 text-[11px] text-hifi-accent-text">
+								<div class="flex items-center gap-1 font-semibold">
+									<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-none">
+										<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
+									</svg>
+									KI-Vorschlag
+								</div>
+								{#if aiSuggestedMerchantName}
+									<div class="max-w-[9rem] truncate text-right text-hifi-text" title={aiSuggestedMerchantName}>
+										{aiSuggestedMerchantName}
+									</div>
+								{/if}
+								<div class="flex gap-2">
+									<button
+										type="button"
+										on:click={acceptSuggestion}
+										disabled={suggestionSaving}
+										class="font-semibold text-hifi-accent hover:underline disabled:opacity-50"
+									>
+										Übernehmen
+									</button>
+									<button
+										type="button"
+										on:click={dismissSuggestion}
+										disabled={suggestionSaving}
+										class="text-hifi-text-muted hover:text-hifi-text disabled:opacity-50"
+									>
+										Verwerfen
+									</button>
+								</div>
+							</div>
+						{:else if status === 'needs_review' && aiExtractionNote}
+							<div
+								class="flex items-center gap-1 rounded-full border border-status-warning-border bg-status-warning-bg px-2.5 py-1.5 text-[11px] font-semibold text-status-warning"
+								title={aiExtractionNote}
+								aria-label={`KI-Hinweis: ${aiExtractionNote}`}
+							>
+								<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-none">
+									<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
+								</svg>
+								Prüfung nötig
+							</div>
+						{:else if !aiExtractedAt}
+							<div
+								class="flex items-center gap-1 rounded-full bg-hifi-accent-tint px-2.5 py-1.5 text-[11px] font-semibold text-hifi-accent-text"
+								title="Noch keine KI-Analyse für diesen Beleg."
+							>
+								<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-none">
+									<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
+								</svg>
+								Keine KI-Analyse
+							</div>
+						{:else}
+							<div
+								class="flex items-center gap-1 rounded-full bg-hifi-accent-tint px-2.5 py-1.5 text-[11px] font-semibold text-hifi-accent-text"
+								title="Beleg wurde von der KI geprüft — keine neuen Vorschläge."
+							>
+								<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-none">
+									<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
+								</svg>
+								KI geprüft
+							</div>
+						{/if}
+					</div>
 				</div>
 				{#if customFields}
 					{#each categoryFields(category) as field (field.key)}
@@ -986,8 +1154,9 @@
 					     Kommentar an der äußeren Card oben) -- sm:overflow-y-auto zusammen mit
 					     sm:flex-1/sm:min-h-0 lässt diesen Abschnitt genau den Platz einnehmen, der
 					     nach den fix sichtbaren Geschwister-Elementen (Header-Button,
-					     Unvollständig-Hinweis, KI-Box, Erkannter-Text, Aktionsleiste) noch übrig
-					     bleibt. -->
+					     Unvollständig-Hinweis, Erkannter-Text [nur maximiert], Aktionsleiste) noch
+					     übrig bleibt. Der KI-Status-Chip sitzt seit der Verschlankung nicht mehr hier,
+					     sondern kompakt oben neben dem Betrag (siehe Datum/Betrag-Zeile). -->
 					<div class="border-t border-hifi-border p-3 sm:min-h-0 sm:flex-1 sm:overflow-y-auto">
 						{#if items.length === 0}
 							<p class="mb-3 text-xs text-hifi-text-muted">Noch keine Artikel erfasst.</p>
@@ -1201,79 +1370,10 @@
 				{/if}
 			</div>
 
-			{#if status === 'pending'}
-				<div class="rounded-[14px] bg-hifi-accent-tint p-3.5">
-					<div class="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-hifi-accent-text">
-						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-							<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
-						</svg>
-						KI-Zusammenfassung
-					</div>
-					<div class="text-xs text-hifi-text-muted">Wird analysiert …</div>
-				</div>
-			{:else if hasSuggestion}
-				<div class="rounded-[14px] bg-hifi-accent-tint p-3.5">
-					<div class="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-hifi-accent-text">
-						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-							<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
-						</svg>
-						KI-Vorschlag
-					</div>
-					<div class="mb-3 text-xs text-hifi-text">
-						{#if aiSuggestedMerchantName}
-							<div>Händler: <span class="font-semibold">{aiSuggestedMerchantName}</span></div>
-						{/if}
-					</div>
-					<div class="flex gap-2">
-						<button
-							on:click={acceptSuggestion}
-							disabled={suggestionSaving}
-							class="rounded-[10px] bg-hifi-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
-						>
-							Übernehmen
-						</button>
-						<button
-							on:click={dismissSuggestion}
-							disabled={suggestionSaving}
-							class="text-xs text-hifi-text-muted hover:text-hifi-text disabled:opacity-50"
-						>
-							Verwerfen
-						</button>
-					</div>
-				</div>
-			{:else if status === 'needs_review' && aiExtractionNote}
-				<div class="rounded-[14px] border border-status-warning-border bg-status-warning-bg p-3.5 text-xs text-status-warning">
-					<div class="mb-1 flex items-center gap-1.5 font-bold">
-						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-							<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
-						</svg>
-						KI-Zusammenfassung
-					</div>
-					{aiExtractionNote}
-				</div>
-			{:else if !aiExtractedAt}
-				<div class="rounded-[14px] bg-hifi-accent-tint p-3.5">
-					<div class="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-hifi-accent-text">
-						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-							<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
-						</svg>
-						KI-Zusammenfassung
-					</div>
-					<div class="text-xs text-hifi-text-muted">Noch keine KI-Analyse für diesen Beleg.</div>
-				</div>
-			{:else}
-				<div class="rounded-[14px] bg-hifi-accent-tint p-3.5">
-					<div class="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-hifi-accent-text">
-						<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-							<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
-						</svg>
-						KI-Zusammenfassung
-					</div>
-					<div class="text-xs text-hifi-text-muted">Beleg wurde von der KI geprüft — keine neuen Vorschläge.</div>
-				</div>
-			{/if}
-
-			{#if ocrRawText}
+			{#if maximized && ocrRawText}
+				<!-- "Erkannter Text" (OCR-Rohtext) nur im Maximieren-Modus: im normalen, platzknappen
+				     Layout blendet dieser Abschnitt sonst die Artikel-Liste stark ein; im maximierten
+				     Zustand ist genug Platz vorhanden. -->
 				<div class="rounded-[14px] border border-hifi-border">
 					<button
 						type="button"

@@ -104,6 +104,20 @@
 	// interne "Aufräum"-Navigationsschritt den gerade erst geöffneten Beleg sofort wieder
 	// schließt, wenn der $:-Block danach den jetzt leeren Parameter sieht.
 	let suppressNextOpenParamClose = false;
+	// Zuletzt gesehener URL-Such-String (z.B. "?category=Lebensmittel") -- der $:-Block unten
+	// führt seine Öffnen-/Schließen-Seiteneffekte nur aus, wenn sich DIESER gegenüber dem
+	// letzten Lauf ändert, also bei einer ECHTEN Navigation. Ohne das würde JEDE Änderung an
+	// $page ODER openReceipt (z.B. das Setzen von openReceipt beim manuellen Öffnen über
+	// openDetailManual, das die URL gar nicht anfasst) den Block erneut auslösen und den
+	// gerade erst geöffneten Beleg im selben Tick wieder schließen, weil
+	// $page.url.searchParams.get('open') dann weiterhin null ist.
+	//
+	// Bewusst der VOLLE Such-String und nicht nur der ?open-Wert: Ein Sidebar-Kategorie-Klick
+	// (+layout.svelte, goto('/receipts?category=X')) muss eine offene Detailansicht auch dann
+	// schließen, wenn der Beleg über einen normalen Listen-Klick geöffnet wurde (also nie einen
+	// ?open-Parameter in der URL hatte) -- reines Diffing von ?open allein würde in diesem Fall
+	// "null -> null" sehen und fälschlich nichts tun.
+	let lastUrlSearch: string | null = null;
 
 	let searchQuery = '';
 	let activeType: string | null = null;
@@ -258,6 +272,17 @@
 			errorMessage = err instanceof Error ? err.message : 'Unbekannter Fehler.';
 		} finally {
 			loading = false;
+			// Aktuellen URL-Such-String als Ausgangspunkt für den $:-Block festhalten, BEVOR er
+			// scharf geschaltet wird -- sonst hielte der Block den zu diesem Zeitpunkt bereits
+			// vorliegenden Zustand fälschlich für eine neue Änderung und würde beim ersten Durchlauf
+			// erneut reagieren. Das oben aufgerufene goto('/receipts', ...) wird bewusst nicht
+			// awaited und hat den $page-Store an dieser Stelle in aller Regel noch NICHT
+			// aktualisiert (SvelteKits Navigation läuft intern über mehrere await-Punkte, bevor der
+			// Store gesetzt wird) -- $page.url zeigt hier also meist noch den alten ?open=<id>-Stand.
+			// Das ist unschädlich: Sobald die Navigation tatsächlich abschließt und $page sich
+			// ändert, erkennt der Block den Unterschied zu lastUrlSearch korrekt und verarbeitet das
+			// Entfernen des Parameters dann regulär (inkl. Konsum von suppressNextOpenParamClose).
+			lastUrlSearch = $page.url.search;
 			// Ab hier übernimmt der $:-Block unten die Kopplung an ?open (siehe dort) --
 			// bewusst erst NACH der obigen initialen Deep-Link-Behandlung aktiv, siehe Kommentar
 			// bei openParamSyncActive.
@@ -269,22 +294,38 @@
 	// Deep-Link-Behandlung in onMount abgeschlossen ist (siehe openParamSyncActive). Behebt den
 	// Bug, dass ein Kategorie-Klick in der Sidebar (+layout.svelte, goto('/receipts?category=X'))
 	// den ?open-Parameter zwar aus der URL entfernt, die noch offene Detailansicht aber stehen
-	// ließ, weil openReceipt bis dahin nirgends reaktiv an die URL gekoppelt war. Läuft bei jeder
-	// $page-Änderung (nicht nur bei manuellen openDetailManual-Aufrufen, die die URL gar nicht
-	// anfassen), reagiert also automatisch auf JEDE Navigation, die den Parameter entfernt.
+	// ließ, weil openReceipt bis dahin nirgends reaktiv an die URL gekoppelt war.
+	//
+	// Liest sowohl $page ALS AUCH openReceipt -- Svelte re-triggert $:-Blöcke bei JEDER darin
+	// gelesenen Abhängigkeit, nicht nur bei $page. openDetailManual (normaler Klick aus der
+	// Liste/Suche) setzt openReceipt direkt, ohne die URL anzufassen -- das würde diesen Block
+	// sonst erneut auslösen, obwohl gar keine Navigation stattgefunden hat, und ihn dann
+	// fälschlich in den else-Zweig (schließen) laufen lassen, weil urlOpenId ohnehin null ist.
+	// Deshalb die Seiteneffekte nur ausführen, wenn sich der volle URL-Such-String GEGENÜBER DEM
+	// LETZTEN LAUF tatsächlich geändert hat (lastUrlSearch) -- also bei einer ECHTEN Navigation.
+	//
+	// Bewusst der volle Such-String statt nur des ?open-Werts (siehe Deklaration von
+	// lastUrlSearch oben): Sonst würde ein Sidebar-Kategorie-Klick bei einem über die Liste
+	// (nicht per ?open-Deep-Link) geöffneten Beleg NICHT schließen, weil ?open dabei durchgehend
+	// null bleibt ("null -> null" sieht wie "keine Änderung" aus) -- das wäre exakt der
+	// ursprüngliche Bug, nur für den Listen-Klick-Fall statt den Deep-Link-Fall.
 	$: if (openParamSyncActive) {
-		const urlOpenId = $page.url.searchParams.get('open');
-		if (urlOpenId) {
-			if (!openReceipt || openReceipt.id !== urlOpenId) {
-				openedViaHomeDeeplink = true;
-				openDetail(urlOpenId);
-			}
-		} else if (openReceipt) {
-			if (suppressNextOpenParamClose) {
-				suppressNextOpenParamClose = false;
-			} else {
-				openReceipt = null;
-				openedViaHomeDeeplink = false;
+		const currentUrlSearch = $page.url.search;
+		if (currentUrlSearch !== lastUrlSearch) {
+			lastUrlSearch = currentUrlSearch;
+			const urlOpenId = $page.url.searchParams.get('open');
+			if (urlOpenId) {
+				if (!openReceipt || openReceipt.id !== urlOpenId) {
+					openedViaHomeDeeplink = true;
+					openDetail(urlOpenId);
+				}
+			} else if (openReceipt) {
+				if (suppressNextOpenParamClose) {
+					suppressNextOpenParamClose = false;
+				} else {
+					openReceipt = null;
+					openedViaHomeDeeplink = false;
+				}
 			}
 		}
 	}
