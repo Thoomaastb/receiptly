@@ -1,3 +1,9 @@
+## [0.50.0-rc.10](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.9...v0.50.0-rc.10) (2026-07-31)
+
+### Bug Fixes
+
+* **receipts:** Pill-Menü-Kontrast auf Beleg-Fotos verbessern ([3bc9bda](https://github.com/Thoomaastb/receiptly/commit/3bc9bdae33e02f5d8f3f66f313b3e277ecea72ba))
+
 ## [0.50.0-rc.9](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.8...v0.50.0-rc.9) (2026-07-31)
 
 ### Features
