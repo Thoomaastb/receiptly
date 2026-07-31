@@ -32,6 +32,7 @@ from app.models.receipt_share import ReceiptShare
 from app.models.tag import Tag, receipt_tags
 from app.models.user import User, UserRole
 from app.schemas.receipt import (
+    AdjacentReceiptsResponse,
     ItemCreate,
     ItemResponse,
     ItemUpdate,
@@ -318,6 +319,50 @@ async def get_receipt(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Beleg nicht gefunden")
     receipt.suggested_tags = await suggest_tags_for_receipt(db, receipt, user)
     return receipt
+
+
+@router.get("/{receipt_id}/adjacent", response_model=AdjacentReceiptsResponse)
+async def get_adjacent_receipts(
+    receipt_id: uuid.UUID,
+    bucket_id: uuid.UUID = Query(
+        ..., description="Navigation ist bewusst auf diesen Bucket beschränkt"
+    ),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> AdjacentReceiptsResponse:
+    """
+    Für "vorheriger/nächster Beleg"-Navigation (Swipe auf Mobile, Pfeil-Buttons auf
+    Desktop) in der Detailansicht — bewusst auf einen einzelnen, explizit übergebenen
+    Bucket beschränkt statt alle sichtbaren Buckets. Lädt nur `id` (keine weiteren
+    Spalten) aller Belege des Buckets, sortiert exakt wie _SORT_OPTIONS["date_desc"] plus
+    created_at als deterministischen Tiebreak für gleiches/fehlendes receipt_date, und
+    sucht die Position von receipt_id danach in Python — bewusst simpler Ansatz statt
+    fehleranfälliger NULL-Handling-Tiebreak-Logik direkt im SQL; Bucket-Größen sind hier
+    nicht performancekritisch (keine Millionen Zeilen).
+
+    newer_id/older_id statt previous_id/next_id, um Richtungs-Mehrdeutigkeit zu vermeiden.
+    404, falls receipt_id nicht in diesem Bucket liegt oder der Bucket für den Nutzer
+    nicht sichtbar ist (beides landet gleichermaßen in einer leeren/receipt_id-losen
+    ID-Liste, kein separater Sichtbarkeits-Check nötig).
+    """
+    result = await db.execute(
+        select(Receipt.id)
+        .where(
+            Receipt.bucket_id == bucket_id,
+            Receipt.bucket_id.in_(visible_bucket_ids_query(user)),
+        )
+        .order_by(Receipt.receipt_date.desc().nullslast(), Receipt.created_at.desc())
+    )
+    ordered_ids = list(result.scalars().all())
+
+    try:
+        index = ordered_ids.index(receipt_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Beleg nicht gefunden")
+
+    newer_id = ordered_ids[index - 1] if index > 0 else None
+    older_id = ordered_ids[index + 1] if index + 1 < len(ordered_ids) else None
+    return AdjacentReceiptsResponse(newer_id=newer_id, older_id=older_id)
 
 
 @router.get("/{receipt_id}/file")

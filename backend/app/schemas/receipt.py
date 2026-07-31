@@ -120,6 +120,18 @@ class ReceiptDetail(ReceiptListItem):
     suggested_tags: list[TagResponse]
 
 
+class AdjacentReceiptsResponse(BaseModel):
+    """
+    Nachbarn eines Belegs innerhalb desselben Buckets, sortiert wie date_desc (siehe
+    _SORT_OPTIONS in app/api/receipts.py) — bewusst newer_id/older_id statt previous_id/
+    next_id benannt, um Richtungs-Mehrdeutigkeit (abhängig von Sortierreihenfolge) zu
+    vermeiden. None, wenn am jeweiligen Rand kein Nachbar existiert.
+    """
+
+    newer_id: uuid.UUID | None
+    older_id: uuid.UUID | None
+
+
 class ReceiptUpdate(BaseModel):
     """Alle Felder optional — nur mitgeschickte Felder werden geändert (siehe update_receipt)."""
 
