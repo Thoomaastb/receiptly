@@ -1,3 +1,9 @@
+## [0.50.0-rc.7](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.6...v0.50.0-rc.7) (2026-07-31)
+
+### Bug Fixes
+
+* **ui:** Backdrop-Blur in Modals durch opacity+backdrop-filter-Bug beheben ([bdf7dd4](https://github.com/Thoomaastb/receiptly/commit/bdf7dd46570577d8f17ac9e6ce52acb9251eccc0))
+
 ## [0.50.0-rc.6](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.5...v0.50.0-rc.6) (2026-07-31)
 
 ### Features
