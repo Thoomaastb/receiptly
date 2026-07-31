@@ -1,3 +1,13 @@
+## [0.50.0-rc.8](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.7...v0.50.0-rc.8) (2026-07-31)
+
+### Features
+
+* **receipts:** Endpoint für vorherigen/nächsten Beleg im Bucket ergänzen ([9bd5a84](https://github.com/Thoomaastb/receiptly/commit/9bd5a844efe235a1289b38423013f017ff80d65d))
+
+### Bug Fixes
+
+* **receipts:** Scrollbar in Zoom- und Listen-Containern ausblenden, Scroll-Funktion erhalten ([66cfb1f](https://github.com/Thoomaastb/receiptly/commit/66cfb1f38da185c9e1dc9a988f70e48c7e9f35f4))
+
 ## [0.50.0-rc.7](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.6...v0.50.0-rc.7) (2026-07-31)
 
 ### Bug Fixes
