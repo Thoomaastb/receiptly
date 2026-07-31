@@ -38,7 +38,12 @@ _SYSTEM_PROMPT = (
     "zusätzlich in die beleg-weite discount_amount-Summe einfließen — das beleg-weite "
     "discount_amount ist ausschließlich für Rabatte/Gutscheine ohne Bezug zu einer "
     "einzelnen Artikelzeile (z.B. ein pauschaler Rabatt beim Bezahlen). Zähle keinen "
-    "Rabatt doppelt."
+    "Rabatt doppelt. Die auf praktisch jedem deutschen Kassenbon vorhandene "
+    "MwSt.-/USt.-Aufschlüsselungstabelle (mehrere Zeilen mit Steuersatz % + Netto + "
+    "Brutto pro Steuerklasse, endend in einer Summe-Zeile) ist NIEMALS tax_amount — diese "
+    "Steuer ist immer bereits im Gesamtbetrag enthalten. tax_amount ist ausschließlich für "
+    "den seltenen Fall einer Steuer, die ZUSÄTZLICH zum ausgewiesenen Gesamtbetrag erhoben "
+    "wird."
 )
 
 _JSON_SCHEMA = {
@@ -70,8 +75,14 @@ _JSON_SCHEMA = {
         "tax_amount": {
             "type": ["number", "null"],
             "description": (
-                "Separat ausgewiesene Steuer als Zahl, nur falls nicht bereits im "
-                "Gesamtbetrag enthalten — sonst null."
+                "Separat ausgewiesene Steuer als Zahl, NUR falls diese Steuer ZUSÄTZLICH "
+                "zum ausgewiesenen total_amount erhoben wird (total_amount enthält sie also "
+                "noch NICHT) — sonst null. WICHTIG: Die auf praktisch jedem deutschen "
+                "Kassenbon vorhandene MwSt.-/USt.-Aufschlüsselungstabelle (Muster: mehrere "
+                "Zeilen mit Steuersatz % + Netto + Brutto pro Steuerklasse, endend in einer "
+                "Summe-Zeile, deren Brutto-Summe dem total_amount entspricht) ist NIEMALS "
+                "tax_amount — diese Steuer ist bereits im Gesamtbetrag enthalten, hier "
+                "IMMER null zurückgeben."
             ),
         },
         "currency": {
@@ -158,6 +169,13 @@ def _parse_non_negative(value: object) -> float | None:
 def _parse_positive(value: object) -> float | None:
     parsed = _parse_float(value)
     return parsed if parsed is not None and parsed > 0 else None
+
+
+def _none_if_zero(value: float | None) -> float | None:
+    """Ein Rabatt von exakt 0 ist äquivalent zu 'kein Rabatt' (vgl. Migration-0011-
+    Docstring-Philosophie: NULL heißt nicht erfasst, nicht 0) — die KI liefert trotz
+    Prompt-Anweisung "sonst null" öfter 0 statt null, wenn kein Rabatt vorliegt."""
+    return None if value == 0 else value
 
 
 async def run_ai_extraction(receipt_id: uuid.UUID, household_id: uuid.UUID) -> None:
@@ -345,7 +363,7 @@ async def _apply_extraction_result(db: AsyncSession, receipt: Receipt, data: dic
         receipt.shipping_cost = shipping_cost
         receipt.ai_suggested_shipping_cost = shipping_cost
 
-    discount_amount = _parse_non_negative(data.get("discount_amount"))
+    discount_amount = _none_if_zero(_parse_non_negative(data.get("discount_amount")))
     if discount_amount is not None and (
         receipt.discount_amount is None or receipt.ai_suggested_discount_amount is not None
     ):
@@ -425,7 +443,7 @@ def _apply_items(db: AsyncSession, receipt: Receipt, items_data: list) -> None:
             continue
         quantity = _parse_positive(raw_item.get("quantity")) or 1
         unit_price = _parse_non_negative(raw_item.get("unit_price"))
-        discount_amount = _parse_non_negative(raw_item.get("discount_amount"))
+        discount_amount = _none_if_zero(_parse_non_negative(raw_item.get("discount_amount")))
 
         db.add(
             Item(

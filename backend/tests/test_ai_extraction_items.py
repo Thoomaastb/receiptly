@@ -7,7 +7,7 @@ reicht hier ein simples Fake-Objekt statt einer echten Session/DB-Fixture.
 
 import uuid
 
-from app.services.ai_extraction import _apply_items, _parse_non_negative
+from app.services.ai_extraction import _apply_items, _none_if_zero, _parse_non_negative
 
 
 class _FakeReceipt:
@@ -107,3 +107,31 @@ def test_negative_discount_amount_becomes_none():
     _apply_items(db, receipt, items_data)
 
     assert db.added[0].discount_amount is None
+
+
+def test_zero_discount_amount_from_ai_is_normalized_to_none():
+    """KI liefert trotz Prompt-Anweisung "sonst null" öfter 0 statt null, wenn kein
+    Rabatt vorliegt — 0.0 hier wie None behandeln, sonst zeigt das Frontend fälschlich
+    "Rabatt -0.00" bei jedem Artikel an (live per Screenshot bestätigter Bug)."""
+    db = _FakeSession()
+    receipt = _FakeReceipt()
+    items_data = [
+        {
+            "raw_name": "Milch",
+            "quantity": 1,
+            "unit_price": 1.19,
+            "total_price": 1.19,
+            "discount_amount": 0,
+        }
+    ]
+
+    _apply_items(db, receipt, items_data)
+
+    assert db.added[0].discount_amount is None
+
+
+def test_none_if_zero_normalizes_only_exact_zero():
+    assert _none_if_zero(0) is None
+    assert _none_if_zero(0.0) is None
+    assert _none_if_zero(None) is None
+    assert _none_if_zero(1.0) == 1.0
