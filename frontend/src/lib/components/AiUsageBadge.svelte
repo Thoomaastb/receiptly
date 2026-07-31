@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { formatTokens, formatCost } from '$lib/formatAiUsage';
+	import AiUsageHistoryModal from './AiUsageHistoryModal.svelte';
 
 	interface AiUsage {
 		total_tokens: number;
@@ -8,33 +10,7 @@
 	}
 
 	let usage: AiUsage | null = null;
-
-	// Kompakte Token-Anzeige für die "nerdy" Sidebar-Zeile: ab 1 Mio "5.05 M", ab 1.000
-	// "820 K", sonst die Rohzahl. Kein bestehender Formatierungs-Helfer im Projekt (siehe
-	// frontend/src/lib) — bewusst lokal statt eines verfrühten globalen Utils.
-	function formatTokens(tokens: number): string {
-		if (tokens >= 1_000_000) {
-			return `${(tokens / 1_000_000).toLocaleString('de-DE', {
-				minimumFractionDigits: 2,
-				maximumFractionDigits: 2
-			})} M`;
-		}
-		if (tokens >= 1_000) {
-			return `${(tokens / 1_000).toLocaleString('de-DE', {
-				minimumFractionDigits: 0,
-				maximumFractionDigits: 1
-			})} K`;
-		}
-		return tokens.toLocaleString('de-DE');
-	}
-
-	function formatCost(costEur: string): string {
-		const value = Number(costEur);
-		return `${value.toLocaleString('de-DE', {
-			minimumFractionDigits: 2,
-			maximumFractionDigits: 2
-		})} €`;
-	}
+	let modalOpen = false;
 
 	onMount(async () => {
 		try {
@@ -48,11 +24,23 @@
 </script>
 
 {#if usage}
-	<div class="px-3 text-[11px] text-hifi-text-faint">
+	<!-- Öffnet die Tageshistorie (AiUsageHistoryModal). Bewusst mit
+	     appearance-none/bg-transparent/p-0/text-left neutralisiert, damit ein <button> hier
+	     optisch exakt wie die bisherige <div>-Zeile aussieht — keine Stiländerung, nur
+	     Klickbarkeit. -->
+	<button
+		type="button"
+		on:click={() => (modalOpen = true)}
+		class="w-full appearance-none bg-transparent p-0 px-3 text-left text-[11px] text-hifi-text-faint"
+	>
 		{formatTokens(usage.total_tokens)} / {formatCost(usage.total_cost_eur)}{#if usage.has_unpriced_usage}<span
 				title="Enthält Aufrufe mit unbekannten Modellkosten — Summe ist ein Mindestwert"
 			>
 				*</span
 			>{/if}
-	</div>
+	</button>
+{/if}
+
+{#if modalOpen}
+	<AiUsageHistoryModal onClose={() => (modalOpen = false)} />
 {/if}

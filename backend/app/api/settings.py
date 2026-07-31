@@ -13,7 +13,12 @@ from app.database import get_db
 from app.models.ai_settings import AISettings, AIProviderType
 from app.models.ai_usage_event import AIUsageEvent
 from app.models.user import User
-from app.schemas.ai_settings import AISettingsResponse, AISettingsUpdate, AIUsageResponse
+from app.schemas.ai_settings import (
+    AISettingsResponse,
+    AISettingsUpdate,
+    AIUsageHistoryEntry,
+    AIUsageResponse,
+)
 from app.schemas.notification import NotificationEmailPreferences
 from app.services import ai_pricing
 from app.services.ai_provider_resolution import resolve_effective_provider
@@ -200,6 +205,51 @@ async def get_ai_usage(
         total_cost_eur=total_cost_eur,
         has_unpriced_usage=unpriced_count > 0,
     )
+
+
+# Grenze für die Tageshistorie in der Sidebar — Datenmenge pro Tag ist gering (ein
+# Log-Eintrag pro KI-Call), 90 Tage reichen für die Modal-Ansicht bei weitem und
+# verhindern trotzdem eine unbegrenzt wachsende Response bei sehr alten Instanzen.
+AI_USAGE_HISTORY_DAYS_LIMIT = 90
+
+
+@router.get("/ai-usage/history", response_model=list[AIUsageHistoryEntry])
+async def get_ai_usage_history(
+    admin: User = Depends(require_admin), db: AsyncSession = Depends(get_db)
+) -> list[AIUsageHistoryEntry]:
+    """
+    Admin-only, nach Kalendertag gruppierte KI-Token-/Kosten-Historie für das
+    Detail-Modal hinter dem Sidebar-Badge — bewusst ohne Preis-Graph (siehe
+    get_ai_usage()-Docstring: Kostenwerte sind oft nur Cent-Beträge, ein Chart würde da
+    wenig zeigen), stattdessen eine einfache Liste. Neueste Tage zuerst.
+    """
+    result = await db.execute(
+        select(
+            func.date(AIUsageEvent.created_at).label("day"),
+            func.count().label("call_count"),
+            func.sum(AIUsageEvent.total_tokens).label("total_tokens"),
+            func.sum(AIUsageEvent.estimated_cost_usd).label("total_cost_usd"),
+            func.count()
+            .filter(AIUsageEvent.estimated_cost_usd.is_(None))
+            .label("unpriced_count"),
+        )
+        .group_by(func.date(AIUsageEvent.created_at))
+        .order_by(func.date(AIUsageEvent.created_at).desc())
+        .limit(AI_USAGE_HISTORY_DAYS_LIMIT)
+    )
+
+    return [
+        AIUsageHistoryEntry(
+            date=day.isoformat(),
+            call_count=call_count,
+            total_tokens=total_tokens or 0,
+            total_cost_eur=ai_pricing.usd_to_eur(total_cost_usd)
+            if total_cost_usd is not None
+            else Decimal("0"),
+            has_unpriced_usage=unpriced_count > 0,
+        )
+        for day, call_count, total_tokens, total_cost_usd, unpriced_count in result.all()
+    ]
 
 
 @router.get("/notification-preferences", response_model=NotificationEmailPreferences)

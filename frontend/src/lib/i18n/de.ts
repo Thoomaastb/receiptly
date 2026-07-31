@@ -334,6 +334,19 @@ export const de = {
 		statusRevoked: 'Widerrufen'
 	},
 
+	// Detail-Modal hinter der admin-only Sidebar-Zeile (AiUsageBadge.svelte) — Tageshistorie
+	// zu GET /api/settings/ai-usage/history.
+	aiUsageHistory: {
+		modalTitle: 'KI-Nutzung',
+		closeAriaLabel: 'Schließen',
+		loading: 'Wird geladen …',
+		loadError: 'Verlauf konnte nicht geladen werden.',
+		emptyState: 'Noch keine KI-Nutzung erfasst.',
+		callCountSingular: 'Aufruf',
+		callCountPlural: 'Aufrufe',
+		unpricedHint: 'Enthält Aufrufe mit unbekannten Modellkosten — Summe ist ein Mindestwert'
+	},
+
 	// DSGVO-Datenexport (Art. 15/20) auf der neuen Settings-Seite "Konto" (v0.36.0)
 	dataExport: {
 		cardTitle: 'Daten exportieren',

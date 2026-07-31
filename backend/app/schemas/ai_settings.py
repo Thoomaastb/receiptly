@@ -38,3 +38,12 @@ class AIUsageResponse(BaseModel):
     # ist — has_unpriced_usage signalisiert dem Frontend, dass der Wert eine Untergrenze ist.
     total_cost_eur: Decimal | None
     has_unpriced_usage: bool
+
+
+class AIUsageHistoryEntry(BaseModel):
+    # ISO-Datum (YYYY-MM-DD), ein Eintrag pro Kalendertag mit mindestens einem Event.
+    date: str
+    call_count: int
+    total_tokens: int
+    total_cost_eur: Decimal
+    has_unpriced_usage: bool
