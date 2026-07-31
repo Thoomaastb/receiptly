@@ -1,3 +1,9 @@
+## [0.49.6-rc.7](https://github.com/Thoomaastb/receiptly/compare/v0.49.6-rc.6...v0.49.6-rc.7) (2026-07-31)
+
+### Bug Fixes
+
+* **receipts:** Doppelzählung von Rabatten in Beleg-Summe verhindern ([a5fb3af](https://github.com/Thoomaastb/receiptly/commit/a5fb3af8d97334f8369be5e1af852af566cef142))
+
 ## [0.49.6-rc.6](https://github.com/Thoomaastb/receiptly/compare/v0.49.6-rc.5...v0.49.6-rc.6) (2026-07-31)
 
 ### Bug Fixes
