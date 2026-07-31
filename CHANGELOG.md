@@ -1,3 +1,9 @@
+## [0.50.0-rc.9](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.8...v0.50.0-rc.9) (2026-07-31)
+
+### Features
+
+* **receipts:** Swipe-/Pfeil-Navigation zwischen Belegen sowie Scrollbar-Ausblendung in der Detailansicht ([e8c9e31](https://github.com/Thoomaastb/receiptly/commit/e8c9e313ae1c7659ca230daaebbd623a4f068f96))
+
 ## [0.50.0-rc.8](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.7...v0.50.0-rc.8) (2026-07-31)
 
 ### Features
