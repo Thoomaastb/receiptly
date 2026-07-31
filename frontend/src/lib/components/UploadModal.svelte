@@ -19,7 +19,7 @@
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 <div
 	transition:fade={{ duration: 150 }}
-	class="fixed inset-0 z-40 bg-black opacity-50 backdrop-blur-sm"
+	class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
 	on:click={handleClose}
 	role="presentation"
 ></div>

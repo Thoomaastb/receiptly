@@ -106,7 +106,7 @@
      Fokus-Nachführung beim Methodenwechsel, da es sich um einen sicherheitskritischen
      Re-Auth-Flow handelt. -->
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-<div transition:fade={{ duration: 150 }} class="fixed inset-0 z-40 bg-black opacity-50 backdrop-blur-sm" on:click={onClose} role="presentation"></div>
+<div transition:fade={{ duration: 150 }} class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" on:click={onClose} role="presentation"></div>
 
 <div class="fixed inset-0 z-50 flex items-end justify-center lg:items-center">
 	<div

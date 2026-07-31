@@ -180,7 +180,7 @@
 <svelte:window on:keydown={handleKeydown} />
 
 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-<div transition:fade={{ duration: 150 }} class="fixed inset-0 z-40 bg-black opacity-50 backdrop-blur-sm" on:click={onClose} role="presentation"></div>
+<div transition:fade={{ duration: 150 }} class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" on:click={onClose} role="presentation"></div>
 
 <!-- Flexbox-Zentrierung statt left/top-50%+translate (Muster projektweit einheitlich für
      alle 4 Modals, siehe UploadModal.svelte) -- auf Mobile randloses Bottom-Sheet, ab lg
