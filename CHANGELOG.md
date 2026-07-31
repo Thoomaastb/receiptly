@@ -1,3 +1,9 @@
+## [0.49.6-rc.6](https://github.com/Thoomaastb/receiptly/compare/v0.49.6-rc.5...v0.49.6-rc.6) (2026-07-31)
+
+### Bug Fixes
+
+* **receipts:** Rabattbetrag pro Artikel-Zeile separat erfassen statt zu verwerfen ([b4926ff](https://github.com/Thoomaastb/receiptly/commit/b4926fffd65297dfa8bc6b6a3e3984e834c50b18))
+
 ## [0.49.6-rc.5](https://github.com/Thoomaastb/receiptly/compare/v0.49.6-rc.4...v0.49.6-rc.5) (2026-07-30)
 
 ### Bug Fixes
