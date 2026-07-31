@@ -817,7 +817,7 @@
 				on:click={closeMaximized}
 				aria-label="Maximierte Ansicht schließen"
 				title="Maximierte Ansicht schließen"
-				class="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong text-hifi-accent-text shadow-popover hover:bg-hifi-accent hover:text-white"
+				class="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong/96 text-white shadow-popover backdrop-blur-md hover:bg-hifi-accent"
 			>
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					<path d="M6 6l12 12M18 6L6 18" />
@@ -851,7 +851,7 @@
 					disabled={!hasNewer || navigating}
 					aria-label="Neuerer Beleg"
 					title="Neuerer Beleg"
-					class="absolute left-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong text-hifi-accent-text shadow-popover hover:bg-hifi-accent hover:text-white disabled:pointer-events-none disabled:opacity-40 sm:flex"
+					class="absolute left-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong/96 text-white shadow-popover backdrop-blur-md hover:bg-hifi-accent disabled:pointer-events-none disabled:opacity-40 sm:flex"
 				>
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 						<path d="M15 18l-6-6 6-6" />
@@ -863,7 +863,7 @@
 					disabled={!hasOlder || navigating}
 					aria-label="Älterer Beleg"
 					title="Älterer Beleg"
-					class="absolute right-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong text-hifi-accent-text shadow-popover hover:bg-hifi-accent hover:text-white disabled:pointer-events-none disabled:opacity-40 sm:flex"
+					class="absolute right-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong/96 text-white shadow-popover backdrop-blur-md hover:bg-hifi-accent disabled:pointer-events-none disabled:opacity-40 sm:flex"
 				>
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 						<path d="M9 18l6-6-6-6" />
@@ -958,17 +958,30 @@
 			     ist. Liegt als Geschwister-Element außerhalb des Vorschaubild-Wrappers (siehe
 			     dort) — Klicks hier bubblen deshalb nicht in dessen Tap-Handler, kein
 			     stopPropagation nötig. left-1/2 ist hier das laut CLAUDE.md verbindliche
-			     explizite Inset zur -translate-x-1/2-Zentrierung. bg-hifi-accent-tint-strong statt
-			     des schwächeren -tint (siehe app.css-Kommentar dort): auf überwiegend weißen
-			     Kassenbons war das Pill mit der alten, fast weißen Tint-Farbe + backdrop-blur kaum
-			     erkennbar. Bewusst OPAK (keine /NN-Deckkraft) statt nur eine dunklere transparente
-			     Variante, damit der Kontrast unabhängig vom fotografierten Untergrund (heller
-			     Bon-Scan vs. dunkles Blitzlicht-Foto) IMMER gleich bleibt, statt je nach
-			     durchscheinendem Bildinhalt zu schwanken. backdrop-blur-md dadurch bewusst entfernt
-			     (nicht nur hier reduziert) — bei praktisch deckendem Hintergrund ist darunter nichts
-			     mehr sichtbar, das der Blur weichzeichnen könnte; er wäre nur noch unnötiger
-			     Rendering-Aufwand ohne visuellen Effekt. -->
-			<div class="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong p-1.5 shadow-popover">
+			     explizite Inset zur -translate-x-1/2-Zentrierung.
+			     Hintergrund-Historie (siehe app.css-Kommentar an --color-accent-tint-strong für
+			     die vollständige Version inkl. Kontrastwerten): v1 nutzte die fast weiße --tint
+			     (94% L) + backdrop-blur — auf überwiegend weißen Kassenbons kaum erkennbar
+			     (~1.2:1). v2 (erster Fix-Versuch) machte -strong VOLL DECKEND ohne Blur — dadurch
+			     zwar unabhängig vom Foto-Kontrast, aber (a) verlor den Glas-Charakter komplett
+			     (wirkte im Dark-Theme als grell-heller Sticker) und (b) der Icon-Kontrast
+			     text-hifi-accent-text darauf war mit 4.57:1 nur knapp AA und wirkte blass (zu
+			     nah beieinanderliegende Hues). v3 (aktuell, 2026-07-31 Nutzer-Feedback): -strong
+			     selbst ist jetzt DUNKLER (40% L statt 82% L), dazu wieder teiltransparent per
+			     Tailwind-Opacity-Modifier (/96 statt voll deckend) + backdrop-blur-md — Glas-
+			     Charakter zurück, aber deutlich deckender als das ursprüngliche /90, da der
+			     fotobedingte Anteil bei /96 auf ±4% begrenzt bleibt. Icon-Farbe deshalb auf
+			     text-white gewechselt (statt accent-text, das für HELLE Hintergründe gedacht
+			     war) — Kontrast weiß-auf-Pill rechnerisch 8.92:1 (helles Foto/helle
+			     App-Oberfläche) bzw. 10.30:1 (dunkles Foto/dunkle App-Oberfläche), beide über
+			     AAA 7:1. Hover der inneren Buttons dafür von hover:bg-hifi-surface/70 (hellte die
+			     jetzt dunkle Pill-Fläche gegen die weiße Icon-Farbe unpassend auf) auf
+			     hover:bg-hifi-accent umgestellt — identisches Muster wie ×-Button/Nav-Pfeile
+			     (4.62:1 für weißes Icon, bestehender Präzedenzfall). Trennstriche von
+			     bg-hifi-border (im Dark-Theme auf der jetzt dunkleren Pill fast unsichtbar) auf
+			     bg-white/20 gewechselt — als fester Hairline-Wert auf der Glas-Fläche
+			     App-Theme-unabhängig sichtbar, analog zu üblichen Frosted-Glass-Trennlinien. -->
+			<div class="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong/96 p-1.5 shadow-popover backdrop-blur-md">
 				{#if isImageFile || !thumbFailed}
 					<div class="hidden items-center gap-1 sm:flex">
 						<button
@@ -977,13 +990,13 @@
 							disabled={zoomLevel <= ZOOM_MIN}
 							aria-label="Bild verkleinern"
 							title="Verkleinern"
-							class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-surface/70 disabled:opacity-40"
+							class="flex h-11 w-11 items-center justify-center rounded-full text-white hover:bg-hifi-accent disabled:opacity-40"
 						>
 							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 								<path d="M5 12h14" />
 							</svg>
 						</button>
-						<span class="min-w-[2.75rem] text-center font-mono text-[11px] font-semibold text-hifi-accent-text" aria-hidden="true">
+						<span class="min-w-[2.75rem] text-center font-mono text-[11px] font-semibold text-white" aria-hidden="true">
 							{Math.round(zoomLevel * 100)}%
 						</span>
 						<button
@@ -992,19 +1005,19 @@
 							disabled={zoomLevel >= ZOOM_MAX}
 							aria-label="Bild vergrößern"
 							title="Vergrößern"
-							class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-surface/70 disabled:opacity-40"
+							class="flex h-11 w-11 items-center justify-center rounded-full text-white hover:bg-hifi-accent disabled:opacity-40"
 						>
 							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 								<path d="M12 5v14M5 12h14" />
 							</svg>
 						</button>
-						<div class="mx-0.5 h-5 w-px bg-hifi-border" aria-hidden="true"></div>
+						<div class="mx-0.5 h-5 w-px bg-white/20" aria-hidden="true"></div>
 						<button
 							type="button"
 							on:click={toggleMaximized}
 							aria-label={maximized ? 'Normalansicht wiederherstellen' : 'Beleg maximieren'}
 							title={maximized ? 'Normalansicht wiederherstellen' : 'Maximieren'}
-							class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-surface/70"
+							class="flex h-11 w-11 items-center justify-center rounded-full text-white hover:bg-hifi-accent"
 						>
 							{#if maximized}
 								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1016,7 +1029,7 @@
 								</svg>
 							{/if}
 						</button>
-						<div class="mx-0.5 h-5 w-px bg-hifi-border" aria-hidden="true"></div>
+						<div class="mx-0.5 h-5 w-px bg-white/20" aria-hidden="true"></div>
 					</div>
 				{/if}
 				<a
@@ -1024,7 +1037,7 @@
 					download
 					aria-label="Beleg herunterladen"
 					title="Herunterladen"
-					class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-surface/70"
+					class="flex h-11 w-11 items-center justify-center rounded-full text-white hover:bg-hifi-accent"
 				>
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 						<path d="M12 3v12M7 10l5 5 5-5" /><path d="M5 21h14" />
