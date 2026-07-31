@@ -33,7 +33,12 @@ _SYSTEM_PROMPT = (
     "keine Werte, die im Text nicht erkennbar sind — setze sie stattdessen auf null bzw. "
     "lasse Artikel weg, wenn du dir unsicher bist. Steht direkt unter einem Artikel eine "
     "eigene Rabatt-/Gutschein-Zeile, gehört diese zu genau diesem Artikel: erfasse sie "
-    "NICHT als eigene Artikelzeile, sondern als deren discount_amount."
+    "NICHT als eigene Artikelzeile, sondern als deren discount_amount. Eine Rabattzeile, "
+    "die du bereits einem Artikel als dessen discount_amount zugeordnet hast, darf NICHT "
+    "zusätzlich in die beleg-weite discount_amount-Summe einfließen — das beleg-weite "
+    "discount_amount ist ausschließlich für Rabatte/Gutscheine ohne Bezug zu einer "
+    "einzelnen Artikelzeile (z.B. ein pauschaler Rabatt beim Bezahlen). Zähle keinen "
+    "Rabatt doppelt."
 )
 
 _JSON_SCHEMA = {
@@ -53,7 +58,14 @@ _JSON_SCHEMA = {
         },
         "discount_amount": {
             "type": ["number", "null"],
-            "description": "Summe von Rabatten/Gutscheinen als positive Zahl, oder null wenn keine erkennbar.",
+            "description": (
+                "Summe von Rabatten/Gutscheinen OHNE Bezug zu einer einzelnen Artikelzeile "
+                "(z.B. ein pauschaler Gutschein/Rabatt beim Bezahlen, der nicht auf eine "
+                "bestimmte Position aufgeschlüsselt ist), als positive Zahl, oder null wenn "
+                "keine erkennbar. Eine Rabatt-/Gutschein-Zeile, die bereits einem Artikel als "
+                "dessen discount_amount zugeordnet wurde, NICHT hier nochmal einrechnen — "
+                "sonst wird derselbe Rabatt doppelt gezählt."
+            ),
         },
         "tax_amount": {
             "type": ["number", "null"],
