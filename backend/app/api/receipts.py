@@ -475,10 +475,13 @@ async def update_receipt(
         receipt.ai_suggested_total_amount = None
     if payload.shipping_cost is not None:
         receipt.shipping_cost = payload.shipping_cost
+        receipt.ai_suggested_shipping_cost = None
     if payload.discount_amount is not None:
         receipt.discount_amount = payload.discount_amount
+        receipt.ai_suggested_discount_amount = None
     if payload.tax_amount is not None:
         receipt.tax_amount = payload.tax_amount
+        receipt.ai_suggested_tax_amount = None
     if payload.currency is not None:
         receipt.currency = payload.currency.strip().upper()
         receipt.ai_suggested_currency = None

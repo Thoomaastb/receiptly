@@ -338,19 +338,26 @@ async def _apply_extraction_result(db: AsyncSession, receipt: Receipt, data: dic
     else:
         notes.append("Kein Gesamtbetrag erkannt")
 
-    # Kein ai_suggested_*-Pendant für diese drei Felder (siehe Receipt-Modell) — es gibt noch
-    # kein "vom Nutzer bestätigt"-Signal zu schützen, daher reicht "nur füllen, wenn noch leer".
     shipping_cost = _parse_non_negative(data.get("shipping_cost"))
-    if shipping_cost is not None and receipt.shipping_cost is None:
+    if shipping_cost is not None and (
+        receipt.shipping_cost is None or receipt.ai_suggested_shipping_cost is not None
+    ):
         receipt.shipping_cost = shipping_cost
+        receipt.ai_suggested_shipping_cost = shipping_cost
 
     discount_amount = _parse_non_negative(data.get("discount_amount"))
-    if discount_amount is not None and receipt.discount_amount is None:
+    if discount_amount is not None and (
+        receipt.discount_amount is None or receipt.ai_suggested_discount_amount is not None
+    ):
         receipt.discount_amount = discount_amount
+        receipt.ai_suggested_discount_amount = discount_amount
 
     tax_amount = _parse_non_negative(data.get("tax_amount"))
-    if tax_amount is not None and receipt.tax_amount is None:
+    if tax_amount is not None and (
+        receipt.tax_amount is None or receipt.ai_suggested_tax_amount is not None
+    ):
         receipt.tax_amount = tax_amount
+        receipt.ai_suggested_tax_amount = tax_amount
 
     currency = data.get("currency")
     if (

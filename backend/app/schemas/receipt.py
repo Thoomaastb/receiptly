@@ -110,6 +110,9 @@ class ReceiptDetail(ReceiptListItem):
     ai_suggested_receipt_date: date | None
     ai_suggested_total_amount: float | None
     ai_suggested_currency: str | None
+    ai_suggested_shipping_cost: float | None
+    ai_suggested_discount_amount: float | None
+    ai_suggested_tax_amount: float | None
     ai_extraction_note: str | None
     ai_extracted_at: datetime | None
     # Tag-Vorschläge aus Händler-Historie (siehe app/services/tag_suggestions.py) — reines
