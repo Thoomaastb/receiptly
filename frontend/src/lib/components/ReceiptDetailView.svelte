@@ -817,9 +817,9 @@
 				on:click={closeMaximized}
 				aria-label="Maximierte Ansicht schließen"
 				title="Maximierte Ansicht schließen"
-				class="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong/60 text-hifi-accent-text shadow-popover backdrop-blur-md hover:bg-hifi-accent hover:text-white"
+				class="group absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-hifi-border/60 shadow-popover backdrop-blur-md hover:bg-hifi-accent"
 			>
-				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="adaptive-icon mix-blend-difference group-hover:mix-blend-normal group-hover:drop-shadow-none">
 					<path d="M6 6l12 12M18 6L6 18" />
 				</svg>
 			</button>
@@ -851,9 +851,9 @@
 					disabled={!hasNewer || navigating}
 					aria-label="Neuerer Beleg"
 					title="Neuerer Beleg"
-					class="absolute left-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong/60 text-hifi-accent-text shadow-popover backdrop-blur-md hover:bg-hifi-accent hover:text-white disabled:pointer-events-none disabled:opacity-40 sm:flex"
+					class="group absolute left-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 shadow-popover backdrop-blur-md hover:bg-hifi-accent disabled:pointer-events-none disabled:opacity-40 sm:flex"
 				>
-					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="adaptive-icon mix-blend-difference group-hover:mix-blend-normal group-hover:drop-shadow-none">
 						<path d="M15 18l-6-6 6-6" />
 					</svg>
 				</button>
@@ -863,9 +863,9 @@
 					disabled={!hasOlder || navigating}
 					aria-label="Älterer Beleg"
 					title="Älterer Beleg"
-					class="absolute right-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong/60 text-hifi-accent-text shadow-popover backdrop-blur-md hover:bg-hifi-accent hover:text-white disabled:pointer-events-none disabled:opacity-40 sm:flex"
+					class="group absolute right-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 shadow-popover backdrop-blur-md hover:bg-hifi-accent disabled:pointer-events-none disabled:opacity-40 sm:flex"
 				>
-					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="adaptive-icon mix-blend-difference group-hover:mix-blend-normal group-hover:drop-shadow-none">
 						<path d="M9 18l6-6-6-6" />
 					</svg>
 				</button>
@@ -959,11 +959,15 @@
 			     dort) — Klicks hier bubblen deshalb nicht in dessen Tap-Handler, kein
 			     stopPropagation nötig. left-1/2 ist hier das laut CLAUDE.md verbindliche
 			     explizite Inset zur -translate-x-1/2-Zentrierung.
-			     Heller Frosted-Glass-Look (bg-hifi-accent-tint-strong/60 + backdrop-blur-md),
-			     Icon-Farbe entsprechend dunkel (text-hifi-accent-text) — siehe app.css-Kommentar
-			     an --color-accent-tint-strong für die Token-Herleitung, Git-History dieser Zeile
-			     für frühere (dunklere) Iterationen. -->
-			<div class="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong/60 p-1.5 shadow-popover backdrop-blur-md">
+			     Kein farbiger Fill mehr (nur noch border-hifi-border/60 + shadow-popover +
+			     backdrop-blur-md für die Pillen-Form) — Nutzer-Vorgabe (2026-08-02, per
+			     Screenshot bestätigt): ein heller Fill zwischen Icon und Beleg-Foto verwässert
+			     den Untergrund, gegen den der adaptive Blend unten arbeitet (siehe .adaptive-icon
+			     in app.css). Icons/Beschriftung sind jetzt über .adaptive-icon + mix-blend-difference
+			     ECHT adaptiv (schwarz auf hellem, weiß auf dunklem Beleg-Foto) statt fix dunkel
+			     eingefärbt — Git-History dieser Zeile für die frühere Fassung mit
+			     bg-hifi-accent-tint-strong/60 + text-hifi-accent-text. -->
+			<div class="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-hifi-border/60 p-1.5 shadow-popover backdrop-blur-md">
 				{#if isImageFile || !thumbFailed}
 					<div class="hidden items-center gap-1 sm:flex">
 						<button
@@ -972,13 +976,13 @@
 							disabled={zoomLevel <= ZOOM_MIN}
 							aria-label="Bild verkleinern"
 							title="Verkleinern"
-							class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-accent hover:text-white disabled:opacity-40"
+							class="group flex h-11 w-11 items-center justify-center rounded-full hover:bg-hifi-accent disabled:opacity-40"
 						>
-							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="adaptive-icon mix-blend-difference group-hover:mix-blend-normal group-hover:drop-shadow-none">
 								<path d="M5 12h14" />
 							</svg>
 						</button>
-						<span class="min-w-[2.75rem] text-center font-mono text-[11px] font-semibold text-hifi-accent-text" aria-hidden="true">
+						<span class="adaptive-icon mix-blend-difference min-w-[2.75rem] text-center font-mono text-[11px] font-semibold" aria-hidden="true">
 							{Math.round(zoomLevel * 100)}%
 						</span>
 						<button
@@ -987,9 +991,9 @@
 							disabled={zoomLevel >= ZOOM_MAX}
 							aria-label="Bild vergrößern"
 							title="Vergrößern"
-							class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-accent hover:text-white disabled:opacity-40"
+							class="group flex h-11 w-11 items-center justify-center rounded-full hover:bg-hifi-accent disabled:opacity-40"
 						>
-							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+							<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="adaptive-icon mix-blend-difference group-hover:mix-blend-normal group-hover:drop-shadow-none">
 								<path d="M12 5v14M5 12h14" />
 							</svg>
 						</button>
@@ -999,14 +1003,14 @@
 							on:click={toggleMaximized}
 							aria-label={maximized ? 'Normalansicht wiederherstellen' : 'Beleg maximieren'}
 							title={maximized ? 'Normalansicht wiederherstellen' : 'Maximieren'}
-							class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-accent hover:text-white"
+							class="group flex h-11 w-11 items-center justify-center rounded-full hover:bg-hifi-accent"
 						>
 							{#if maximized}
-								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="adaptive-icon mix-blend-difference group-hover:mix-blend-normal group-hover:drop-shadow-none">
 									<path d="M9 3v4a1 1 0 01-1 1H4M20 9h-4a1 1 0 01-1-1V4M15 21v-4a1 1 0 011-1h4M4 15h4a1 1 0 011 1v4" />
 								</svg>
 							{:else}
-								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+								<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="adaptive-icon mix-blend-difference group-hover:mix-blend-normal group-hover:drop-shadow-none">
 									<path d="M8 3H5a2 2 0 00-2 2v3M16 3h3a2 2 0 012 2v3M8 21H5a2 2 0 01-2-2v-3M16 21h3a2 2 0 002-2v-3" />
 								</svg>
 							{/if}
@@ -1019,9 +1023,9 @@
 					download
 					aria-label="Beleg herunterladen"
 					title="Herunterladen"
-					class="flex h-11 w-11 items-center justify-center rounded-full text-hifi-accent-text hover:bg-hifi-accent hover:text-white"
+					class="group flex h-11 w-11 items-center justify-center rounded-full hover:bg-hifi-accent"
 				>
-					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="adaptive-icon mix-blend-difference group-hover:mix-blend-normal group-hover:drop-shadow-none">
 						<path d="M12 3v12M7 10l5 5 5-5" /><path d="M5 21h14" />
 					</svg>
 				</a>

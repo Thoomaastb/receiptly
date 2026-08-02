@@ -43,6 +43,15 @@
 	   v5 (2026-08-02, Nutzer-Feedback): zurück zu hell/weißlich statt sattem Dunkel-Lila. */
 	--color-accent-tint-strong: oklch(97% 0.02 290);
 
+	/* Gegenmaßnahme für die adaptive Icon-Farbe (mix-blend-mode: difference, siehe
+	   .adaptive-icon unten) gegen deren bekannte Schwäche bei MITTLEREN Grautönen des
+	   Fotountergrunds — bewusst chroma-neutral (0 Chroma, kein Hue) statt an einen
+	   Marken-Ton gekoppelt: der Wert muss exakt ~50%-neutral sein, damit die
+	   Differenz-Mathematik im Kommentar an .adaptive-icon aufgeht, das ist unabhängig vom
+	   Farbschema der App. Gleicher Wert in Light UND Dark (siehe dortiger Kommentar) aus
+	   demselben Grund wie --color-accent-tint-strong. */
+	--color-icon-adaptive-halo: oklch(50% 0 0);
+
 	--color-cat-electronics: oklch(58% 0.19 290);
 	--color-cat-groceries: oklch(60% 0.14 150);
 	--color-cat-travel: oklch(58% 0.14 230);
@@ -155,6 +164,8 @@
 	--color-accent-text: oklch(80% 0.12 290);
 	/* Bewusst identisch zu :root, siehe Kommentar dort. */
 	--color-accent-tint-strong: oklch(97% 0.02 290);
+	/* Bewusst identisch zu :root, siehe Kommentar dort. */
+	--color-icon-adaptive-halo: oklch(50% 0 0);
 
 	--color-cat-electronics: oklch(72% 0.15 290);
 	--color-cat-groceries: oklch(72% 0.13 150);
@@ -246,6 +257,40 @@ body {
 	}
 	.scrollbar-hide::-webkit-scrollbar {
 		display: none; /* Chrome, Safari, neueres Edge */
+	}
+
+	/* Adaptive Icon-/Text-Farbe für Controls über wechselndem Foto-Untergrund (Beleg-
+	   Zoom-Pill, Nav-Pfeile, ×-Schließen in ReceiptDetailView.svelte) — Nutzer-Vorgabe:
+	   "Weißer Hintergrund = schwarze Schrift, vice versa", echte Umkehrung statt einer
+	   festen dunklen Icon-Farbe auf hellem Glas-Fill. Technik: Basisfarbe reines Weiß +
+	   mix-blend-mode: difference (als Tailwind-Utility DIREKT im Markup kombiniert, siehe
+	   Verwendungsstellen, nicht hier, damit group-hover die Umkehrung on-hover sauber
+	   per Selektor-Spezifität überschreiben kann). |weiß − X| kehrt sich über hellem
+	   Foto (X≈weiß) zu ~schwarz und über dunklem Foto (X≈schwarz) zu ~weiß um.
+	   Vorbedingung: das Element darf KEINE eigene deckende/halbdeckende Füllfarbe
+	   zwischen sich und dem Foto haben (verwässert/verfälscht sonst den kompositierten
+	   Layer, gegen den geblendet wird) — die Pillen/Buttons an den Verwendungsstellen
+	   haben deshalb nur noch border + shadow-popover + backdrop-blur-md, keinen Fill.
+	   Bekannte Schwäche der Technik: bei MITTLEREM Grau (≈50% Luminanz) wird
+	   |weiß − 50%-grau| selbst wieder ~50%-grau — kaum Kontrast zum eigenen Untergrund,
+	   bei Kassenbon-Fotos mit viel Halbschatten/Papierstruktur real relevant.
+	   Gegenmaßnahme: ein zusätzlicher filter: drop-shadow(...) in EXAKT 50%-neutralem
+	   Grau (--color-icon-adaptive-halo) — filter wird VOR dem Blend angewendet, der
+	   Schatten unterliegt also dank desselben mix-blend-mode DERSELBEN
+	   Differenz-Rechnung wie das Icon selbst: |50%-grau − X| ist bei X=weiß/schwarz nur
+	   ein dezenter Halbton-Schatten (stört die guten Fälle nicht), wird aber GENAU dort
+	   maximal (→ fast Schwarz), wo X selbst ≈50%-grau ist und die Icon-Füllung
+	   unsichtbar würde — der Schatten liefert dann als Silhouette den Kontrast, den die
+	   Füllung selbst verliert. Zweifach gestapelt (zwei identische drop-shadow()-Layer)
+	   für eine etwas dichtere/deckendere Kontur statt eines einzelnen dünnen Schattens.
+	   mix-blend-mode: exclusion wurde geprüft und verworfen: bei reiner Weiß-Quellfarbe
+	   sind difference und exclusion mathematisch identisch (beide ergeben 1−X) — kein
+	   Unterschied, kein Grund für die seltenere/weniger bekannte Utility. */
+	.adaptive-icon {
+		color: #fff;
+		filter:
+			drop-shadow(0 0 1.5px var(--color-icon-adaptive-halo))
+			drop-shadow(0 0 1.5px var(--color-icon-adaptive-halo));
 	}
 }
 
