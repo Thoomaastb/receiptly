@@ -1,3 +1,9 @@
+## [0.50.0-rc.13](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.12...v0.50.0-rc.13) (2026-08-02)
+
+### Bug Fixes
+
+* **receipts:** Pill-Menü/×-Button/Nav-Pfeile auf hellen Frosted-Glass-Look zurückstellen ([c20b7e4](https://github.com/Thoomaastb/receiptly/commit/c20b7e40f9a3413f587e319c3b8eadf587d75f2e))
+
 ## [0.50.0-rc.12](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.11...v0.50.0-rc.12) (2026-08-02)
 
 ### Bug Fixes
