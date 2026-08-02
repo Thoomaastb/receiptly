@@ -1,3 +1,9 @@
+## [0.50.0-rc.14](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.13...v0.50.0-rc.14) (2026-08-02)
+
+### Bug Fixes
+
+* **receipts:** Icons/Beschriftung im Beleg-Preview echt adaptiv gegen Fotountergrund einfärben ([e11d1fa](https://github.com/Thoomaastb/receiptly/commit/e11d1fabbb51cdcc7d44337ef2572116a1ede584))
+
 ## [0.50.0-rc.13](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.12...v0.50.0-rc.13) (2026-08-02)
 
 ### Bug Fixes
