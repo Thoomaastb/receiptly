@@ -21,6 +21,7 @@ from app.services.ai_provider_resolution import EffectiveProviderConfig, resolve
 from app.services.pdf_extraction import extract_pdf_text
 from app.services.pii_redaction import redact_sensitive_patterns
 from app.services.receipt_heuristics import extract_receipt_heuristics
+from app.services.receipt_title import build_fallback_title
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -43,7 +44,17 @@ _SYSTEM_PROMPT = (
     "Brutto pro Steuerklasse, endend in einer Summe-Zeile) ist NIEMALS tax_amount — diese "
     "Steuer ist immer bereits im Gesamtbetrag enthalten. tax_amount ist ausschließlich für "
     "den seltenen Fall einer Steuer, die ZUSÄTZLICH zum ausgewiesenen Gesamtbetrag erhoben "
-    "wird."
+    "wird. Zusätzlich schlägst du im Feld suggested_title einen kurzen, treffenden Titel "
+    "für den Beleg vor — eine Kombination aus Anlass/Kategorie und Zeitbezug, optional mit "
+    "Händler, wenn das den Titel schärfer macht. Beispiele für den GEWÜNSCHTEN STIL (keine "
+    "festen Formate, nur Inspiration): 'Wocheneinkauf KW32/2026', 'Getränke KW32/2026', "
+    "'Balkonkraftwerk von Anker', 'Drogerie vom 05.08.2026'. Eine Kalenderwoche schreibst "
+    "du IMMER mit Jahr im Format 'KWxx/JJJJ' (z.B. 'KW32/2026'), nie ohne Jahr — nutze sie "
+    "nur, wenn sie den Titel wirklich treffender macht als ein konkretes Datum, sonst "
+    "'{Anlass} vom TT.MM.JJJJ'. Nutze die Artikelliste, um wo erkennbar einen treffenderen "
+    "Anlass als die reine Kategorie zu benennen (z.B. 'Getränke' statt nur 'Lebensmittel', "
+    "wenn der Bon überwiegend Getränke enthält). Bist du dir bei Anlass/Artikeln unsicher, "
+    "gib null zurück statt einen generischen oder erfundenen Titel zu liefern."
 )
 
 _JSON_SCHEMA = {
@@ -97,6 +108,14 @@ _JSON_SCHEMA = {
             "type": ["string", "null"],
             "description": "Eine von: " + ", ".join(sorted(ALLOWED_CATEGORY_VALUES)) + ", oder null.",
         },
+        "suggested_title": {
+            "type": ["string", "null"],
+            "description": (
+                "Kurzer, treffender Titel für den Beleg (Anlass/Kategorie + Zeitbezug, "
+                "optional Händler), oder null wenn du dir unsicher bist. Siehe "
+                "System-Prompt für Stilbeispiele und das KW-Format."
+            ),
+        },
         "items": {
             "type": "array",
             "description": "Einzelne Artikel-Positionen des Belegs, leere Liste falls keine erkennbar.",
@@ -133,6 +152,7 @@ _JSON_SCHEMA = {
         "currency",
         "merchant_name",
         "category",
+        "suggested_title",
         "items",
     ],
     "additionalProperties": False,
@@ -406,6 +426,18 @@ async def _apply_extraction_result(db: AsyncSession, receipt: Receipt, data: dic
         if receipt.category is None:
             receipt.category = guessed
 
+    # Titel-Vorschlag (siehe concepts/beleg-titel.md): exakt wie ai_suggested_merchant_name
+    # nur solange kein Titel bestätigt ist (receipt.title is None). Liefert die KI keinen
+    # Titel, greift das deterministische Regel-Fallback-Template (_apply_title_fallback) —
+    # das braucht ein bereits bekanntes Belegdatum, deshalb erst NACH der obigen
+    # receipt_date-Zuweisung ausgeführt.
+    if receipt.title is None:
+        suggested_title = data.get("suggested_title")
+        if isinstance(suggested_title, str) and suggested_title.strip():
+            receipt.ai_suggested_title = suggested_title.strip()[:255]
+        else:
+            _apply_title_fallback(receipt)
+
     items_data = data.get("items")
     # Nur anlegen, wenn der Beleg noch keine Artikel hat — verhindert Duplikate bei
     # "Neu analysieren" auf einem bereits (teilweise) befüllten Beleg.
@@ -457,7 +489,24 @@ def _apply_items(db: AsyncSession, receipt: Receipt, items_data: list) -> None:
         )
 
 
+def _apply_title_fallback(receipt: Receipt) -> None:
+    """
+    Regel-Fallback-Template (siehe build_fallback_title) — greift auch, wenn die KI
+    komplett ausfällt (kein Anbieter konfiguriert, Provider-Fehler, kein OCR-Text), siehe
+    concepts/beleg-titel.md. Nur solange kein Titel bestätigt ist (receipt.title is None),
+    analog zum übrigen Herkunfts-Tracking. Ohne bekanntes Belegdatum (z.B. auch keine
+    Heuristik-Treffer) bleibt ein evtl. bereits vorhandener Vorschlag aus einem früheren
+    Lauf unangetastet statt ihn mit None zu überschreiben.
+    """
+    if receipt.title is not None:
+        return
+    fallback_title = build_fallback_title(receipt.category, receipt.receipt_date)
+    if fallback_title is not None:
+        receipt.ai_suggested_title = fallback_title
+
+
 async def _finish_needs_review(db: AsyncSession, receipt: Receipt, note: str) -> None:
+    _apply_title_fallback(receipt)
     receipt.status = ReceiptStatus.NEEDS_REVIEW
     receipt.ai_extraction_note = note
     receipt.ai_extracted_at = datetime.now(timezone.utc)

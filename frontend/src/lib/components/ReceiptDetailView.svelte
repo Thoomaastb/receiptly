@@ -30,6 +30,9 @@
 	export let currency: string;
 	export let status: string;
 	export let merchantName: string | null = null;
+	// Bestätigter Titel + KI-Vorschlag (siehe concepts/beleg-titel.md) — analog zum
+	// merchantName/aiSuggestedMerchantName-Paar unten.
+	export let title: string | null = null;
 	export let category: string | null = null;
 	export let tags: Tag[] = [];
 	export let suggestedTags: Tag[] = [];
@@ -41,6 +44,7 @@
 	export let filePath: string;
 	export let items: ItemRow[] = [];
 	export let aiSuggestedMerchantName: string | null = null;
+	export let aiSuggestedTitle: string | null = null;
 	export let aiSuggestedCategory: string | null = null;
 	export let aiExtractionNote: string | null = null;
 	export let aiExtractedAt: string | null = null;
@@ -313,6 +317,15 @@
 		navSwipeDirection = null;
 	}
 
+	// Titel prominent im Header (siehe concepts/beleg-titel.md Abschnitt 5) — anders als in
+	// ReceiptRow steht hier zusätzlich aiSuggestedTitle zur Verfügung, die Fallback-Kette ist
+	// deshalb um eine Stufe länger. Der Regel-Fallback-Text kommt aus dem i18n-Katalog statt
+	// hart verdrahtet zu sein (siehe dortiger Kommentar).
+	$: fallbackTitle = receiptDate
+		? m.receiptTitle.fallbackPrefix.replace('{date}', formatDate(receiptDate))
+		: m.receiptTitle.fallbackGeneric;
+	$: displayTitle = title ?? aiSuggestedTitle ?? merchantName ?? fallbackTitle;
+
 	// Solange Datum/Betrag/Währung nur eine unbestätigte Heuristik-/KI-Schätzung sind
 	// (Backend liefert dann einen Wert statt null), dezenten Hinweis in Lese- und
 	// Editier-Ansicht zeigen — verschwindet automatisch, sobald der Nutzer bestätigt/ändert.
@@ -398,6 +411,7 @@
 	let draftDiscountAmount = '';
 	let draftTaxAmount = '';
 	let draftCurrency = '';
+	let draftTitle = '';
 	let draftMerchant = '';
 	let draftHighValue = false;
 	let draftWarrantyMonths = '';
@@ -420,6 +434,7 @@
 		draftDiscountAmount = discountAmount !== null ? String(discountAmount) : '';
 		draftTaxAmount = taxAmount !== null ? String(taxAmount) : '';
 		draftCurrency = currency;
+		draftTitle = title ?? '';
 		draftMerchant = merchantName ?? '';
 		draftHighValue = isHighValue;
 		draftWarrantyMonths = warrantyMonths !== null ? String(warrantyMonths) : '';
@@ -443,6 +458,7 @@
 		discount_amount?: number | null;
 		tax_amount?: number | null;
 		merchant_name: string | null;
+		title: string | null;
 		category: string | null;
 		tags?: Tag[];
 		suggested_tags?: Tag[];
@@ -453,6 +469,7 @@
 		items: ItemRow[];
 		status?: string;
 		ai_suggested_merchant_name?: string | null;
+		ai_suggested_title?: string | null;
 		ai_suggested_category?: string | null;
 		ai_extraction_note?: string | null;
 		ai_extracted_at?: string | null;
@@ -469,6 +486,7 @@
 		if (detail.discount_amount !== undefined) discountAmount = detail.discount_amount;
 		if (detail.tax_amount !== undefined) taxAmount = detail.tax_amount;
 		merchantName = detail.merchant_name;
+		title = detail.title;
 		category = detail.category;
 		if (detail.tags !== undefined) tags = detail.tags;
 		suggestedTags = detail.suggested_tags ?? [];
@@ -481,6 +499,7 @@
 		if (detail.ai_suggested_merchant_name !== undefined) {
 			aiSuggestedMerchantName = detail.ai_suggested_merchant_name;
 		}
+		if (detail.ai_suggested_title !== undefined) aiSuggestedTitle = detail.ai_suggested_title;
 		if (detail.ai_suggested_category !== undefined) aiSuggestedCategory = detail.ai_suggested_category;
 		if (detail.ai_extraction_note !== undefined) aiExtractionNote = detail.ai_extraction_note;
 		if (detail.ai_extracted_at !== undefined) aiExtractedAt = detail.ai_extracted_at;
@@ -502,23 +521,27 @@
 
 	// --- KI-Struktur-Extraktions-Vorschlag (Übernehmen/Verwerfen/Neu analysieren) ---
 	// Die Kategorie wird von der KI mittlerweile direkt in receipt.category übernommen
-	// (siehe ai_extraction.py) statt nur vorgeschlagen zu werden — nur noch der Händlername
-	// bleibt ein offener, bestätigungspflichtiger Vorschlag.
+	// (siehe ai_extraction.py) statt nur vorgeschlagen zu werden — Händlername und (neu)
+	// Titel bleiben offene, bestätigungspflichtige Vorschläge (siehe
+	// concepts/beleg-titel.md).
 	$: hasSuggestion = !!aiSuggestedMerchantName;
+	$: hasTitleSuggestion = !!aiSuggestedTitle;
 
 	let suggestionSaving = false;
 	let reanalyzing = false;
 
-	async function acceptSuggestion() {
+	// dismiss_ai_suggestion:true verwirft serverseitig Merchant-, Kategorie- UND
+	// Titel-Vorschlag gemeinsam (ein einziges Flag, kein separates pro Feld) — Übernehmen
+	// und Verwerfen für beide Vorschläge (Merchant/Titel) laufen deshalb über denselben
+	// PATCH-Mechanismus, nur das jeweils zu bestätigende Feld unterscheidet sich.
+	async function applySuggestionPatch(fields: Record<string, unknown>) {
 		suggestionSaving = true;
 		try {
-			const payload: Record<string, unknown> = { dismiss_ai_suggestion: true };
-			if (aiSuggestedMerchantName) payload.merchant_name = aiSuggestedMerchantName;
 			const res = await fetch(`/api/receipts/${receiptId}`, {
 				method: 'PATCH',
 				credentials: 'include',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(payload)
+				body: JSON.stringify({ dismiss_ai_suggestion: true, ...fields })
 			});
 			if (res.ok) {
 				applyDetail(await res.json());
@@ -529,22 +552,18 @@
 		}
 	}
 
-	async function dismissSuggestion() {
-		suggestionSaving = true;
-		try {
-			const res = await fetch(`/api/receipts/${receiptId}`, {
-				method: 'PATCH',
-				credentials: 'include',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ dismiss_ai_suggestion: true })
-			});
-			if (res.ok) {
-				applyDetail(await res.json());
-				onUpdated?.();
-			}
-		} finally {
-			suggestionSaving = false;
-		}
+	function acceptSuggestion() {
+		return applySuggestionPatch(aiSuggestedMerchantName ? { merchant_name: aiSuggestedMerchantName } : {});
+	}
+
+	function acceptTitleSuggestion() {
+		return applySuggestionPatch(aiSuggestedTitle ? { title: aiSuggestedTitle } : {});
+	}
+
+	// Gemeinsam für Merchant- UND Titel-Badge (siehe Kommentar oben) — der Payload ist in
+	// beiden Fällen identisch, ein zweites, benanntes Pendant wäre nur Duplizierung.
+	function dismissSuggestion() {
+		return applySuggestionPatch({});
 	}
 
 	async function reanalyze() {
@@ -597,6 +616,7 @@
 					discount_amount: draftDiscountAmount ? Number(draftDiscountAmount) : null,
 					tax_amount: draftTaxAmount ? Number(draftTaxAmount) : null,
 					currency: draftCurrency.trim().toUpperCase() || null,
+					title: draftTitle.trim() || null,
 					merchant_name: draftMerchant.trim() || null,
 					is_high_value: draftHighValue,
 					warranty_months: draftWarrantyMonths ? Number(draftWarrantyMonths) : null,
@@ -1078,6 +1098,16 @@
 			{#if editing}
 				<div class="flex flex-col gap-3 rounded-[14px] border border-hifi-border bg-hifi-surface p-3">
 					<label class="text-xs">
+						<span class="mb-1 block text-hifi-text-muted">{m.receiptTitle.label}</span>
+						<input
+							type="text"
+							bind:value={draftTitle}
+							placeholder={m.receiptTitle.placeholder}
+							maxlength="255"
+							class="w-full rounded border border-hifi-border bg-hifi-surface p-2 text-sm"
+						/>
+					</label>
+					<label class="text-xs">
 						<span class="mb-1 block text-hifi-text-muted">Händler</span>
 						<input
 							type="text"
@@ -1222,9 +1252,58 @@
 					</div>
 				</div>
 			{:else}
-				{#if merchantName}
-					<div class="text-[13.5px] font-bold text-hifi-text">{merchantName}</div>
-				{/if}
+				<!-- Titel ist die primäre Hauptzeile (siehe concepts/beleg-titel.md Abschnitt 5),
+				     Händler bleibt als Kontext direkt darunter sichtbar statt ersatzlos zu
+				     verschwinden. displayTitle greift auch ohne bestätigten Titel nie ins Leere
+				     (Fallback-Kette title ?? aiSuggestedTitle ?? merchantName ?? fallbackTitle,
+				     siehe dortiger Kommentar) — solange kein eigener Titel bestätigt ist, wird die
+				     Zeile gedämpft (text-hifi-text-muted) dargestellt, um den unbestätigten Status
+				     visuell erkennbar zu machen. Der Vorschlags-Badge rechts daneben spiegelt exakt
+				     das Merchant-Vorschlag-Muster (KI-Vorschlag/Übernehmen/Verwerfen) weiter unten,
+				     zeigt den Vorschlagstext selbst aber NICHT zusätzlich an -- der steht (anders als
+				     beim Merchant, der ohne Bestätigung ganz ausgeblendet bleibt) hier bereits als
+				     displayTitle prominent in der Kopfzeile, eine zweite Anzeige wäre redundant. -->
+				<div class="mb-1 flex items-start justify-between gap-3">
+					<div class="min-w-0 flex-1">
+						<div
+							class="truncate text-lg font-extrabold leading-tight {title ? 'text-hifi-text' : 'text-hifi-text-muted'}"
+							title={displayTitle}
+						>
+							{displayTitle}
+						</div>
+						{#if merchantName}
+							<div class="mt-0.5 truncate text-[12.5px] text-hifi-text-muted">{merchantName}</div>
+						{/if}
+					</div>
+					{#if hasTitleSuggestion}
+						<div class="flex flex-none flex-col items-end gap-1.5 rounded-[12px] bg-hifi-accent-tint px-2.5 py-2 text-[11px] text-hifi-accent-text">
+							<div class="flex items-center gap-1 font-semibold">
+								<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="flex-none">
+									<path d="M12 3l1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5z" />
+								</svg>
+								{m.receiptTitle.aiSuggestionLabel}
+							</div>
+							<div class="flex gap-2">
+								<button
+									type="button"
+									on:click={acceptTitleSuggestion}
+									disabled={suggestionSaving}
+									class="font-semibold text-hifi-accent hover:underline disabled:opacity-50"
+								>
+									{m.receiptTitle.acceptButton}
+								</button>
+								<button
+									type="button"
+									on:click={dismissSuggestion}
+									disabled={suggestionSaving}
+									class="text-hifi-text-muted hover:text-hifi-text disabled:opacity-50"
+								>
+									{m.receiptTitle.dismissButton}
+								</button>
+							</div>
+						</div>
+					{/if}
+				</div>
 				<div class="flex items-start justify-between gap-3">
 					<div class="min-w-0">
 						<div class="mb-1 text-[12px] text-hifi-text-muted">

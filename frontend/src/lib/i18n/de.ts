@@ -429,6 +429,19 @@ export const de = {
 		errorGeneric: 'Zuschnitt fehlgeschlagen -- bitte erneut versuchen oder ohne Zuschnitt fortfahren.'
 	},
 
+	// Beleg-Titel (ReceiptRow Hauptzeile + ReceiptDetailView-Header, siehe
+	// concepts/beleg-titel.md) — der Regel-Fallback-Text ist hier verankert statt hart im
+	// Markup verdrahtet, siehe Katalog-Kopfkommentar zur i18n-Konvention.
+	receiptTitle: {
+		label: 'Titel',
+		placeholder: 'z. B. Wocheneinkauf',
+		fallbackPrefix: 'Beleg vom {date}',
+		fallbackGeneric: 'Neuer Beleg',
+		aiSuggestionLabel: 'KI-Vorschlag',
+		acceptButton: 'Übernehmen',
+		dismissButton: 'Verwerfen'
+	},
+
 	tags: {
 		colorPicker: {
 			groupLabel: 'Farbe wählen',

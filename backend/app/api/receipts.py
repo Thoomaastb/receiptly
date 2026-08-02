@@ -577,9 +577,16 @@ async def update_receipt(
         receipt.category = payload.category
         receipt.ai_suggested_category = None
 
+    if payload.title is not None:
+        receipt.title = payload.title.strip()
+        # Bestätigt-Signal (siehe Receipt-Modell): der Nutzer hat den Titel explizit
+        # gesetzt/korrigiert — ein späterer KI-Lauf/Fallback darf ihn nicht mehr überschreiben.
+        receipt.ai_suggested_title = None
+
     if payload.dismiss_ai_suggestion:
         receipt.ai_suggested_merchant_name = None
         receipt.ai_suggested_category = None
+        receipt.ai_suggested_title = None
 
     if receipt.warranty_months is not None and receipt.receipt_date is not None:
         receipt.warranty_expires_at = _add_months(receipt.receipt_date, receipt.warranty_months)

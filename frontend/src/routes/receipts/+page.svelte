@@ -18,6 +18,9 @@
 		currency: string;
 		thumb_path: string | null;
 		merchant_name: string | null;
+		// Bestätigter Titel (siehe concepts/beleg-titel.md) — die Liste liefert bewusst
+		// keinen ai_suggested_title (nur ReceiptDetail hat das Feld), siehe ReceiptRow.
+		title: string | null;
 		category: string | null;
 		tags: Tag[];
 		item_count: number;
@@ -49,6 +52,7 @@
 		tax_amount: number | null;
 		items: ItemRow[];
 		ai_suggested_merchant_name: string | null;
+		ai_suggested_title: string | null;
 		ai_suggested_category: string | null;
 		ai_extraction_note: string | null;
 		ai_extracted_at: string | null;
@@ -493,6 +497,7 @@
 		currency={openReceipt.currency}
 		status={openReceipt.status}
 		merchantName={openReceipt.merchant_name}
+		title={openReceipt.title}
 		category={openReceipt.category}
 		tags={openReceipt.tags}
 		suggestedTags={openReceipt.suggested_tags}
@@ -504,6 +509,7 @@
 		customFields={openReceipt.custom_fields}
 		items={openReceipt.items}
 		aiSuggestedMerchantName={openReceipt.ai_suggested_merchant_name}
+		aiSuggestedTitle={openReceipt.ai_suggested_title}
 		aiSuggestedCategory={openReceipt.ai_suggested_category}
 		aiExtractionNote={openReceipt.ai_extraction_note}
 		aiExtractedAt={openReceipt.ai_extracted_at}
@@ -656,6 +662,7 @@
 							currency={receipt.currency}
 							status={receipt.status}
 							merchantName={receipt.merchant_name}
+							title={receipt.title}
 							itemCount={receipt.item_count}
 							tags={receipt.tags}
 							bucketName={section.bucket.name}
@@ -679,6 +686,7 @@
 					currency={receipt.currency}
 					status={receipt.status}
 					merchantName={receipt.merchant_name}
+					title={receipt.title}
 					itemCount={receipt.item_count}
 					tags={receipt.tags}
 					bucketName={bucket?.name ?? '…'}

@@ -87,6 +87,13 @@ class Receipt(Base, UpdatableTimestampMixin):
 
     category: Mapped[str | None] = mapped_column(String(100), nullable=True)
 
+    # Sprechender Beleg-Titel (siehe concepts/beleg-titel.md), pro Beleg statt am Merchant
+    # (anders als category). Herkunfts-Tracking exakt wie ai_suggested_merchant_name unten:
+    # ai_suggested_title is not None → title ist ein unbestätigter Vorschlag (KI oder
+    # Regel-Fallback), darf automatisch überschrieben werden.
+    title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    ai_suggested_title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
     # KI-Struktur-Extraktions-Vorschläge (siehe app/services/ai_extraction.py) — bewusst
     # getrennt von merchant_id/category, bis der Nutzer den Vorschlag bestätigt (KI legt
     # nie selbst einen Merchant an).

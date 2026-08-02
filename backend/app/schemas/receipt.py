@@ -84,6 +84,10 @@ class ReceiptListItem(BaseModel):
     thumb_path: str | None
     merchant_name: str | None
     category: str | None
+    # Sprechender Beleg-Titel (siehe concepts/beleg-titel.md) — bestätigter Wert, nicht der
+    # KI-/Regel-Vorschlag (siehe ai_suggested_title in ReceiptDetail). Fallback-Kette
+    # (title ?? ai_suggested_title ?? merchant_name ?? "Beleg vom ...") ist Frontend-Sache.
+    title: str | None
     item_count: int
     created_at: datetime
     tags: list[TagResponse]
@@ -107,6 +111,7 @@ class ReceiptDetail(ReceiptListItem):
     # bis der Nutzer ihn per PATCH übernimmt oder verwirft (dismiss_ai_suggestion).
     ai_suggested_merchant_name: str | None
     ai_suggested_category: str | None
+    ai_suggested_title: str | None
     ai_suggested_receipt_date: date | None
     ai_suggested_total_amount: float | None
     ai_suggested_currency: str | None
@@ -144,6 +149,11 @@ class ReceiptUpdate(BaseModel):
     # konsistent mit den übrigen optionalen Feldern hier (siehe update_receipt).
     currency: str | None = Field(default=None, min_length=3, max_length=3)
     merchant_name: str | None = Field(default=None, min_length=1, max_length=255)
+    # Sprechender Beleg-Titel (siehe concepts/beleg-titel.md) — wie merchant_name: Setzen
+    # bestätigt den Titel und leert ai_suggested_title (siehe update_receipt). None heißt
+    # "nicht mitschicken" (unverändert lassen), kein explizites Zurücksetzen über dieses
+    # Feld, konsistent mit den übrigen optionalen Feldern hier.
+    title: str | None = Field(default=None, min_length=1, max_length=255)
     is_high_value: bool | None = None
     warranty_months: int | None = Field(default=None, ge=0, le=600)
     # Kategorie hängt am Merchant, nicht am Receipt (siehe Merchant-Modell) — betrifft also
