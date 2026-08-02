@@ -1,3 +1,9 @@
+## [0.50.0-rc.15](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.14...v0.50.0-rc.15) (2026-08-02)
+
+### Features
+
+* **receipts:** automatisch generierten Beleg-Titel anzeigen und bearbeitbar machen ([05a5564](https://github.com/Thoomaastb/receiptly/commit/05a556469477cc6f54d06fc73702f6608ca69fc3))
+
 ## [0.50.0-rc.14](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.13...v0.50.0-rc.14) (2026-08-02)
 
 ### Bug Fixes
