@@ -1,3 +1,9 @@
+## [0.50.0-rc.12](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.11...v0.50.0-rc.12) (2026-08-02)
+
+### Bug Fixes
+
+* **ui:** Opacity-Modifier für Custom-Color-Tokens projektweit reparieren ([db803cd](https://github.com/Thoomaastb/receiptly/commit/db803cd7ff47cde071edfd42653be2749dae895d))
+
 ## [0.50.0-rc.11](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.10...v0.50.0-rc.11) (2026-07-31)
 
 ### Bug Fixes
