@@ -48,17 +48,24 @@
 	   INNERHALB des Buttons war mit --color-accent-text (45% L) darauf nur 4.57:1 — technisch
 	   knapp AA, wirkte aber durch die geringe Hue-Distanz (beide ~290) blass. Fix: Basis
 	   deutlich DUNKLER/kräftiger (40% L statt 82% L, 0.16 C) UND wieder teiltransparent
-	   (Opacity als Tailwind-Modifier im Markup, z.B. bg-hifi-accent-tint-strong/96, NICHT im
-	   Token selbst — Tailwind 3.4 löst /NN über color-mix() für CSS-Var-Farben auf) plus
-	   backdrop-blur-md, statt wie zuvor voll deckend + blur-frei. Bei alpha .96 bleibt der
-	   fotobedingte Farbanteil ohnehin auf ±4% begrenzt — WCAG-Kontrast (Icon = white, siehe
-	   Markup-Kommentar dort) rechnerisch geprüft für BEIDE Foto-Extreme, App-Theme-unabhängig:
-	   über hellem Foto/heller App-Oberfläche RGB≈(82,54,154) → 8.92:1; über dunklem
-	   Foto/dunkler App-Oberfläche RGB≈(72,44,144) → 10.30:1 (beide weit über AA 4.5:1, auch
-	   AAA 7:1 erfüllt). Der ×-Button-Sonderfall (Backdrop = bg-hifi-surface statt Foto) liegt
-	   dank derselben Nähe von Foto-Weiß/Foto-Schwarz zu den App-Oberflächenfarben in derselben
-	   Größenordnung. Berechnungsbasis: reguläre OKLCH→sRGB-Konversion (Björn Ottosson) +
-	   WCAG-Relativluminanz, keine Bibliotheks-Annahme. */
+	   (Opacity als Tailwind-Modifier im Markup, z.B. bg-hifi-accent-tint-strong/[0.96], NICHT
+	   im Token selbst) plus backdrop-blur-md, statt wie zuvor voll deckend + blur-frei. Bei
+	   alpha .96 bleibt der fotobedingte Farbanteil ohnehin auf ±4% begrenzt — WCAG-Kontrast
+	   (Icon = white, siehe Markup-Kommentar dort) rechnerisch geprüft für BEIDE Foto-Extreme,
+	   App-Theme-unabhängig: über hellem Foto/heller App-Oberfläche RGB≈(82,54,154) → 8.92:1;
+	   über dunklem Foto/dunkler App-Oberfläche RGB≈(72,44,144) → 10.30:1 (beide weit über AA
+	   4.5:1, auch AAA 7:1 erfüllt). Der ×-Button-Sonderfall (Backdrop = bg-hifi-surface statt
+	   Foto) liegt dank derselben Nähe von Foto-Weiß/Foto-Schwarz zu den App-Oberflächenfarben
+	   in derselben Größenordnung. Berechnungsbasis: reguläre OKLCH→sRGB-Konversion (Björn
+	   Ottosson) + WCAG-Relativluminanz, keine Bibliotheks-Annahme.
+	   v4-Nachtrag (2026-08-02): die obige Annahme "Tailwind löst /NN automatisch über
+	   color-mix() auf" war FALSCH und der eigentliche Bug — reine String-Referenzen wie
+	   'hifi-accent-tint-strong': 'var(--color-accent-tint-strong)' in tailwind.config.js
+	   unterstützen GAR KEINEN Opacity-Modifier (die Utility-Klasse wurde nie generiert, nur
+	   backdrop-blur-md blieb sichtbar). Zusätzlich ist 96 kein gültiger Wert auf Tailwinds
+	   Standard-Opacity-Skala (nur 5er-Schritte), daher zusätzlich auf Arbitrary-Value-Syntax
+	   (/[0.96]) umgestellt. Fix in tailwind.config.js: jedes Farb-Token liefert jetzt eine
+	   withOpacity()-Funktion, die den Modifier explizit selbst über color-mix() auflöst. */
 	--color-accent-tint-strong: oklch(40% 0.16 290);
 
 	--color-cat-electronics: oklch(58% 0.19 290);

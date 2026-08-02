@@ -817,7 +817,7 @@
 				on:click={closeMaximized}
 				aria-label="Maximierte Ansicht schließen"
 				title="Maximierte Ansicht schließen"
-				class="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong/96 text-white shadow-popover backdrop-blur-md hover:bg-hifi-accent"
+				class="absolute right-3 top-3 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong/[0.96] text-white shadow-popover backdrop-blur-md hover:bg-hifi-accent"
 			>
 				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 					<path d="M6 6l12 12M18 6L6 18" />
@@ -851,7 +851,7 @@
 					disabled={!hasNewer || navigating}
 					aria-label="Neuerer Beleg"
 					title="Neuerer Beleg"
-					class="absolute left-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong/96 text-white shadow-popover backdrop-blur-md hover:bg-hifi-accent disabled:pointer-events-none disabled:opacity-40 sm:flex"
+					class="absolute left-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong/[0.96] text-white shadow-popover backdrop-blur-md hover:bg-hifi-accent disabled:pointer-events-none disabled:opacity-40 sm:flex"
 				>
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 						<path d="M15 18l-6-6 6-6" />
@@ -863,7 +863,7 @@
 					disabled={!hasOlder || navigating}
 					aria-label="Älterer Beleg"
 					title="Älterer Beleg"
-					class="absolute right-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong/96 text-white shadow-popover backdrop-blur-md hover:bg-hifi-accent disabled:pointer-events-none disabled:opacity-40 sm:flex"
+					class="absolute right-3 top-1/2 z-10 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong/[0.96] text-white shadow-popover backdrop-blur-md hover:bg-hifi-accent disabled:pointer-events-none disabled:opacity-40 sm:flex"
 				>
 					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 						<path d="M9 18l6-6-6-6" />
@@ -980,8 +980,19 @@
 			     (4.62:1 für weißes Icon, bestehender Präzedenzfall). Trennstriche von
 			     bg-hifi-border (im Dark-Theme auf der jetzt dunkleren Pill fast unsichtbar) auf
 			     bg-white/20 gewechselt — als fester Hairline-Wert auf der Glas-Fläche
-			     App-Theme-unabhängig sichtbar, analog zu üblichen Frosted-Glass-Trennlinien. -->
-			<div class="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong/96 p-1.5 shadow-popover backdrop-blur-md">
+			     App-Theme-unabhängig sichtbar, analog zu üblichen Frosted-Glass-Trennlinien.
+			     v4-Fix (2026-08-02, Bug live per Screenshot bestätigt: Pill komplett farblos):
+			     /96 war nie eine gültige Tailwind-Opacity-Modifier-Klasse — Tailwinds
+			     Standard-Opacity-Skala kennt nur 5er-Schritte (…90/95/100), 96 fehlt, die
+			     Klasse wurde nie generiert (nur backdrop-blur-md blieb sichtbar). Zusätzlich
+			     waren ALLE hifi-*-Farbtokens in tailwind.config.js reine String-Referenzen auf
+			     CSS-Variablen, was Opacity-Modifier grundsätzlich verhindert (siehe dortiger
+			     Kommentar) — betraf projektweit auch bg-hifi-surface/80+95, border-hifi-border/60,
+			     fill-hifi-accent/15. Fix: tailwind.config.js liefert jetzt je Token eine
+			     withOpacity()-Funktion (color-mix() auf der CSS-Variable), UND /96 wurde auf
+			     Arbitrary-Value-Syntax /[0.96] umgestellt (einzige Möglichkeit, einen nicht auf
+			     der 5er-Skala liegenden Opacity-Wert ohne Config-Erweiterung anzusprechen). -->
+			<div class="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-full border border-hifi-border/60 bg-hifi-accent-tint-strong/[0.96] p-1.5 shadow-popover backdrop-blur-md">
 				{#if isImageFile || !thumbFailed}
 					<div class="hidden items-center gap-1 sm:flex">
 						<button
