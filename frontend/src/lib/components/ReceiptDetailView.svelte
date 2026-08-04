@@ -383,7 +383,18 @@
 					(totalAmount - itemsSum - (shippingCost ?? 0) - (taxAmount ?? 0) + (discountAmount ?? 0)) * 100
 				) / 100
 			: null;
-	$: itemsIncomplete = items.length > 0 && itemsSumDiff !== null && Math.abs(itemsSumDiff) > 0.004;
+	// Toleranz wächst mit der Artikelanzahl statt starr bei 0.004 EUR zu bleiben: bei wenigen
+	// Artikeln bleibt sie am strikten Ausgangswert (jede Cent-Abweichung warnt weiterhin, z.B.
+	// bei 3 Artikeln), ab 5 Artikeln wächst sie linear um 1 Cent je zusätzlichem Artikel.
+	// Real verifiziert an einem LIDL-Bon mit 35 Positionen (teils gewichtsbasiert/Vergleichspreis):
+	// Summe aller Artikel-Bruttopreise 86,50 EUR, Bon-Betrag 81,77 EUR → impliziter Rabatt
+	// 4,73 EUR, gedruckter Rabatt auf dem Bon aber 4,98 EUR — die 0,25 EUR Differenz steckt
+	// bereits im gedruckten Bon selbst (Rundung/Vergleichspreis), ist kein Extraktionsfehler.
+	// 30 Artikel über der Schwelle × 0.01 EUR = 0.30 EUR Toleranz deckt diesen Fall mit Marge,
+	// ohne die Prüfung bei kleinen Belegen zu verwässern.
+	$: itemsSumTolerance = Math.max(0.004, (items.length - 5) * 0.01);
+	$: itemsIncomplete =
+		items.length > 0 && itemsSumDiff !== null && Math.abs(itemsSumDiff) > itemsSumTolerance;
 	$: hasAdjustments = shippingCost !== null || discountAmount !== null || taxAmount !== null;
 	// Passive Anzeige in der Leseansicht, damit sichtbar ist, was KI/manuelle Eingabe erkannt
 	// haben, ohne extra ins Bearbeiten-Formular zu müssen (dort liegen die Rohwerte).
