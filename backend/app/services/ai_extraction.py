@@ -2,7 +2,7 @@ import asyncio
 import logging
 import re
 import uuid
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from sqlalchemy import select
@@ -16,11 +16,19 @@ from app.models.item import Item
 from app.models.receipt import Receipt, ReceiptStatus
 from app.schemas.receipt import ALLOWED_CATEGORY_VALUES
 from app.services import ai_pricing
-from app.services.ai_provider_client import AIProviderError, StructuredCallResult, call_structured, resolve_model_name
+from app.services.ai_provider_client import (
+    AIProviderError,
+    StructuredCallResult,
+    call_structured,
+    resolve_model_name,
+)
 from app.services.ai_provider_resolution import EffectiveProviderConfig, resolve_effective_provider
 from app.services.pdf_extraction import extract_pdf_text
 from app.services.pii_redaction import redact_sensitive_patterns
-from app.services.receipt_heuristics import extract_receipt_heuristics
+from app.services.receipt_heuristics import (
+    extract_receipt_heuristics,
+    vat_table_gross_matches_total,
+)
 from app.services.receipt_title import build_fallback_title
 
 logger = logging.getLogger(__name__)
@@ -45,16 +53,19 @@ _SYSTEM_PROMPT = (
     "Steuer ist immer bereits im Gesamtbetrag enthalten. tax_amount ist ausschließlich für "
     "den seltenen Fall einer Steuer, die ZUSÄTZLICH zum ausgewiesenen Gesamtbetrag erhoben "
     "wird. Zusätzlich schlägst du im Feld suggested_title einen kurzen, treffenden Titel "
-    "für den Beleg vor — eine Kombination aus Anlass/Kategorie und Zeitbezug, optional mit "
-    "Händler, wenn das den Titel schärfer macht. Beispiele für den GEWÜNSCHTEN STIL (keine "
-    "festen Formate, nur Inspiration): 'Wocheneinkauf KW32/2026', 'Getränke KW32/2026', "
-    "'Balkonkraftwerk von Anker', 'Drogerie vom 05.08.2026'. Eine Kalenderwoche schreibst "
-    "du IMMER mit Jahr im Format 'KWxx/JJJJ' (z.B. 'KW32/2026'), nie ohne Jahr — nutze sie "
-    "nur, wenn sie den Titel wirklich treffender macht als ein konkretes Datum, sonst "
-    "'{Anlass} vom TT.MM.JJJJ'. Nutze die Artikelliste, um wo erkennbar einen treffenderen "
-    "Anlass als die reine Kategorie zu benennen (z.B. 'Getränke' statt nur 'Lebensmittel', "
-    "wenn der Bon überwiegend Getränke enthält). Bist du dir bei Anlass/Artikeln unsicher, "
-    "gib null zurück statt einen generischen oder erfundenen Titel zu liefern."
+    "für den Beleg vor. WICHTIG: '{Kategorie} vom TT.MM.JJJJ' (z.B. 'Drogerie vom "
+    "05.08.2026') ist IMMER eine gültige, sichere Antwort, sobald du Kategorie und Datum "
+    "kennst — gib in diesem Fall NIEMALS null zurück, nur weil du dir bei einem feineren "
+    "Anlass unsicher bist. Nutze zusätzlich die Artikelliste, um WO KLAR ERKENNBAR einen "
+    "treffenderen Anlass als die reine Kategorie zu benennen: 'Getränke' statt nur "
+    "'Lebensmittel', wenn der Bon überwiegend Getränke enthält; 'Wocheneinkauf' bei einem "
+    "breit gestreuten, größeren Supermarkt-Einkauf; 'Balkonkraftwerk von Anker' bei einem "
+    "eindeutig erkennbaren Einzelprodukt-Anlass mit Händler. Diese Nuance ist eine Kür, "
+    "keine Pflicht — im Zweifel lieber die sichere '{Kategorie} vom Datum'-Variante als "
+    "einen erfundenen oder zu spezifischen Anlass. Optional statt des Datums eine "
+    "Kalenderwoche im Format 'KWxx/JJJJ' (z.B. 'KW32/2026', IMMER mit Jahr), wenn das "
+    "treffender ist. NUR wenn selbst Kategorie ODER Datum unbekannt sind, gib null zurück "
+    "— ein deterministischer Fallback übernimmt dann."
 )
 
 _JSON_SCHEMA = {
@@ -397,6 +408,22 @@ async def _apply_extraction_result(db: AsyncSession, receipt: Receipt, data: dic
         receipt.tax_amount = tax_amount
         receipt.ai_suggested_tax_amount = tax_amount
 
+    # Deterministischer Override: die KI hält sich trotz Prompt-Verbot (siehe
+    # _SYSTEM_PROMPT und tax_amount-Schemabeschreibung oben) live nicht zuverlässig daran,
+    # die deutsche MwSt-/USt-Aufschlüsselungstabelle NICHT als tax_amount zu melden (live
+    # an einem echten LIDL-Bon verifiziert). Erkennt die Heuristik die Tabelle UND passt
+    # ihre Brutto-Summe zum bereits ermittelten total_amount, ist bewiesen, dass die dort
+    # ausgewiesene Steuer schon im Gesamtbetrag enthalten ist — tax_amount wird dann
+    # zwingend auf None zurückgesetzt, unabhängig vom KI-Ergebnis. Nur ein noch
+    # unbestätigter Wert wird überschrieben (ai_suggested_tax_amount is not None, gleiches
+    # Herkunfts-Tracking wie überall sonst hier) — ein vom Nutzer bereits bestätigtes
+    # tax_amount bleibt unangetastet.
+    if receipt.ai_suggested_tax_amount is not None and vat_table_gross_matches_total(
+        receipt.ocr_raw_text, receipt.total_amount
+    ):
+        receipt.tax_amount = None
+        receipt.ai_suggested_tax_amount = None
+
     currency = data.get("currency")
     if (
         isinstance(currency, str)
@@ -452,7 +479,7 @@ async def _apply_extraction_result(db: AsyncSession, receipt: Receipt, data: dic
         # bewusst None (siehe Guard oben), zählt aber trotzdem als Erfolg.
         and (bool(receipt.ai_suggested_merchant_name) or receipt.merchant_id is not None)
     )
-    receipt.ai_extracted_at = datetime.now(timezone.utc)
+    receipt.ai_extracted_at = datetime.now(UTC)
     if success:
         receipt.status = ReceiptStatus.PROCESSED
         receipt.ai_extraction_note = None
@@ -509,7 +536,7 @@ async def _finish_needs_review(db: AsyncSession, receipt: Receipt, note: str) ->
     _apply_title_fallback(receipt)
     receipt.status = ReceiptStatus.NEEDS_REVIEW
     receipt.ai_extraction_note = note
-    receipt.ai_extracted_at = datetime.now(timezone.utc)
+    receipt.ai_extracted_at = datetime.now(UTC)
     await db.commit()
 
 

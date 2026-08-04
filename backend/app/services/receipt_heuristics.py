@@ -21,6 +21,25 @@ _AMOUNT_PATTERN = re.compile(r"\d{1,3}(?:\.\d{3})*,\d{2}")
 _EUR_SYMBOL_PATTERN = re.compile(r"€")
 _EUR_CODE_PATTERN = re.compile(r"\bEUR\b", re.IGNORECASE)
 
+# Deutsche Kassenbons weisen praktisch immer eine MwSt-/USt-Aufschlüsselungstabelle aus
+# (Steuersatz % + Netto + Brutto je Steuerklasse, endend in einer Summe-/Gesamt-Zeile) —
+# diese Steuer ist bereits im Gesamtbetrag enthalten, nie zusätzlich. Die KI hält sich
+# trotz expliziter Prompt-Anweisung (siehe ai_extraction.py::_SYSTEM_PROMPT) live nicht
+# zuverlässig daran und setzt tax_amount fälschlich auf die Brutto-Summe dieser Tabelle
+# (live an einem echten LIDL-Bon verifiziert) — dieser deterministische Fallback erkennt
+# das Muster, damit ai_extraction.py das fälschliche tax_amount überschreiben kann.
+_VAT_KEYWORD_PATTERN = re.compile(r"MWST|USt\b", re.IGNORECASE)
+
+# "Summe"/"Gesamt" als Abschlusszeile der Tabelle — bewusst nicht an Zeilenanfang
+# verankert, da OCR führende Leerzeichen/Tabs uneinheitlich erkennt.
+_VAT_SUMMARY_LINE_PATTERN = re.compile(r"SUMME|GESAMT", re.IGNORECASE)
+
+# Wie viele Zeilen vor der Summe-Zeile nach dem MWST-Signalwort gesucht wird — deckt die
+# übliche Kopfzeile ("MWST% MWST + Netto = Brutto") und die Steuersatz-Zeilen davor ab,
+# ohne beliebig weit hochzulaufen und dadurch eine unabhängige Zeile (z.B. eine
+# Artikel-Summenzeile weiter oben auf dem Bon) fälschlich als Teil der Tabelle zu werten.
+_VAT_KEYWORD_LOOKBACK_LINES = 6
+
 
 @dataclass
 class HeuristicResult:
@@ -69,6 +88,43 @@ def _extract_currency(raw_text: str) -> str | None:
     if _EUR_CODE_PATTERN.search(raw_text):
         return "EUR"
     return None
+
+
+def vat_table_gross_matches_total(raw_text: str | None, total_amount: float | None) -> bool:
+    """
+    Erkennt die deutsche MwSt-/USt-Aufschlüsselungstabelle im OCR-Rohtext und prüft, ob
+    ihre Brutto-Summe (dritte Dezimalzahl der Summe-/Gesamt-Zeile: MwSt, Netto, Brutto)
+    zum bereits bekannten total_amount passt (Toleranz 0.01 EUR wegen Rundung). Ein
+    Treffer belegt, dass die dort ausgewiesene Steuer bereits im Gesamtbetrag enthalten
+    ist — genutzt in ai_extraction.py::_apply_extraction_result(), um ein von der KI
+    trotz Prompt-Verbot fälschlich gesetztes tax_amount zu überschreiben.
+    """
+    if not raw_text or total_amount is None:
+        return False
+
+    lines = raw_text.splitlines()
+    for index, line in enumerate(lines):
+        if not _VAT_SUMMARY_LINE_PATTERN.search(line):
+            continue
+        amounts = _AMOUNT_PATTERN.findall(line)
+        if len(amounts) < 3:
+            continue
+
+        lookback_start = max(0, index - _VAT_KEYWORD_LOOKBACK_LINES)
+        context = "\n".join(lines[lookback_start:index])
+        if not _VAT_KEYWORD_PATTERN.search(context):
+            continue
+
+        gross_normalized = amounts[2].replace(".", "").replace(",", ".")
+        try:
+            gross_value = float(gross_normalized)
+        except ValueError:
+            continue
+
+        if abs(gross_value - total_amount) <= 0.01:
+            return True
+
+    return False
 
 
 def extract_receipt_heuristics(raw_text: str | None) -> HeuristicResult:

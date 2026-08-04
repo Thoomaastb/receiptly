@@ -6,7 +6,10 @@ Fällen, in denen bewusst None statt eines geratenen Werts zurückkommen soll.
 
 from datetime import date
 
-from app.services.receipt_heuristics import extract_receipt_heuristics
+from app.services.receipt_heuristics import (
+    extract_receipt_heuristics,
+    vat_table_gross_matches_total,
+)
 
 
 def test_none_input_returns_all_none():
@@ -86,3 +89,48 @@ def test_no_currency_hint_yields_none():
     result = extract_receipt_heuristics("Gesamt: 9,99")
 
     assert result.currency is None
+
+
+# Realer LIDL-Bon (Bug live vom Nutzer gemeldet, 2026-08-02): die KI extrahierte daraus
+# fälschlich tax_amount=5.54 (die Brutto-Summe der MwSt-Tabelle) statt None - die Steuer
+# ist bereits im ausgewiesenen total_amount von 81.77 enthalten.
+_LIDL_RECEIPT_WITH_VAT_TABLE = """
+zu zahlen                              81,77
+Lidl Pay                               81,77
+
+MWST%    MWST  +   Netto  =   Brutto
+A  7 %    5,22      74,52       79,74
+B 19 %    0,32       1,71        2,03
+Summe     5,54      76,23       81,77
+
+Gesamter Preisvorteil
+4,98 EUR gespart
+
+Mit Lidl Plus
+2,98 EUR gespart
+"""
+
+
+def test_vat_table_gross_matches_total_when_summe_line_equals_total_amount():
+    assert vat_table_gross_matches_total(_LIDL_RECEIPT_WITH_VAT_TABLE, 81.77) is True
+
+
+def test_vat_table_gross_matches_total_is_false_when_gross_differs_from_total():
+    # Brutto-Summe der Tabelle (81,77) weicht vom übergebenen total_amount ab - kein Beweis,
+    # dass die Steuer bereits enthalten ist, also lieber nicht überschreiben.
+    assert vat_table_gross_matches_total(_LIDL_RECEIPT_WITH_VAT_TABLE, 99.00) is False
+
+
+def test_vat_table_gross_matches_total_is_false_without_vat_keyword_nearby():
+    # "Summe"-Zeile mit drei Beträgen, aber ohne MWST/USt-Signalwort in der Nähe - z.B.
+    # eine Artikel-Summenzeile weiter oben auf dem Bon, die NICHT gemeint ist.
+    text = "Artikel-Summe   1,00   2,00   3,00"
+    assert vat_table_gross_matches_total(text, 3.00) is False
+
+
+def test_vat_table_gross_matches_total_is_false_for_none_total_amount():
+    assert vat_table_gross_matches_total(_LIDL_RECEIPT_WITH_VAT_TABLE, None) is False
+
+
+def test_vat_table_gross_matches_total_is_false_for_empty_text():
+    assert vat_table_gross_matches_total("", 81.77) is False
