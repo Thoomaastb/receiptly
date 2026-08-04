@@ -1,3 +1,9 @@
+## [0.50.0-rc.18](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.17...v0.50.0-rc.18) (2026-08-04)
+
+### Bug Fixes
+
+* **receipts:** Beleg-Detailansicht bei Pfeil-/Swipe-Navigation sauber remounten ([0c6d783](https://github.com/Thoomaastb/receiptly/commit/0c6d7837b1910755c173ca2b17a0c7a8f05eec2c))
+
 ## [0.50.0-rc.17](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.16...v0.50.0-rc.17) (2026-08-04)
 
 ### Features
