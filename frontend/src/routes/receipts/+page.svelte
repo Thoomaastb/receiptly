@@ -486,47 +486,59 @@
 </script>
 
 {#if openReceipt}
-	<!-- Content-Switch statt Modal, gemäß Mockup: ersetzt die Liste komplett -->
-	<ReceiptDetailView
-		receiptId={openReceipt.id}
-		receiptDate={openReceipt.receipt_date}
-		totalAmount={openReceipt.total_amount}
-		shippingCost={openReceipt.shipping_cost}
-		discountAmount={openReceipt.discount_amount}
-		taxAmount={openReceipt.tax_amount}
-		currency={openReceipt.currency}
-		status={openReceipt.status}
-		merchantName={openReceipt.merchant_name}
-		title={openReceipt.title}
-		category={openReceipt.category}
-		tags={openReceipt.tags}
-		suggestedTags={openReceipt.suggested_tags}
-		ocrRawText={openReceipt.ocr_raw_text}
-		filePath={openReceipt.file_path}
-		isHighValue={openReceipt.is_high_value}
-		warrantyMonths={openReceipt.warranty_months}
-		warrantyExpiresAt={openReceipt.warranty_expires_at}
-		customFields={openReceipt.custom_fields}
-		items={openReceipt.items}
-		aiSuggestedMerchantName={openReceipt.ai_suggested_merchant_name}
-		aiSuggestedTitle={openReceipt.ai_suggested_title}
-		aiSuggestedCategory={openReceipt.ai_suggested_category}
-		aiExtractionNote={openReceipt.ai_extraction_note}
-		aiExtractedAt={openReceipt.ai_extracted_at}
-		aiSuggestedReceiptDate={openReceipt.ai_suggested_receipt_date}
-		aiSuggestedTotalAmount={openReceipt.ai_suggested_total_amount}
-		aiSuggestedCurrency={openReceipt.ai_suggested_currency}
-		aiSuggestedShippingCost={openReceipt.ai_suggested_shipping_cost}
-		aiSuggestedDiscountAmount={openReceipt.ai_suggested_discount_amount}
-		aiSuggestedTaxAmount={openReceipt.ai_suggested_tax_amount}
-		onBack={backToList}
-		onUpdated={handleReceiptUpdated}
-		onDeleted={handleDeleted}
-		hasNewer={adjacentIds?.newer_id != null}
-		hasOlder={adjacentIds?.older_id != null}
-		navigating={navigatingReceipt}
-		onNavigate={navigateReceipt}
-	/>
+	<!-- Content-Switch statt Modal, gemäß Mockup: ersetzt die Liste komplett.
+	     {#key openReceipt.id}: erzwingt einen sauberen Unmount/Remount der Detail-Ansicht bei
+	     JEDEM Beleg-Wechsel (Pfeil-Navigation/Swipe via navigateReceipt(), nicht nur beim
+	     Öffnen aus der Liste) -- ReceiptDetailView.svelte hält mehrere lokale States, die
+	     implizit von receiptId/filePath abhängen (Bild-URL, Zoom/Pan-Startwert, thumbFailed,
+	     Bearbeiten-Entwurf, Artikel-Formulare, aufgeklappte Abschnitte), aber nur teilweise
+	     reaktiv zurückgesetzt werden. Ohne Remount blieb v.a. die Bild-URL dauerhaft auf den
+	     zuerst geöffneten Beleg eingefroren (Props aktualisierten sich, das <img src> nicht) --
+	     live vom Nutzer bestätigt (mehrere LIDL-Belege zeigten alle dasselbe Bild). Der Key
+	     ändert sich NICHT bei reinen Objekt-Refreshes mit gleicher id (Pending-Polling,
+	     handleReceiptUpdated) -- dort bleibt die Instanz bewusst erhalten. -->
+	{#key openReceipt.id}
+		<ReceiptDetailView
+			receiptId={openReceipt.id}
+			receiptDate={openReceipt.receipt_date}
+			totalAmount={openReceipt.total_amount}
+			shippingCost={openReceipt.shipping_cost}
+			discountAmount={openReceipt.discount_amount}
+			taxAmount={openReceipt.tax_amount}
+			currency={openReceipt.currency}
+			status={openReceipt.status}
+			merchantName={openReceipt.merchant_name}
+			title={openReceipt.title}
+			category={openReceipt.category}
+			tags={openReceipt.tags}
+			suggestedTags={openReceipt.suggested_tags}
+			ocrRawText={openReceipt.ocr_raw_text}
+			filePath={openReceipt.file_path}
+			isHighValue={openReceipt.is_high_value}
+			warrantyMonths={openReceipt.warranty_months}
+			warrantyExpiresAt={openReceipt.warranty_expires_at}
+			customFields={openReceipt.custom_fields}
+			items={openReceipt.items}
+			aiSuggestedMerchantName={openReceipt.ai_suggested_merchant_name}
+			aiSuggestedTitle={openReceipt.ai_suggested_title}
+			aiSuggestedCategory={openReceipt.ai_suggested_category}
+			aiExtractionNote={openReceipt.ai_extraction_note}
+			aiExtractedAt={openReceipt.ai_extracted_at}
+			aiSuggestedReceiptDate={openReceipt.ai_suggested_receipt_date}
+			aiSuggestedTotalAmount={openReceipt.ai_suggested_total_amount}
+			aiSuggestedCurrency={openReceipt.ai_suggested_currency}
+			aiSuggestedShippingCost={openReceipt.ai_suggested_shipping_cost}
+			aiSuggestedDiscountAmount={openReceipt.ai_suggested_discount_amount}
+			aiSuggestedTaxAmount={openReceipt.ai_suggested_tax_amount}
+			onBack={backToList}
+			onUpdated={handleReceiptUpdated}
+			onDeleted={handleDeleted}
+			hasNewer={adjacentIds?.newer_id != null}
+			hasOlder={adjacentIds?.older_id != null}
+			navigating={navigatingReceipt}
+			onNavigate={navigateReceipt}
+		/>
+	{/key}
 {:else}
 	<h1 class="mb-6 text-[26px] font-extrabold tracking-tight text-hifi-text">Suche &amp; Filter</h1>
 

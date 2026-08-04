@@ -70,6 +70,16 @@
 	export let navigating: boolean = false;
 	export let onNavigate: ((direction: 'newer' | 'older') => void) | undefined = undefined;
 
+	// Bewusst ein einmalig berechnetes const statt $: -- sicher, WEIL die Elternroute
+	// (routes/receipts/+page.svelte) diese Komponente bei jedem Beleg-Wechsel per
+	// {#key openReceipt.id} unmountet/neu mountet, receiptId sich innerhalb einer Instanz also
+	// nie ändert. Vormals ohne diesen Key ein live bestätigter Bug: fileUrl blieb beim
+	// Pfeil-/Swipe-Wechsel zwischen Belegen auf das Bild des zuerst geöffneten Belegs
+	// eingefroren, da nur Props (nicht die Komponenten-Instanz) aktualisiert wurden. Gilt
+	// ebenso für thumbFailed/zoomLevel/editing/itemsExpanded/... unten -- neuer, von
+	// receiptId/filePath abhängiger lokaler State darf hier als einfaches let/const ohne
+	// manuellen Reset angelegt werden, SOLANGE der {#key}-Remount in der Elternroute bestehen
+	// bleibt.
 	const fileUrl = `/api/receipts/${receiptId}/file`;
 	$: isImageFile = /\.(jpe?g|png)$/i.test(filePath);
 	// GET /thumb liefert 404, wenn kein serverseitiges Thumbnail existiert (alte Belege,
@@ -85,15 +95,6 @@
 	const ZOOM_MAX = 3;
 	const ZOOM_STEP = 0.25;
 	let zoomLevel = 1;
-
-	// Ein anderer Beleg (receiptId wechselt) darf nicht den Zoom-Stand des vorherigen Belegs
-	// übernehmen — sonst öffnet sich der nächste Beleg überraschend schon gezoomt. Der
-	// dynamische Startzoom (siehe applyNativeZoom unten) wird dabei ebenfalls zurückgesetzt,
-	// damit er für den neuen Beleg aus dessen eigener nativer Auflösung neu berechnet wird.
-	$: if (receiptId) {
-		zoomLevel = 1;
-		zoomInitializedFor = null;
-	}
 
 	// Referenz auf das Vorschau-Panel (umschließt Bild + Pill-Menü) als Bezugsgröße für die
 	// "Container-Breite" bei der nativen Zoom-Berechnung unten.
