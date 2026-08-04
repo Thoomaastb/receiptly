@@ -1,3 +1,9 @@
+## [0.50.0-rc.16](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.15...v0.50.0-rc.16) (2026-08-04)
+
+### Bug Fixes
+
+* **receipts:** faelschliches tax_amount aus MwSt-Tabellensumme deterministisch korrigieren ([70d95a8](https://github.com/Thoomaastb/receiptly/commit/70d95a8ce7f3d1567df2b6e2ba2d3695bc01df5e))
+
 ## [0.50.0-rc.15](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.14...v0.50.0-rc.15) (2026-08-02)
 
 ### Features
