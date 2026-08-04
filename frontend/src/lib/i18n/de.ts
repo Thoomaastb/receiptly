@@ -344,7 +344,15 @@ export const de = {
 		emptyState: 'Noch keine KI-Nutzung erfasst.',
 		callCountSingular: 'Aufruf',
 		callCountPlural: 'Aufrufe',
-		unpricedHint: 'Enthält Aufrufe mit unbekannten Modellkosten — Summe ist ein Mindestwert'
+		unpricedHint: 'Enthält Aufrufe mit unbekannten Modellkosten — Summe ist ein Mindestwert',
+		// Zwei separate Sparklines (Tokens/Kosten) oberhalb der Liste, siehe
+		// Sparkline.svelte — bewusst zwei Einzel-Charts statt einem Chart mit
+		// zwei Y-Achsen (Dual-Axis ist laut Dataviz-Konvention ein Anti-Pattern).
+		tokenTrendLabel: 'Tokens',
+		costTrendLabel: 'Kosten',
+		trendSummaryAriaLabel:
+			'{label}-Trend, {start} bis {end}: aktuell {current}, Minimum {min}, Maximum {max}.',
+		trendSummarySingleDayAriaLabel: '{label}-Trend am {date}: {value}.'
 	},
 
 	// DSGVO-Datenexport (Art. 15/20) auf der neuen Settings-Seite "Konto" (v0.36.0)

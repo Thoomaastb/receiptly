@@ -3,7 +3,8 @@
 	import { fade, fly } from 'svelte/transition';
 	import { m } from '$lib/i18n';
 	import { formatDate } from '$lib/formatDate';
-	import { formatTokens, formatCost } from '$lib/formatAiUsage';
+	import { formatTokens, formatCost, formatCostPrecise } from '$lib/formatAiUsage';
+	import Sparkline from './Sparkline.svelte';
 
 	export let onClose: () => void;
 
@@ -18,6 +19,33 @@
 	let history: AiUsageHistoryEntry[] = [];
 	let loading = true;
 	let loadError = '';
+
+	// Baut aus `history` (absteigend, Tage OHNE Aufrufe fehlen komplett in der API-Response)
+	// eine lückenlose, aufsteigend sortierte Tagesreihe für die Sparklines — fehlende Tage
+	// werden explizit mit value=0 aufgefüllt (kein API-Call an diesem Tag = 0 Nutzung an
+	// diesem Tag), statt die vorhandenen Punkte einfach gleichmäßig nebeneinander zu reihen.
+	// So bildet gleichmäßiger Punktabstand automatisch den echten Kalendertag-Abstand ab,
+	// auch über mehrtägige Lücken hinweg, ohne eine eigene Datums-Skala zu brauchen.
+	function buildDailySeries(
+		entries: AiUsageHistoryEntry[],
+		valueOf: (entry: AiUsageHistoryEntry) => number
+	): { date: string; value: number }[] {
+		if (entries.length === 0) return [];
+		const byDate = new Map(entries.map((entry) => [entry.date, valueOf(entry)]));
+		const sortedDates = [...byDate.keys()].sort();
+		const start = new Date(`${sortedDates[0]}T00:00:00Z`).getTime();
+		const end = new Date(`${sortedDates[sortedDates.length - 1]}T00:00:00Z`).getTime();
+		const series: { date: string; value: number }[] = [];
+		const dayMs = 24 * 60 * 60 * 1000;
+		for (let t = start; t <= end; t += dayMs) {
+			const iso = new Date(t).toISOString().slice(0, 10);
+			series.push({ date: iso, value: byDate.get(iso) ?? 0 });
+		}
+		return series;
+	}
+
+	$: tokenSeries = buildDailySeries(history, (entry) => entry.total_tokens);
+	$: costSeries = buildDailySeries(history, (entry) => Number(entry.total_cost_eur));
 
 	async function loadHistory() {
 		loading = true;
@@ -82,6 +110,13 @@
 		{:else if history.length === 0}
 			<p class="text-xs text-hifi-text-muted">{m.aiUsageHistory.emptyState}</p>
 		{:else}
+			<!-- Zwei separate Trendlinien (Tokens/Kosten) statt einem Chart mit zwei Y-Achsen —
+			     Dual-Axis-Charts sind laut Dataviz-Konvention des Projekts ein Anti-Pattern
+			     (irreführende gemeinsame Skala für unterschiedliche Größenordnungen). -->
+			<div class="mb-4 flex flex-col gap-4 border-b border-hifi-border pb-4">
+				<Sparkline data={tokenSeries} label={m.aiUsageHistory.tokenTrendLabel} formatValue={formatTokens} />
+				<Sparkline data={costSeries} label={m.aiUsageHistory.costTrendLabel} formatValue={formatCostPrecise} />
+			</div>
 			<ul class="flex flex-col">
 				{#each history as day (day.date)}
 					<li class="flex items-center justify-between gap-3 border-b border-hifi-border py-2.5 text-xs last:border-0">
