@@ -1,3 +1,9 @@
+## [0.50.0-rc.19](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.18...v0.50.0-rc.19) (2026-08-04)
+
+### Bug Fixes
+
+* **receipts:** Race Condition bei schneller Beleg-Navigation beheben (Stale-Response-Guard) ([aaa07af](https://github.com/Thoomaastb/receiptly/commit/aaa07afd3a9dacd08d1c6369fff8bead167f6208))
+
 ## [0.50.0-rc.18](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.17...v0.50.0-rc.18) (2026-08-04)
 
 ### Bug Fixes
