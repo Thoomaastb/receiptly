@@ -1,3 +1,13 @@
+## [0.50.0-rc.17](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.16...v0.50.0-rc.17) (2026-08-04)
+
+### Features
+
+* **receipts:** Token-/Kosten-Trendlinie im KI-Nutzung-Modal ergänzen ([7ff043f](https://github.com/Thoomaastb/receiptly/commit/7ff043fbcdadf6e95dc91ea2cb9bd65b6c216bc0))
+
+### Bug Fixes
+
+* **receipts:** Artikel-Summen-Toleranz an Artikelanzahl koppeln statt starrem Cent-Wert ([0c476bb](https://github.com/Thoomaastb/receiptly/commit/0c476bb18a035cae8dc2766c61e59acc93815b9b))
+
 ## [0.50.0-rc.16](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.15...v0.50.0-rc.16) (2026-08-04)
 
 ### Bug Fixes
