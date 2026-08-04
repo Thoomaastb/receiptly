@@ -369,17 +369,43 @@
 	let pollHandle: ReturnType<typeof setTimeout> | undefined;
 	let pollAttempts = 0;
 
+	// Stale-Response-Guard gegen Out-of-Order-Races bei schneller Pfeil-/Swipe-Navigation
+	// (live vom Nutzer bestätigt: "zu schnelles Scrollen" zeigt zeitweise falsches
+	// Bild/falsche Daten). Jeder async Pfad, der später openReceipt/adjacentIds reassignt
+	// (openDetail, der Pending-Poll-Timeout-Callback, handleReceiptUpdated, fetchAdjacent),
+	// erfasst beim START seiner Anfrage den aktuellen Wert dieses Zählers und vergleicht ihn
+	// vor jeder Zuweisung erneut damit. openDetail() ist der EINZIGE Pfad, der ihn erhöht --
+	// er markiert "der Nutzer betrachtet jetzt einen anderen Beleg". Ohne das konnte z.B. ein
+	// bereits laufender Poll-Fetch für Beleg A (dessen setTimeout schon gefeuert hatte, bevor
+	// clearTimeout beim Wechsel zu B griff -- clearTimeout kann einen bereits gestarteten
+	// Promise-Chain nicht abbrechen) nach dem Wechsel zu B verspätet auflösen und openReceipt
+	// wieder auf den längst verlassenen Beleg A zurückschreiben ({#key openReceipt.id} in
+	// +page.svelte remountet dann fälschlich zurück auf A). Ebenso konnte das
+	// Fire-and-Forget fetchAdjacent() aus einem älteren openDetail()-Aufruf nach einem
+	// zwischenzeitlichen erneuten Wechsel auflösen und adjacentIds mit den Nachbarn eines
+	// bereits verlassenen Belegs überschreiben, wodurch der nächste Pfeil-Klick zum falschen
+	// Nachbarn navigiert.
+	let openRequestSeq = 0;
+
 	function schedulePendingPoll() {
 		clearTimeout(pollHandle);
 		if (!openReceipt || openReceipt.status !== 'pending' || pollAttempts >= PENDING_POLL_MAX_ATTEMPTS) {
 			return;
 		}
+		// An dieser Stelle "eingefroren" (Beleg, für den gerade gepollt werden soll) --
+		// verglichen wird erst beim tatsächlichen Feuern des Timeouts unten, siehe Kommentar
+		// an openRequestSeq oben.
+		const seq = openRequestSeq;
 		pollHandle = setTimeout(async () => {
-			if (!openReceipt) return;
+			// Zwischenzeitlich weiternavigiert (clearTimeout griff nicht mehr, weil dieser
+			// Callback bereits gestartet war) -- Poll-Ergebnis für einen verlassenen Beleg
+			// verwerfen, statt openReceipt fälschlich zurückzusetzen.
+			if (seq !== openRequestSeq || !openReceipt) return;
 			pollAttempts += 1;
 			const res = await fetch(`/api/receipts/${openReceipt.id}`, { credentials: 'include' });
 			if (!res.ok) return;
 			const updated: ReceiptDetail = await res.json();
+			if (seq !== openRequestSeq) return;
 			const statusChanged = updated.status !== openReceipt.status;
 			openReceipt = updated;
 			// Badges/Filter-Chip ("Prüfung nötig" etc.) in der Liste dahinter aktualisieren,
@@ -399,27 +425,40 @@
 	let navigatingReceipt = false;
 
 	async function fetchAdjacent(receiptId: string, bucketId: string) {
+		// Siehe Kommentar an openRequestSeq oben -- Fire-and-Forget-Aufruf, dessen Antwort
+		// verworfen werden muss, falls inzwischen (out-of-order) zu einem anderen Beleg
+		// gewechselt wurde.
+		const seq = openRequestSeq;
 		try {
 			const res = await fetch(
 				`/api/receipts/${receiptId}/adjacent?bucket_id=${bucketId}`,
 				{ credentials: 'include' }
 			);
-			adjacentIds = res.ok ? await res.json() : null;
+			const data = res.ok ? await res.json() : null;
+			if (seq !== openRequestSeq) return;
+			adjacentIds = data;
 		} catch {
-			adjacentIds = null;
+			if (seq === openRequestSeq) adjacentIds = null;
 		}
 	}
 
 	async function openDetail(id: string) {
+		// Neue "Runde" markieren -- invalidiert jeden noch laufenden Request eines vorherigen
+		// openDetail/fetchAdjacent/Poll-Zyklus (siehe Kommentar an openRequestSeq oben), BEVOR
+		// unten überhaupt gefetcht wird.
+		const seq = ++openRequestSeq;
 		// Alte Nachbar-IDs sofort verwerfen statt bis zur neuen Antwort stehen zu lassen -- sonst
 		// zeigen die Pfeile/die Swipe-Richtung kurzzeitig die Nachbarn des vorherigen Belegs.
 		adjacentIds = null;
 		const res = await fetch(`/api/receipts/${id}`, { credentials: 'include' });
 		if (!res.ok) return;
-		openReceipt = await res.json();
+		const detail: ReceiptDetail = await res.json();
+		// Während dieses Fetches wurde bereits wieder weiternavigiert -- Ergebnis verwerfen.
+		if (seq !== openRequestSeq) return;
+		openReceipt = detail;
 		pollAttempts = 0;
 		schedulePendingPoll();
-		if (openReceipt) fetchAdjacent(openReceipt.id, openReceipt.bucket_id);
+		fetchAdjacent(detail.id, detail.bucket_id);
 	}
 
 	// Für manuelle Klicks aus der Liste (im Gegensatz zum Deep-Link-Effect in onMount) -
@@ -446,6 +485,10 @@
 	}
 
 	function backToList() {
+		// Invalidiert jeden noch laufenden openDetail/fetchAdjacent/Poll-Request (siehe
+		// Kommentar an openRequestSeq oben) -- sonst könnte eine verspätet auflösende Antwort
+		// openReceipt nach dem Schließen der Detailansicht fälschlich wieder befüllen.
+		openRequestSeq++;
 		clearTimeout(pollHandle);
 		openReceipt = null;
 		adjacentIds = null;
@@ -458,6 +501,7 @@
 	onDestroy(() => clearTimeout(pollHandle));
 
 	function handleDeleted() {
+		openRequestSeq++;
 		openReceipt = null;
 		adjacentIds = null;
 		refreshReceipts();
@@ -472,9 +516,14 @@
 	async function handleReceiptUpdated() {
 		refreshReceipts();
 		if (!openReceipt) return;
+		// Siehe Kommentar an openRequestSeq oben -- ändert nicht die "Runde" (derselbe Beleg
+		// bleibt offen), aber falls währenddessen doch weiternavigiert wurde, darf das Ergebnis
+		// dieses Re-Fetches openReceipt nicht mehr zurückschreiben.
+		const seq = openRequestSeq;
 		const res = await fetch(`/api/receipts/${openReceipt.id}`, { credentials: 'include' });
 		if (!res.ok) return;
 		const updated: ReceiptDetail = await res.json();
+		if (seq !== openRequestSeq) return;
 		openReceipt = updated;
 		pollAttempts = 0;
 		schedulePendingPoll();
