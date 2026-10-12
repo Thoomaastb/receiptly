@@ -1,3 +1,9 @@
+## [0.50.0-rc.20](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.19...v0.50.0-rc.20) (2026-10-12)
+
+### Bug Fixes
+
+* **dashboard:** Ladefehler auf der Startseite nicht mehr als leeres Archiv anzeigen und Upload-Fehler verständlich machen ([7566080](https://github.com/Thoomaastb/receiptly/commit/75660806abf30706729d51f5d4844551601adbff))
+
 ## [0.50.0-rc.19](https://github.com/Thoomaastb/receiptly/compare/v0.50.0-rc.18...v0.50.0-rc.19) (2026-08-04)
 
 ### Bug Fixes
