@@ -22,6 +22,9 @@
 
 	let allReceipts: Receipt[] = [];
 	let loading = true;
+	// Ladefehler getrennt vom Leerzustand: ein fehlgeschlagener Abruf darf nie wie ein
+	// leeres Archiv ("Noch keine Belege") aussehen.
+	let loadError = false;
 
 	// GET /thumb liefert 404, wenn kein serverseitiges Thumbnail existiert (alte Belege,
 	// fehlgeschlagene Generierung) — der Browser feuert dann on:error auf dem <img>, und wir
@@ -38,9 +41,15 @@
 	const thumbHeights = [92, 140, 110, 160, 100, 128];
 
 	async function loadReceipts() {
+		loading = true;
+		loadError = false;
 		try {
 			const res = await fetch('/api/receipts', { credentials: 'include' });
-			if (res.ok) allReceipts = await res.json();
+			if (!res.ok) throw new Error(`HTTP ${res.status}`);
+			allReceipts = await res.json();
+		} catch (err) {
+			console.error('Belege konnten nicht geladen werden:', err);
+			loadError = true;
 		} finally {
 			loading = false;
 		}
@@ -127,6 +136,35 @@
 	</button>
 </div>
 
+{#if loadError}
+	<div
+		role="alert"
+		class="mb-9 flex flex-col gap-3 rounded-[14px] border border-danger-border bg-danger-bg p-4 sm:flex-row sm:items-center sm:justify-between"
+	>
+		<div class="flex items-start gap-3">
+			<svg class="mt-0.5 flex-none text-danger" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+				<circle cx="12" cy="12" r="9" />
+				<path d="M12 7.5v5.5M12 16.5v.01" />
+			</svg>
+			<div>
+				<p class="text-sm font-semibold text-hifi-text">Belege konnten nicht geladen werden.</p>
+				<p class="mt-0.5 text-sm text-hifi-text-muted">
+					{allReceipts.length > 0
+						? 'Die Anzeige ist möglicherweise nicht aktuell. Deine Belege sind nicht verloren.'
+						: 'Deine Belege sind nicht verloren. Prüfe die Verbindung und versuch es erneut.'}
+				</p>
+			</div>
+		</div>
+		<button
+			on:click={loadReceipts}
+			disabled={loading}
+			class="min-h-11 flex-none rounded-[10px] border border-hifi-border bg-hifi-surface px-4 text-sm font-semibold text-hifi-text transition-[background-color,transform] hover:bg-hifi-accent-tint hover:text-hifi-accent-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hifi-accent focus-visible:ring-offset-2 focus-visible:ring-offset-danger-bg active:scale-[0.98] disabled:opacity-50"
+		>
+			{loading ? 'Wird geladen …' : 'Erneut versuchen'}
+		</button>
+	</div>
+{/if}
+
 {#if totalCount > 0}
 	<div class="mb-9 grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
 		<div class="rounded-2xl border border-hifi-border bg-hifi-surface px-[22px] py-5">
@@ -146,15 +184,19 @@
 	</div>
 {/if}
 
-<div class="mb-4 flex items-baseline justify-between">
-	<div class="text-[15.5px] font-bold text-hifi-text">Zuletzt hinzugefügt</div>
-	{#if recentReceipts.length > 0}
-		<button on:click={goToReceipts} class="text-[13px] font-semibold text-hifi-accent">Alle anzeigen</button>
-	{/if}
-</div>
+{#if !(loadError && allReceipts.length === 0)}
+	<div class="mb-4 flex items-baseline justify-between">
+		<div class="text-[15.5px] font-bold text-hifi-text">Zuletzt hinzugefügt</div>
+		{#if recentReceipts.length > 0}
+			<button on:click={goToReceipts} class="text-[13px] font-semibold text-hifi-accent">Alle anzeigen</button>
+		{/if}
+	</div>
+{/if}
 
-{#if loading}
+{#if loading && allReceipts.length === 0}
 	<p class="text-sm text-hifi-text-muted">Wird geladen …</p>
+{:else if loadError && allReceipts.length === 0}
+	<!-- Bewusst kein Leerzustand: siehe Fehler-Hinweis oben. -->
 {:else if recentReceipts.length === 0}
 	<button
 		on:click={() => openUpload('file')}

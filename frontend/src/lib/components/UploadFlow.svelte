@@ -239,6 +239,26 @@
 		}
 	}
 
+	// Statuscodes von POST /api/receipts/upload in Klartext mit Handlungshinweis übersetzen.
+	function uploadErrorMessage(status: number): string {
+		switch (status) {
+			case 401:
+				return 'Deine Sitzung ist abgelaufen. Melde dich erneut an und lade den Beleg dann hoch.';
+			case 403:
+				return 'Du hast in diesem Bucket kein Schreibrecht. Wähle einen anderen Bucket.';
+			case 413:
+				return 'Die Datei ist zu groß (maximal 25 MB). Verkleinere sie oder fotografiere den Bon neu.';
+			case 415:
+				return 'Dieser Dateityp wird nicht unterstützt. Erlaubt sind PDF, JPG und PNG.';
+			case 429:
+				return 'Zu viele Uploads in kurzer Zeit. Warte einen Moment und versuch es erneut.';
+			default:
+				return status >= 500
+					? `Der Server konnte den Beleg gerade nicht speichern (Fehler ${status}). Versuch es gleich noch einmal.`
+					: `Upload fehlgeschlagen (Fehler ${status}). Versuch es erneut.`;
+		}
+	}
+
 	function uploadWithProgress(formData: FormData): Promise<void> {
 		return new Promise((resolve, reject) => {
 			const xhr = new XMLHttpRequest();
@@ -254,10 +274,11 @@
 				if (xhr.status >= 200 && xhr.status < 300) {
 					resolve();
 				} else {
-					reject(new Error(`Upload fehlgeschlagen (${xhr.status})`));
+					reject(new Error(uploadErrorMessage(xhr.status)));
 				}
 			};
-			xhr.onerror = () => reject(new Error('Netzwerkfehler beim Upload.'));
+			xhr.onerror = () =>
+				reject(new Error('Keine Verbindung zum Server. Prüfe dein Netz und versuch es erneut, die Aufnahme bleibt erhalten.'));
 			xhr.send(formData);
 		});
 	}
@@ -383,7 +404,7 @@
 		{:else if stage === 'done'}
 			<p class="text-sm text-hifi-accent-text">Beleg erfolgreich hochgeladen.</p>
 		{:else if stage === 'error'}
-			<p class="text-sm text-danger">{errorMessage}</p>
+			<p role="alert" class="text-sm text-danger">{errorMessage}</p>
 		{/if}
 
 		{#if cropDetectionNotice}
